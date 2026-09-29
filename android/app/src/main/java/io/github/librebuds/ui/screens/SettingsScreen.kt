@@ -11,11 +11,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.librebuds.BuildConfig
 import io.github.librebuds.R
+import io.github.librebuds.beacon.LastBeacon
+import io.github.librebuds.popup.ArtVariant
 import io.github.librebuds.ui.components.StyledList
 import io.github.librebuds.ui.components.StyledListItem
 import io.github.librebuds.ui.components.StyledScaffold
 import io.github.librebuds.ui.components.StyledToggle
 import io.github.librebuds.ui.theme.DesignSystem
+import java.text.DateFormat
+import java.util.Date
 
 @Composable
 fun SettingsScreen(
@@ -29,6 +33,10 @@ fun SettingsScreen(
     onPopupEnabledChange: (Boolean) -> Unit,
     demoMode: Boolean,
     onDemoModeChange: (Boolean) -> Unit,
+    artVariant: ArtVariant,
+    onArtVariantChange: (ArtVariant) -> Unit,
+    lastBeacon: LastBeacon?,
+    onShowTestPopup: () -> Unit,
     onExportDiagnostics: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -69,6 +77,25 @@ fun SettingsScreen(
                         label = stringResource(R.string.demo_mode),
                         checked = demoMode,
                         onCheckedChange = onDemoModeChange
+                    )
+                    StyledToggle(
+                        label = stringResource(R.string.popup_art_variant),
+                        checked = artVariant == ArtVariant.VIDEO,
+                        onCheckedChange = { onArtVariantChange(if (it) ArtVariant.VIDEO else ArtVariant.VECTOR) }
+                    )
+                    StyledListItem(
+                        name = stringResource(R.string.show_test_popup),
+                        onClick = onShowTestPopup
+                    )
+                    StyledListItem(
+                        name = stringResource(R.string.last_beacon),
+                        description = lastBeacon?.let {
+                            val model = it.modelId ?: "?"
+                            val sub = it.subModelId?.toString() ?: "?"
+                            val reference = it.referenceRssi?.toString() ?: "?"
+                            val time = DateFormat.getDateTimeInstance().format(Date(it.atMillis))
+                            "model $model (sub $sub), RSSI ${it.rssi} dBm (ref $reference)\n$time\n${it.serviceDataHex}"
+                        } ?: stringResource(R.string.last_beacon_empty)
                     )
                 }
                 StyledListItem(

@@ -9,9 +9,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.companion.AssociationStore
 import io.github.librebuds.popup.PopupPresenter
+import io.github.librebuds.popup.PopupVideos
+import io.github.librebuds.popup.artFor
+import io.github.librebuds.popup.demoPopupModel
 import io.github.librebuds.companion.Stored
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.ui.screens.AddDeviceScreen
@@ -46,6 +50,7 @@ fun AppRoot(
     var popupEnabled by remember { mutableStateOf(preferences.popupEnabled) }
     val context = LocalContext.current
     var demoMode by remember { mutableStateOf(preferences.demoMode) }
+    var artVariant by remember { mutableStateOf(preferences.artVariant) }
     var stored by remember { mutableStateOf(associationStore.primary()) }
 
     LibreBudsTheme(m3eEnabled = designSystem == DesignSystem.Material) {
@@ -101,6 +106,19 @@ fun AppRoot(
                     onDemoModeChange = {
                         demoMode = it
                         preferences.demoMode = it
+                    },
+                    artVariant = artVariant,
+                    onArtVariantChange = {
+                        artVariant = it
+                        preferences.artVariant = it
+                    },
+                    // Read fresh every time Settings is entered, since BeaconReceiver writes it outside Compose.
+                    lastBeacon = preferences.lastBeacon,
+                    onShowTestPopup = {
+                        val app = LibreBudsApp.from(context)
+                        demoPopupModel(app.registry)?.let { model ->
+                            PopupPresenter.show(app, model, artFor(model.art, preferences.artVariant, PopupVideos.map()))
+                        }
                     },
                     onExportDiagnostics = onExportDiagnostics,
                     onNavigateBack = { screen = DEVICE }

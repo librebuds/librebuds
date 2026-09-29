@@ -4,10 +4,18 @@ LibreBuds brings earbud features to phones and PCs from other vendors: battery l
 noise control, multipoint and per-model settings, plus a popup when you open the case.
 No root, no vendor app.
 
-Status: The Android app connects to FreeBuds over Bluetooth (battery, noise control, quick settings tile, widgets). Case-open popup and full per-model settings are next.
+Status: The Android app connects to FreeBuds over Bluetooth (battery, noise control, quick settings tile,
+widgets) and shows a popup when the case opens nearby, with vector or AI-generated video artwork per
+model. Full per-model settings are next.
 
-See [docs/devices.md](docs/devices.md) for per-model support and
-[docs/protocol](docs/protocol) for the wire formats.
+See [docs/devices.md](docs/devices.md) for per-model support,
+[docs/protocol](docs/protocol) for the wire formats, and
+[docs/testing/m3-device-checklist.md](docs/testing/m3-device-checklist.md) for the case-open popup
+device checklist.
+
+Debug builds add a Settings section to test the popup without real hardware: a "Popup artwork" switch
+between the vector drawing (variant A) and the generated video clip (variant B, round-shaped models
+only), a "Show test popup" button, and a "Last beacon" row with the most recently parsed beacon.
 
 ## Build the app
 

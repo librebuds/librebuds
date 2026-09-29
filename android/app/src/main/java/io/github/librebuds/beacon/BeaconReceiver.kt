@@ -10,8 +10,8 @@ import android.os.ParcelUuid
 import android.util.Log
 import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.companion.AssociationStore
-import io.github.librebuds.popup.ArtVariant
 import io.github.librebuds.popup.PopupPresenter
+import io.github.librebuds.popup.PopupVideos
 import io.github.librebuds.popup.artFor
 import io.github.librebuds.popup.popupModel
 import io.github.librebuds.protocol.beacon.FdeeBeacon
@@ -36,10 +36,14 @@ class BeaconReceiver : BroadcastReceiver() {
         val app = LibreBudsApp.from(context)
         val preferences = AppPreferences(context)
         val associated = associatedProfile(context, app.registry)
+        val rawResults = results.map { RawSighting(it.device.address, it.rssi, it.scanRecord?.getServiceData(FDEE)) }
+        // Wall clock, like the stored cooldown; the results' own timestamps are elapsed realtime.
+        val now = System.currentTimeMillis()
+        // Every parsed beacon, not just ones that show a popup: unknown or far-away devices still update it.
+        lastBeaconOf(rawResults, now)?.let { preferences.lastBeacon = it }
         val verdicts = judgeBatch(
-            results = results.map { RawSighting(it.device.address, it.rssi, it.scanRecord?.getServiceData(FDEE)) },
-            // Wall clock, like the stored cooldown; the results' own timestamps are elapsed realtime.
-            now = System.currentTimeMillis(),
+            results = rawResults,
+            now = now,
             rules = rules,
             registry = app.registry,
             associatedModelIds = associated?.match?.modelId?.toSet() ?: emptySet(),
@@ -50,7 +54,7 @@ class BeaconReceiver : BroadcastReceiver() {
             val beacon = verdict.sighting.beacon
             val matched = app.registry.match(modelId = beacon.modelId)
             val profile = if (matched.id == ProfileRegistry.GENERIC.id) associated ?: matched else matched
-            PopupPresenter.show(app, popupModel(beacon, profile), artFor(profile.art, ArtVariant.VECTOR, emptyMap()))
+            PopupPresenter.show(app, popupModel(beacon, profile), artFor(profile.art, preferences.artVariant, PopupVideos.map()))
             preferences.markPopupShown(cooldownKey(beacon), verdict.sighting.atMillis)
         }
     }

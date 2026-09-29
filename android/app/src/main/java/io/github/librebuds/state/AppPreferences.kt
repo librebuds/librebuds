@@ -3,8 +3,10 @@ package io.github.librebuds.state
 
 import android.content.Context
 import androidx.core.content.edit
+import io.github.librebuds.beacon.LastBeacon
 import io.github.librebuds.beacon.PopupTimes
 import io.github.librebuds.beacon.ScanMarker
+import io.github.librebuds.popup.ArtVariant
 import io.github.librebuds.ui.theme.DesignSystem
 
 class AppPreferences(context: Context) {
@@ -54,4 +56,15 @@ class AppPreferences(context: Context) {
     var scanMarker: ScanMarker?
         get() = ScanMarker.decode(prefs.getString("scan_marker", null))
         set(value) = prefs.edit { if (value == null) remove("scan_marker") else putString("scan_marker", value.encode()) }
+
+    /** Which popup artwork to show; the Settings toggle for this is debug-only, so release users stay on the default. */
+    var artVariant: ArtVariant
+        get() = runCatching { ArtVariant.valueOf(prefs.getString("art_variant", ArtVariant.VECTOR.name)!!) }
+            .getOrDefault(ArtVariant.VECTOR)
+        set(value) = prefs.edit { putString("art_variant", value.name) }
+
+    /** The most recently parsed case-open beacon, for the Settings "Last beacon" debug row; null before any scan result. */
+    var lastBeacon: LastBeacon?
+        get() = LastBeacon.decode(prefs.getString("last_beacon", null))
+        set(value) = prefs.edit { if (value == null) remove("last_beacon") else putString("last_beacon", value.encode()) }
 }

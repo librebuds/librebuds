@@ -71,4 +71,8 @@
     <string name="percent">%1$d%%</string>
     <string name="battery_unknown">--</string>
     <string name="popup_battery">%1$s %2$s</string>
+    <string name="popup_art_variant">Popup artwork: video clip</string>
+    <string name="show_test_popup">Show test popup</string>
+    <string name="last_beacon">Last beacon</string>
+    <string name="last_beacon_empty">No beacon parsed yet</string>
 </resources>
