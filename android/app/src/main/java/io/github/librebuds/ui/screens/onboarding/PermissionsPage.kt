@@ -40,6 +40,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,7 +53,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.shouldShowRationale
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.librebuds.R
@@ -78,6 +81,8 @@ fun rememberPermissionRequests(): PermissionRequests {
         listOf(OnboardingState.BLUETOOTH_CONNECT, OnboardingState.BLUETOOTH_SCAN)
     )
     val notificationState = rememberMultiplePermissionsState(listOf(OnboardingState.POST_NOTIFICATIONS))
+    // Permission keys already requested once; before the first request shouldShowRationale is false too.
+    var requested by rememberSaveable { mutableStateOf(listOf<String>()) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -96,13 +101,34 @@ fun rememberPermissionRequests(): PermissionRequests {
         .toSet()
     val items = OnboardingState.items(Build.VERSION.SDK_INT, granted, canDrawOverlays)
 
+    fun requestOrOpenSettings(state: MultiplePermissionsState, key: String) {
+        val permission = state.permissions.firstOrNull { it.permission == key }
+        val blocked = key in requested && permission != null &&
+            !permission.status.isGranted && !permission.status.shouldShowRationale
+        if (blocked) {
+            // Android no longer shows the dialog; the user can only grant it in the app's settings.
+            openAppDetailsSettings(context)
+        } else {
+            requested = (requested + state.permissions.map { it.permission }).distinct()
+            state.launchMultiplePermissionRequest()
+        }
+    }
+
     return PermissionRequests(items) { item ->
         when (item.key) {
-            OnboardingState.BLUETOOTH_CONNECT, OnboardingState.BLUETOOTH_SCAN -> bluetoothState.launchMultiplePermissionRequest()
-            OnboardingState.POST_NOTIFICATIONS -> notificationState.launchMultiplePermissionRequest()
+            OnboardingState.BLUETOOTH_CONNECT, OnboardingState.BLUETOOTH_SCAN -> requestOrOpenSettings(bluetoothState, item.key)
+            OnboardingState.POST_NOTIFICATIONS -> requestOrOpenSettings(notificationState, item.key)
             OnboardingState.OVERLAY -> openOverlaySettings(context)
         }
     }
+}
+
+private fun openAppDetailsSettings(context: Context) {
+    val intent = Intent(
+        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+        "package:${context.packageName}".toUri()
+    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(intent)
 }
 
 private fun openOverlaySettings(context: Context) {
@@ -164,7 +190,7 @@ private fun StyledListScope.PermissionRow(
             ) {
                 Icon(
                     imageVector = text.icon,
-                    contentDescription = title,
+                    contentDescription = null,
                     modifier = Modifier.size(24.dp),
                     tint = iconColor
                 )
