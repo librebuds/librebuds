@@ -313,4 +313,17 @@ class BudsControllerTest {
         c.connect("BB", "y")
         assertEquals(null, c.state.value.battery)
     }
+
+    // Task 6 review #1: carried-over values are cleared when the connected session cannot read them.
+    @Test
+    fun failedReadsOnAConnectedSessionClearCarriedOverValues() = runTest {
+        val battery = BatteryState(50, 50, 50, 50, false, false, false)
+        val restored = BudsState(address = "AA", battery = battery, anc = AncState(1, 3), updatedAtMillis = 42)
+        val earbuds = FakeEarbuds(ignoreReads = setOf("01/08", "2B/2A"))
+        val c = BudsController(LinkFactory { earbuds.link() }, registry, backgroundScope, initial = restored)
+        c.connect("AA", "x")
+        assertEquals(LinkState.CONNECTED, c.state.value.link)
+        assertEquals(null, c.state.value.battery)
+        assertEquals(null, c.state.value.anc)
+    }
 }

@@ -156,14 +156,16 @@ class BudsController(
             )
         }
 
+        // A value carried over from before this session must not pass for a live one: a read that
+        // fails on the connected session clears it.
         val batteryResult = current.request(Battery.request())
         if (!isCurrent(current, myGeneration)) return@withLock
-        batteryResult.onSuccess(::applyPacket)
+        batteryResult.onSuccess(::applyPacket).onFailure { mutable.update { it.copy(battery = null) } }
 
         if (profile.supports("anc")) {
             val ancResult = current.request(Anc.readRequest())
             if (!isCurrent(current, myGeneration)) return@withLock
-            ancResult.onSuccess(::applyPacket)
+            ancResult.onSuccess(::applyPacket).onFailure { mutable.update { it.copy(anc = null) } }
         }
 
         readSettings(current, myGeneration)
