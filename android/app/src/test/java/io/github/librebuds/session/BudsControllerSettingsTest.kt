@@ -296,8 +296,7 @@ class BudsControllerSettingsTest {
         val earbuds = FakeEarbuds(wear = true)
         val c = controller(earbuds)
         c.connect("AA", "x")
-        // The write is sent now (its read-back stays silent on this fake, so it is not confirmed).
-        assertFalse(c.apply(SettingChange.Wear(false)).exceptionOrNull() is SettingUnavailableException)
+        assertTrue(c.apply(SettingChange.Wear(false)).isSuccess)
         assertFalse(earbuds.wear)
         assertEquals(false, c.state.value.settings.wearDetection)
     }

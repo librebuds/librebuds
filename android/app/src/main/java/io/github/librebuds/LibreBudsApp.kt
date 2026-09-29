@@ -85,7 +85,7 @@ class LibreBudsApp : Application() {
     /**
      * Saves the controller's state (never the demo data) once it has been stable for a second,
      * so the next process starts from the last known values and a take-over outlives a restart.
-     * Only changes to the stored part count: settings or host updates do not restart the wait.
+     * Identical stored values are skipped; most updates still count because they refresh the timestamp.
      */
     @OptIn(FlowPreview::class)
     private fun persistState(store: StateStore, bootCount: Int?) {
