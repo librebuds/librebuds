@@ -2,12 +2,14 @@
 package io.github.librebuds.session
 
 import io.github.librebuds.bt.LinkFactory
+import io.github.librebuds.protocol.CommandId
 import io.github.librebuds.protocol.Packet
 import io.github.librebuds.protocol.command.Gesture
 import io.github.librebuds.protocol.command.HostAction
 import io.github.librebuds.protocol.frame.FrameReassembler
 import io.github.librebuds.protocol.frame.RxEvent
 import io.github.librebuds.protocol.profile.ProfileRegistry
+import io.github.librebuds.protocol.tlv.Tlv
 import io.github.librebuds.state.LinkState
 import io.github.librebuds.state.SettingChange
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -190,6 +192,28 @@ class BudsControllerSettingsTest {
         assertEquals(before, testScheduler.currentTime)
     }
 
+    // Final review I4: an answer that arrives after its read timed out makes the setting available again.
+    @Test
+    fun lateAnswerClearsUnanswered() = runTest {
+        val earbuds = FakeEarbuds(wear = true, ignoreReads = setOf("2B/11", "01/20"))
+        val links = mutableListOf<FakeLink>()
+        val c = controller(earbuds, links)
+        c.connect("AA", "x")
+        assertEquals(setOf("wear", "gestures.doubleTap"), c.state.value.settings.unanswered)
+
+        val link = links.single()
+        link.deliver(Packet(CommandId(0x2B, 0x11), listOf(Tlv.of(1, 1))).toFrame())
+        link.deliver(Packet(CommandId(0x01, 0x20), listOf(Tlv.of(1, 2), Tlv.of(2, 1))).toFrame())
+        runCurrent()
+        val settings = c.state.value.settings
+        assertEquals(emptySet<String>(), settings.unanswered)
+        assertEquals(true, settings.wearDetection)
+        assertEquals(2, settings.gestures.getValue(Gesture.DOUBLE_TAP).left)
+        // The write is sent now (its read-back stays silent on this fake, so it is not confirmed).
+        assertFalse(c.apply(SettingChange.Wear(false)).exceptionOrNull() is SettingUnavailableException)
+        assertFalse(earbuds.wear)
+    }
+
     @Test
     fun emptyHostRefreshKeepsKnownHosts() = runTest {
         val earbuds = FakeEarbuds(sku = "BTFT0030", hosts = twoHosts())
@@ -260,7 +284,8 @@ class BudsControllerSettingsTest {
         val earbuds = FakeEarbuds(wear = true)
         val c = controller(earbuds)
         c.connect("AA", "x")
-        assertTrue(c.apply(SettingChange.Wear(false)).isSuccess)
+        // The write is sent now (its read-back stays silent on this fake, so it is not confirmed).
+        assertFalse(c.apply(SettingChange.Wear(false)).exceptionOrNull() is SettingUnavailableException)
         assertFalse(earbuds.wear)
         assertEquals(false, c.state.value.settings.wearDetection)
     }

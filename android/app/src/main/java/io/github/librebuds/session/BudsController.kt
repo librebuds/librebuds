@@ -410,18 +410,22 @@ class BudsController(
     private fun applyPacket(packet: Packet) {
         Battery.parse(packet)?.let { battery -> mutable.update { it.copy(battery = battery, updatedAtMillis = clock()) } }
         Anc.parseState(packet)?.let { anc -> mutable.update { it.copy(anc = anc, updatedAtMillis = clock()) } }
-        WearDetection.parse(packet)?.let { on -> updateSettings { it.copy(wearDetection = on) } }
+        WearDetection.parse(packet)?.let { on -> updateSettings("wear") { it.copy(wearDetection = on) } }
         WearDetection.parseInEar(packet)?.let { inEar -> mutable.update { it.copy(inEar = inEar, updatedAtMillis = clock()) } }
-        for (gesture in Gesture.entries) {
+        for ((subKey, gesture) in GESTURE_SUB_KEYS) {
             Gestures.parse(gesture, packet)
                 ?.takeIf { it.left != null || it.right != null || it.inCall != null }
-                ?.let { setting -> updateSettings { it.copy(gestures = it.gestures + (gesture to setting)) } }
+                ?.let { setting -> updateSettings(gestureKey(subKey)) { it.copy(gestures = it.gestures + (gesture to setting)) } }
         }
-        Equalizer.parse(packet)?.let { eq -> updateSettings { it.copy(equalizer = eq) } }
-        LowLatency.parse(packet)?.let { on -> updateSettings { it.copy(lowLatency = on) } }
-        SoundQuality.parse(packet)?.let { value -> updateSettings { it.copy(soundQuality = value) } }
-        VoiceLanguage.parse(packet)?.let { language -> updateSettings { it.copy(language = language) } }
-        Multipoint.parseToggle(packet)?.let { on -> mutable.update { it.copy(multipointEnabled = on, updatedAtMillis = clock()) } }
+        Equalizer.parse(packet)?.let { eq -> updateSettings("equalizer") { it.copy(equalizer = eq) } }
+        LowLatency.parse(packet)?.let { on -> updateSettings("lowLatency") { it.copy(lowLatency = on) } }
+        SoundQuality.parse(packet)?.let { value -> updateSettings("soundQuality") { it.copy(soundQuality = value) } }
+        VoiceLanguage.parse(packet)?.let { language -> updateSettings("language") { it.copy(language = language) } }
+        Multipoint.parseToggle(packet)?.let { on ->
+            mutable.update {
+                it.copy(multipointEnabled = on, settings = it.settings.answered("multipoint"), updatedAtMillis = clock())
+            }
+        }
         Multipoint.parseRow(packet)?.let { row ->
             hostCollector.add(row)?.let { hosts ->
                 mutable.update { it.copy(hosts = hosts, updatedAtMillis = clock()) }
@@ -434,9 +438,18 @@ class BudsController(
         }
     }
 
-    private fun updateSettings(change: (DeviceSettings) -> DeviceSettings) {
-        mutable.update { it.copy(settings = change(it.settings), updatedAtMillis = clock()) }
+    /**
+     * Applies [change] to the settings. [answered] is the key of the setting whose value just
+     * arrived: a reply that comes in after its read timed out still makes the setting available.
+     */
+    private fun updateSettings(answered: String? = null, change: (DeviceSettings) -> DeviceSettings) {
+        mutable.update {
+            val next = change(it.settings)
+            it.copy(settings = if (answered == null) next else next.answered(answered), updatedAtMillis = clock())
+        }
     }
+
+    private fun DeviceSettings.answered(key: String) = if (key in unanswered) copy(unanswered = unanswered - key) else this
 
     /** True while [current] is still the session [connect] should be allowed to publish state for. */
     private fun isCurrent(current: DeviceSession, myGeneration: Int): Boolean =
