@@ -8,6 +8,7 @@ import io.github.librebuds.session.AncRejectedException
 import io.github.librebuds.session.NotConnectedException
 import io.github.librebuds.session.RequestTimeoutException
 import io.github.librebuds.session.SessionClosedException
+import io.github.librebuds.session.SettingUnavailableException
 import io.github.librebuds.state.BudsRepository
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.LinkError
@@ -46,7 +47,7 @@ private fun LinkError.toUiError(): UiError = when (this) {
 private fun Throwable.toUiError(): UiError = when (this) {
     is AncRejectedException -> UiError.REJECTED
     is NotConnectedException -> UiError.NOT_CONNECTED
-    is RequestTimeoutException, is SessionClosedException -> UiError.NO_REPLY
+    is RequestTimeoutException, is SessionClosedException, is SettingUnavailableException -> UiError.NO_REPLY
     else -> UiError.UNKNOWN
 }
 

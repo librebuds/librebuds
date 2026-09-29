@@ -7,7 +7,11 @@ import io.github.librebuds.protocol.command.GestureSetting
 import io.github.librebuds.protocol.command.HostAction
 import io.github.librebuds.protocol.command.LanguageInfo
 
-/** Per-model settings as last read from the device. Null (or empty) means not supported or not reported yet. */
+/**
+ * Per-model settings as last read from the device. Null (or empty) means not supported or not reported yet.
+ * [unanswered] holds the capability keys whose read timed out this session (`wear`, `equalizer`,
+ * `gestures.doubleTap`, ...); the UI hides those and the repository refuses changes to them.
+ */
 data class DeviceSettings(
     val wearDetection: Boolean? = null,
     val gestures: Map<Gesture, GestureSetting> = emptyMap(),
@@ -15,6 +19,7 @@ data class DeviceSettings(
     val lowLatency: Boolean? = null,
     val soundQuality: Int? = null,
     val language: LanguageInfo? = null,
+    val unanswered: Set<String> = emptySet(),
 )
 
 /** One requested settings change; the repository confirms it by reading the setting back. */

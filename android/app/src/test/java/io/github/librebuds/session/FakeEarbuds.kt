@@ -20,7 +20,11 @@ data class FakeHost(val mac: String, val name: String, var state: Int, var prefe
  * [acceptModes] lists mode codes the device applies; other ANC writes are acknowledged and ignored.
  * [ignoreWrites] lists command ids (for example `"01/1F"`) the device acknowledges but does not apply.
  * [hosts] are answered one `2B/31` row per host, last index first so the controller has to sort;
- * [hostRowLimit] caps how many of those rows are sent.
+ * [hostRowLimit] caps how many of those rows are sent; [reportAutoConnect] = false leaves TLV 8 out of them.
+ * [ignoreReads] lists command ids the device never answers (the request is still recorded).
+ * [lowLatencyAckLive] picks the low-latency write ack: the live value on TLV 2 (true) or a TLV 2 = 0
+ * status (false), since which one the real device sends is unknown.
+ * [onRequest] sees every decoded request id, in order.
  */
 class FakeEarbuds(
     var sku: String = "BTFT0020",
@@ -41,6 +45,10 @@ class FakeEarbuds(
     val hosts: MutableList<FakeHost> = mutableListOf(),
     var hostRowLimit: Int = Int.MAX_VALUE,
     val ignoreWrites: Set<String> = emptySet(),
+    val ignoreReads: Set<String> = emptySet(),
+    var lowLatencyAckLive: Boolean = true,
+    var reportAutoConnect: Boolean = true,
+    var onRequest: (String) -> Unit = {},
 ) {
     private val reassembler = FrameReassembler()
 
@@ -48,12 +56,16 @@ class FakeEarbuds(
 
     fun ancPush(): ByteArray = Packet(CommandId(0x2B, 0x2A), listOf(Tlv.of(1, ancLevel, ancMode))).toFrame()
 
+    fun inEarPush(inEar: Boolean): ByteArray = Packet(CommandId(0x2B, 0x03), listOf(Tlv.of(8, if (inEar) 1 else 0))).toFrame()
+
     fun hostChangePush(): ByteArray = Packet(CommandId(0x2B, 0x36), listOf(Tlv.of(1, 1))).toFrame()
 
     private fun answer(bytes: ByteArray): List<ByteArray> {
         if (silent) return emptyList()
         return reassembler.feed(bytes).filterIsInstance<RxEvent.Payload>().mapNotNull { Packet.fromPayload(it.bytes) }.flatMap { request ->
             val id = request.id.toString()
+            onRequest(id)
+            if (id in ignoreReads) return@flatMap emptyList()
             val apply = id !in ignoreWrites
             answerOne(request, id, apply).map { it.toFrame() }
         }
@@ -99,8 +111,10 @@ class FakeEarbuds(
             }
             "2B/6C" -> {
                 // One command both ways: a write carries a value on TLV 1, a read only asks for TLV 2.
-                if (apply) request.byte(1)?.let { lowLatency = it != 0 }
-                listOf(Packet(request.id, listOf(Tlv.of(2, if (lowLatency) 1 else 0))))
+                val write = request.byte(1)
+                if (apply) write?.let { lowLatency = it != 0 }
+                val value = if (write != null && !lowLatencyAckLive) 0 else if (lowLatency) 1 else 0
+                listOf(Packet(request.id, listOf(Tlv.of(2, value))))
             }
             "2B/A3" -> listOf(Packet(request.id, listOf(Tlv.of(2, soundQuality))))
             "2B/A2" -> {
@@ -146,8 +160,7 @@ class FakeEarbuds(
                 Tlv(9, host.name.toByteArray()),
                 Tlv.of(5, host.state),
                 Tlv.of(7, if (host.preferred) 1 else 0),
-                Tlv.of(8, if (host.autoConnect) 1 else 0),
-            ),
+            ) + if (reportAutoConnect) listOf(Tlv.of(8, if (host.autoConnect) 1 else 0)) else emptyList(),
         )
     }.take(hostRowLimit).reversed()
 

@@ -52,6 +52,9 @@ import java.util.concurrent.atomic.AtomicInteger
 /** The device acknowledged a write but a read-back shows it did not apply it (noise control or any setting). */
 class AncRejectedException : IllegalStateException("The earbuds did not apply the change")
 
+/** The setting did not answer its read when this session connected, so it is not offered for changes. */
+class SettingUnavailableException : IllegalStateException("The earbuds did not answer this setting")
+
 class NotConnectedException : IllegalStateException("Earbuds not connected")
 
 /**
@@ -153,37 +156,47 @@ class BudsController(
         readSettings(current, myGeneration)
     }
 
-    /** Reads every setting the profile lists; stops (without touching state) once [current] is stale. */
+    /**
+     * Reads every setting the profile lists; stops (without touching state) once [current] is stale.
+     * These reads are unverified on hardware, so they use short, uncounted requests: a silent one
+     * costs [OPTIONAL_READ_MILLIS] once and never makes the session give up. Settings whose read
+     * timed out are recorded in [DeviceSettings.unanswered] (keys as in [settingKey]).
+     */
     private suspend fun readSettings(current: DeviceSession, myGeneration: Int) {
-        suspend fun read(packet: Packet): Boolean {
-            val result = current.request(packet)
+        suspend fun read(key: String, packet: Packet): Boolean {
+            val result = current.request(packet, timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
             if (!isCurrent(current, myGeneration)) return false
             result.onSuccess(::applyPacket)
+            if (result.exceptionOrNull() is RequestTimeoutException) updateSettings { it.copy(unanswered = it.unanswered + key) }
             return true
         }
-        if (profile.supports("wear") && !read(WearDetection.read())) return
-        for ((gesture, withInCall) in profileGestures()) {
-            if (!read(Gestures.read(gesture, withInCall))) return
+        if (profile.supports("wear") && !read("wear", WearDetection.read())) return
+        for (entry in profileGestures()) {
+            if (!read(gestureKey(entry.key), Gestures.read(entry.gesture, entry.inCall))) return
         }
-        if (profile.supports("equalizer") && !read(Equalizer.read())) return
-        if (profile.supports("lowLatency") && !read(LowLatency.read())) return
-        if (profile.supports("soundQuality") && !read(SoundQuality.read())) return
-        if (profile.supports("language") && !read(VoiceLanguage.read())) return
+        if (profile.supports("equalizer") && !read("equalizer", Equalizer.read())) return
+        if (profile.supports("lowLatency") && !read("lowLatency", LowLatency.read())) return
+        if (profile.supports("soundQuality") && !read("soundQuality", SoundQuality.read())) return
+        if (profile.supports("language") && !read("language", VoiceLanguage.read())) return
         if (profile.supports("multipoint")) {
-            if (!read(Multipoint.readToggle())) return
-            refreshHosts()
+            if (!read("multipoint", Multipoint.readToggle())) return
+            if ("multipoint" !in mutable.value.settings.unanswered) refreshHosts()
         }
     }
 
+    private class ProfileGesture(val key: String, val gesture: Gesture, val inCall: Boolean)
+
     /** Gestures listed under the profile's `gestures` capability, each with whether to read its in-call action too. */
-    private fun profileGestures(): List<Pair<Gesture, Boolean>> {
+    private fun profileGestures(): List<ProfileGesture> {
         val listed = profile.capabilities["gestures"] ?: return emptyList()
         return GESTURE_KEYS.mapNotNull { (key, gesture) ->
             val entry = listed[key] ?: return@mapNotNull null
             val inCall = ((entry as? JsonObject)?.get("inCall") as? JsonPrimitive)?.booleanOrNull == true
-            gesture to inCall
+            ProfileGesture(key, gesture, inCall)
         }
     }
+
+    private fun gestureKey(subKey: String) = "gestures.$subKey"
 
     fun disconnect() {
         generation.incrementAndGet()
@@ -201,65 +214,103 @@ class BudsController(
         return if (Anc.confirms(applied, mode)) Result.success(applied) else Result.failure(AncRejectedException())
     }
 
+    /**
+     * Fails fast with [UnsupportedOperationException] when the profile lacks the setting,
+     * [SettingUnavailableException] when its read went unanswered at connect, and
+     * [IllegalArgumentException] for a [SettingChange.GestureChange] that would write nothing.
+     * Auto-connect host commands are reported as success without verification when the device
+     * does not include the auto-connect flag (TLV 8) in its host rows.
+     */
     override suspend fun apply(change: SettingChange): Result<Unit> {
         val current = session ?: return Result.failure(NotConnectedException())
-        if (!supports(change)) return Result.failure(UnsupportedOperationException())
+        val key = settingKey(change) ?: return Result.failure(UnsupportedOperationException())
+        if (key in mutable.value.settings.unanswered) return Result.failure(SettingUnavailableException())
+        if (change is SettingChange.GestureChange && writesNothing(change)) {
+            return Result.failure(IllegalArgumentException("Gesture change without a value"))
+        }
         return when (change) {
             is SettingChange.Wear ->
                 writeAndConfirm(current, WearDetection.write(change.enabled), WearDetection.read()) { WearDetection.parse(it) == change.enabled }
             is SettingChange.GestureChange -> {
                 val g = change.gesture
-                val withInCall = change.inCall != null || profileGestures().any { it.first == g && it.second }
+                val withInCall = change.inCall != null || profileGestures().any { it.gesture == g && it.inCall }
                 writeAndConfirm(current, Gestures.write(g, change.left, change.right, change.inCall), Gestures.read(g, withInCall)) { reply ->
                     Gestures.parse(g, reply)?.let { confirms(change, it) } == true
                 }
             }
             is SettingChange.EqualizerPreset ->
                 writeAndConfirm(current, Equalizer.select(change.preset), Equalizer.read()) { Equalizer.parse(it)?.active == change.preset }
+            // SPEC-GAP: low latency reads and writes share 2B/6C, and whether the write's ack carries
+            // the live value or a status on TLV 2 is unknown. Waiting for the ack first keeps it from
+            // being taken as the read-back's reply; a status ack may briefly show the wrong value in
+            // state until the read-back lands.
             is SettingChange.LowLatencyChange ->
-                writeAndConfirm(current, LowLatency.write(change.enabled), LowLatency.read()) { LowLatency.parse(it) == change.enabled }
+                writeAndConfirm(current, LowLatency.write(change.enabled), LowLatency.read(), awaitAck = true) {
+                    LowLatency.parse(it) == change.enabled
+                }
             is SettingChange.SoundQualityChange ->
                 writeAndConfirm(current, SoundQuality.write(change.value), SoundQuality.read()) { SoundQuality.parse(it) == change.value }
             is SettingChange.MultipointEnabled ->
                 writeAndConfirm(current, Multipoint.writeToggle(change.enabled), Multipoint.readToggle()) { Multipoint.parseToggle(it) == change.enabled }
             is SettingChange.PreferredHost ->
-                writeAndCheckHosts(current, Multipoint.setPreferred(change.mac)) { hosts ->
+                writeAndCheckHosts(current, Multipoint.setPreferred(change.mac), attempts = 1) { hosts ->
                     hosts.any { it.mac.equals(change.mac, ignoreCase = true) && it.preferred }
                 }
-            is SettingChange.HostCommand ->
-                writeAndCheckHosts(current, Multipoint.execute(change.action, change.mac)) { hosts ->
-                    val host = hosts.firstOrNull { it.mac.equals(change.mac, ignoreCase = true) }
-                    host != null && when (change.action) {
+            is SettingChange.HostCommand -> {
+                // A (dis)connection can take a few seconds on the device, so poll it; flags apply at once.
+                val attempts = when (change.action) {
+                    HostAction.CONNECT, HostAction.DISCONNECT -> HOST_POLL_ATTEMPTS
+                    HostAction.ENABLE_AUTO_CONNECT, HostAction.DISABLE_AUTO_CONNECT -> 1
+                }
+                writeAndCheckHosts(current, Multipoint.execute(change.action, change.mac), attempts) { hosts ->
+                    val host = hosts.firstOrNull { it.mac.equals(change.mac, ignoreCase = true) } ?: return@writeAndCheckHosts false
+                    when (change.action) {
                         HostAction.CONNECT -> host.connected
                         HostAction.DISCONNECT -> !host.connected
-                        HostAction.ENABLE_AUTO_CONNECT -> host.autoConnect == true
-                        HostAction.DISABLE_AUTO_CONNECT -> host.autoConnect == false
+                        // Null (no TLV 8 in the rows) means the device does not report it: unverifiable.
+                        HostAction.ENABLE_AUTO_CONNECT -> host.autoConnect
+                        HostAction.DISABLE_AUTO_CONNECT -> host.autoConnect?.let { !it }
                     }
                 }
+            }
         }
     }
 
+    /**
+     * Re-enumerates hosts. If no row at all arrives within [hostListMillis] while hosts are already
+     * known, the known list is kept and the refresh fails with [RequestTimeoutException].
+     */
     override suspend fun refreshHosts(): Result<List<HostRow>> {
         val current = session ?: return Result.failure(NotConnectedException())
+        if (!profile.supports("multipoint")) return Result.failure(UnsupportedOperationException())
         hostCollector.reset()
         val seen = completedHostLists.value
         sendWrite(current, Multipoint.enumerate()).getOrElse { return Result.failure(it) }
         val complete = withTimeoutOrNull(hostListMillis) { completedHostLists.first { it > seen } }
-        if (session !== current) return Result.failure(SessionClosedException())
+        if (session !== current || current.closed.isCompleted) return Result.failure(SessionClosedException())
         if (complete != null) return Result.success(mutable.value.hosts)
         val partial = hostCollector.partial()
+        if (partial.isEmpty() && mutable.value.hosts.isNotEmpty()) return Result.failure(RequestTimeoutException(Multipoint.ENUMERATE))
         mutable.update { it.copy(hosts = partial, updatedAtMillis = clock()) }
         return Result.success(partial)
     }
 
-    private fun supports(change: SettingChange): Boolean = when (change) {
-        is SettingChange.Wear -> profile.supports("wear")
-        is SettingChange.GestureChange -> profileGestures().any { it.first == change.gesture }
-        is SettingChange.EqualizerPreset -> profile.supports("equalizer")
-        is SettingChange.LowLatencyChange -> profile.supports("lowLatency")
-        is SettingChange.SoundQualityChange -> profile.supports("soundQuality")
-        is SettingChange.MultipointEnabled, is SettingChange.PreferredHost, is SettingChange.HostCommand -> profile.supports("multipoint")
+    /** The capability key the change belongs to (`gestures.<subKey>` for gestures), or null when the profile lacks it. */
+    private fun settingKey(change: SettingChange): String? {
+        val key = when (change) {
+            is SettingChange.Wear -> "wear"
+            is SettingChange.GestureChange -> return profileGestures().firstOrNull { it.gesture == change.gesture }?.let { gestureKey(it.key) }
+            is SettingChange.EqualizerPreset -> "equalizer"
+            is SettingChange.LowLatencyChange -> "lowLatency"
+            is SettingChange.SoundQualityChange -> "soundQuality"
+            is SettingChange.MultipointEnabled, is SettingChange.PreferredHost, is SettingChange.HostCommand -> "multipoint"
+        }
+        return key.takeIf { profile.supports(it) }
     }
+
+    /** Swipe writes only [SettingChange.GestureChange.left] (mirrored) and the in-call value. */
+    private fun writesNothing(change: SettingChange.GestureChange): Boolean =
+        change.left == null && change.inCall == null && (change.gesture == Gesture.SWIPE || change.right == null)
 
     /** Requested fields (null = unchanged) all match the read-back; swipe carries a single value in [GestureSetting.left]. */
     private fun confirms(change: SettingChange.GestureChange, applied: GestureSetting): Boolean =
@@ -267,21 +318,58 @@ class BudsController(
             (change.gesture == Gesture.SWIPE || change.right == null || applied.right == change.right) &&
             (change.inCall == null || applied.inCall == change.inCall)
 
-    /** Write, let the device settle, read back; the read-back updates state either way. */
-    private suspend fun writeAndConfirm(current: DeviceSession, write: Packet, read: Packet, confirmed: (Packet) -> Boolean): Result<Unit> {
-        sendWrite(current, write).getOrElse { return Result.failure(it) }
+    /**
+     * Write, let the device settle, read back; the read-back updates state either way. With
+     * [awaitAck] the write is sent as a request so its ack is consumed first (a missing ack is not
+     * an error). The read-back is a short, uncounted request like the connect-time reads.
+     */
+    private suspend fun writeAndConfirm(
+        current: DeviceSession,
+        write: Packet,
+        read: Packet,
+        awaitAck: Boolean = false,
+        confirmed: (Packet) -> Boolean,
+    ): Result<Unit> {
+        if (awaitAck) {
+            val ack = current.request(write, timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
+            ack.exceptionOrNull()?.let { if (it !is RequestTimeoutException) return Result.failure(it) }
+        } else {
+            sendWrite(current, write).getOrElse { return Result.failure(it) }
+        }
         delay(settleMillis)
-        val reply = current.request(read).getOrElse { return Result.failure(it) }
+        val reply = current.request(read, timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
+            .getOrElse { return Result.failure(it) }
         applyPacket(reply)
         return if (confirmed(reply)) Result.success(Unit) else Result.failure(AncRejectedException())
     }
 
-    /** Host commands have no ack: write, settle, re-enumerate and check the list reflects the change. */
-    private suspend fun writeAndCheckHosts(current: DeviceSession, write: Packet, confirmed: (List<HostRow>) -> Boolean): Result<Unit> {
+    /**
+     * Host commands have no ack: write, settle, then re-enumerate up to [attempts] times
+     * ([HOST_POLL_MILLIS] apart) until the list reflects the change. [confirmed] returns null when
+     * the rows cannot show the change at all, which counts as success.
+     */
+    private suspend fun writeAndCheckHosts(
+        current: DeviceSession,
+        write: Packet,
+        attempts: Int,
+        confirmed: (List<HostRow>) -> Boolean?,
+    ): Result<Unit> {
         sendWrite(current, write).getOrElse { return Result.failure(it) }
         delay(settleMillis)
-        val hosts = refreshHosts().getOrElse { return Result.failure(it) }
-        return if (confirmed(hosts)) Result.success(Unit) else Result.failure(AncRejectedException())
+        var last: Result<Unit> = Result.failure(AncRejectedException())
+        repeat(attempts) { attempt ->
+            if (attempt > 0) delay(HOST_POLL_MILLIS)
+            val hosts = refreshHosts().getOrElse { error ->
+                if (error is RequestTimeoutException) {
+                    last = Result.failure(error)
+                    return@repeat
+                }
+                return Result.failure(error)
+            }
+            if (confirmed(hosts) != false) return Result.success(Unit)
+            last = Result.failure(AncRejectedException())
+        }
+        return last
     }
 
     private suspend fun sendWrite(current: DeviceSession, packet: Packet): Result<Unit> = try {
@@ -370,6 +458,11 @@ class BudsController(
     }
 
     private companion object {
+        /** Timeout for unverified setting reads and read-backs: one try, not counted toward give-up. */
+        const val OPTIONAL_READ_MILLIS = 1200L
+        const val HOST_POLL_ATTEMPTS = 3
+        const val HOST_POLL_MILLIS = 2000L
+
         /** Sub-keys of the profile's `gestures` capability. */
         val GESTURE_KEYS = listOf(
             "doubleTap" to Gesture.DOUBLE_TAP,

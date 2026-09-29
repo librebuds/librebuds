@@ -8,6 +8,7 @@ import io.github.librebuds.protocol.command.HostAction
 import io.github.librebuds.protocol.frame.FrameReassembler
 import io.github.librebuds.protocol.frame.RxEvent
 import io.github.librebuds.protocol.profile.ProfileRegistry
+import io.github.librebuds.state.LinkState
 import io.github.librebuds.state.SettingChange
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -15,6 +16,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -27,6 +29,8 @@ class BudsControllerSettingsTest {
             """{"id":"settings","name":"Settings buds","match":{"sku":["BTFT0020"]},"capabilities":{"battery":{},"anc":{"cancellationLevels":[3]},""" +
                 """"wear":{},"gestures":{"doubleTap":{},"swipe":{}},"equalizer":{},"lowLatency":{}}}""",
             """{"id":"multi","name":"Multipoint buds","match":{"sku":["BTFT0030"]},"capabilities":{"battery":{},"multipoint":{}}}""",
+            """{"id":"all","name":"All buds","match":{"sku":["BTFT0040"]},"capabilities":{"battery":{},"wear":{},"gestures":{"doubleTap":{}},""" +
+                """"equalizer":{},"lowLatency":{},"soundQuality":{},"multipoint":{},"language":{}}}""",
         ),
     )
 
@@ -139,5 +143,176 @@ class BudsControllerSettingsTest {
         assertTrue(result.isSuccess)
         assertEquals(0, earbuds.hosts[1].state)
         assertFalse(c.state.value.hosts.single { it.mac == "AA:BB:CC:00:11:22" }.connected)
+    }
+
+    @Test
+    fun silentOptionalReadsKeepSessionAlive() = runTest {
+        val earbuds = FakeEarbuds(ignoreReads = setOf("2B/11", "01/20", "2B/4A"))
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        val s = c.state.value
+        assertEquals(LinkState.CONNECTED, s.link)
+        assertNull(s.lastError)
+        assertTrue("connect took ${testScheduler.currentTime} ms", testScheduler.currentTime <= 4 * 1200)
+        assertEquals(setOf("wear", "gestures.doubleTap", "equalizer"), s.settings.unanswered)
+        assertNull(s.settings.wearDetection)
+        assertEquals(setOf(Gesture.SWIPE), s.settings.gestures.keys)
+        assertTrue(c.refresh().isSuccess)
+        advanceUntilIdle()
+        assertEquals(LinkState.CONNECTED, c.state.value.link)
+        val before = testScheduler.currentTime
+        assertTrue(c.apply(SettingChange.Wear(false)).exceptionOrNull() is SettingUnavailableException)
+        assertEquals(before, testScheduler.currentTime)
+    }
+
+    @Test
+    fun emptyHostRefreshKeepsKnownHosts() = runTest {
+        val earbuds = FakeEarbuds(sku = "BTFT0030", hosts = twoHosts())
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        earbuds.hostRowLimit = 0
+        val result = c.refreshHosts()
+        assertTrue(result.exceptionOrNull() is RequestTimeoutException)
+        assertEquals(2, c.state.value.hosts.size)
+    }
+
+    @Test
+    fun refreshHostsUnsupportedWithoutMultipoint() = runTest {
+        val c = controller(FakeEarbuds(hosts = twoHosts()))
+        c.connect("AA", "x")
+        assertTrue(c.refreshHosts().exceptionOrNull() is UnsupportedOperationException)
+    }
+
+    @Test
+    fun emptyGestureChangeRejectedUpFront() = runTest {
+        val links = mutableListOf<FakeLink>()
+        val c = controller(FakeEarbuds(), links)
+        c.connect("AA", "x")
+        val sent = links.single().written.size
+        val result = c.apply(SettingChange.GestureChange(Gesture.DOUBLE_TAP, left = null, right = null, inCall = null))
+        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertEquals(sent, links.single().written.size)
+    }
+
+    @Test
+    fun autoConnectWithoutReportIsUnverifiableSuccess() = runTest {
+        val earbuds = FakeEarbuds(sku = "BTFT0030", hosts = twoHosts(), reportAutoConnect = false)
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        val result = c.apply(SettingChange.HostCommand(HostAction.DISABLE_AUTO_CONNECT, "AA:BB:CC:00:11:22"))
+        assertTrue(result.isSuccess)
+        assertNull(c.state.value.hosts[1].autoConnect)
+    }
+
+    @Test
+    fun ignoredHostCommandRejectedAfterPolling() = runTest {
+        val earbuds = FakeEarbuds(sku = "BTFT0030", hosts = twoHosts(), ignoreWrites = setOf("2B/33"))
+        val links = mutableListOf<FakeLink>()
+        val c = controller(earbuds, links)
+        c.connect("AA", "x")
+        val start = testScheduler.currentTime
+        val result = c.apply(SettingChange.HostCommand(HostAction.DISCONNECT, "AA:BB:CC:00:11:22"))
+        assertTrue(result.exceptionOrNull() is AncRejectedException)
+        // One enumerate at connect, then three polls.
+        assertEquals(4, links.single().sentIds().count { it == "2B/31" })
+        assertTrue(testScheduler.currentTime - start >= 1500 + 2 * 2000)
+        assertTrue(c.state.value.hosts[1].connected)
+    }
+
+    @Test
+    fun inEarPushUpdatesState() = runTest {
+        val earbuds = FakeEarbuds()
+        val links = mutableListOf<FakeLink>()
+        val c = controller(earbuds, links)
+        c.connect("AA", "x")
+        links.single().deliver(earbuds.inEarPush(true))
+        runCurrent()
+        assertEquals(true, c.state.value.inEar)
+    }
+
+    @Test
+    fun wearChangeApplied() = runTest {
+        val earbuds = FakeEarbuds(wear = true)
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        assertTrue(c.apply(SettingChange.Wear(false)).isSuccess)
+        assertFalse(earbuds.wear)
+        assertEquals(false, c.state.value.settings.wearDetection)
+    }
+
+    @Test
+    fun equalizerPresetApplied() = runTest {
+        val earbuds = FakeEarbuds()
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        assertTrue(c.apply(SettingChange.EqualizerPreset(3)).isSuccess)
+        assertEquals(3, earbuds.equalizerPreset)
+        assertEquals(3, c.state.value.settings.equalizer?.active)
+    }
+
+    @Test
+    fun lowLatencyAppliedWithLiveAck() = runTest {
+        val earbuds = FakeEarbuds(lowLatencyAckLive = true)
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        assertTrue(c.apply(SettingChange.LowLatencyChange(true)).isSuccess)
+        assertTrue(earbuds.lowLatency)
+        assertEquals(true, c.state.value.settings.lowLatency)
+    }
+
+    @Test
+    fun lowLatencyAppliedWithStatusAck() = runTest {
+        val earbuds = FakeEarbuds(lowLatencyAckLive = false)
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        assertTrue(c.apply(SettingChange.LowLatencyChange(true)).isSuccess)
+        assertTrue(earbuds.lowLatency)
+        assertEquals(true, c.state.value.settings.lowLatency)
+    }
+
+    @Test
+    fun soundQualityApplied() = runTest {
+        val earbuds = FakeEarbuds(sku = "BTFT0040")
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        assertEquals(0, c.state.value.settings.soundQuality)
+        assertNotNull(c.state.value.settings.language)
+        assertTrue(c.apply(SettingChange.SoundQualityChange(1)).isSuccess)
+        assertEquals(1, earbuds.soundQuality)
+        assertEquals(1, c.state.value.settings.soundQuality)
+    }
+
+    @Test
+    fun multipointToggleApplied() = runTest {
+        val earbuds = FakeEarbuds(sku = "BTFT0030", hosts = twoHosts())
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        assertTrue(c.apply(SettingChange.MultipointEnabled(false)).isSuccess)
+        assertFalse(earbuds.multipoint)
+        assertEquals(false, c.state.value.multipointEnabled)
+    }
+
+    @Test
+    fun preferredHostApplied() = runTest {
+        val earbuds = FakeEarbuds(sku = "BTFT0030", hosts = twoHosts())
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        assertTrue(c.apply(SettingChange.PreferredHost("AA:BB:CC:00:11:22")).isSuccess)
+        assertEquals(listOf(false, true), c.state.value.hosts.map { it.preferred })
+    }
+
+    @Test
+    fun gestureReadBackWaitsForSettle() = runTest {
+        val earbuds = FakeEarbuds()
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        var writeAt = -1L
+        var readAt = -1L
+        earbuds.onRequest = { id ->
+            if (id == "01/1F") writeAt = testScheduler.currentTime
+            if (id == "01/20" && writeAt >= 0) readAt = testScheduler.currentTime
+        }
+        assertTrue(c.apply(SettingChange.GestureChange(Gesture.DOUBLE_TAP, left = 0, right = null, inCall = null)).isSuccess)
+        assertTrue("read-back at $readAt, write at $writeAt", writeAt >= 0 && readAt - writeAt >= 1500)
     }
 }

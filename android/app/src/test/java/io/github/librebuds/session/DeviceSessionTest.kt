@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -82,6 +83,22 @@ class DeviceSessionTest {
         assertTrue(session.closed.isCompleted)
         assertTrue(session.closed.await() is SessionGaveUpException)
         assertTrue(link.closed)
+    }
+
+    @Test
+    fun uncountedTimeoutsUsePerCallOptionsAndNeverGiveUp() = runTest {
+        val link = FakeLink()
+        val session = DeviceSession(link, backgroundScope, timeoutMillis = 100, retries = 2, maxConsecutiveFailures = 3)
+        repeat(5) {
+            val result = session.request(Battery.request(), timeoutMillis = 40, retries = 0, countsTowardGiveUp = false)
+            assertTrue(result.exceptionOrNull() is RequestTimeoutException)
+        }
+        assertEquals(5, link.written.size)
+        assertEquals(200L, testScheduler.currentTime)
+        // Uncounted timeouts did not add to the counter: two counted ones still stay below the limit.
+        repeat(2) { session.request(Battery.request()) }
+        advanceUntilIdle()
+        assertFalse(session.closed.isCompleted)
     }
 
     @Test
