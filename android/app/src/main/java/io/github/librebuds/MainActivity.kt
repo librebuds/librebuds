@@ -21,10 +21,12 @@ import io.github.librebuds.bt.AudioConnections
 import io.github.librebuds.bt.refreshAudioConnections
 import io.github.librebuds.companion.AssociationStore
 import io.github.librebuds.companion.Stored
+import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.service.BudsService
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.ui.AppRoot
 import io.github.librebuds.ui.DeviceViewModel
+import io.github.librebuds.ui.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,11 +42,21 @@ class MainActivity : ComponentActivity() {
             this,
             viewModelFactory { initializer { DeviceViewModel(LibreBudsApp.from(this@MainActivity).repository) } }
         )[DeviceViewModel::class.java]
+        val settingsViewModel = ViewModelProvider(
+            this,
+            viewModelFactory {
+                initializer {
+                    val app = LibreBudsApp.from(this@MainActivity)
+                    SettingsViewModel(app.repository) { id -> app.registry.profiles.firstOrNull { it.id == id } ?: ProfileRegistry.GENERIC }
+                }
+            }
+        )[SettingsViewModel::class.java]
         val preferences = AppPreferences(this)
         associationStore = AssociationStore(this)
         setContent {
             AppRoot(
                 viewModel,
+                settingsViewModel,
                 preferences,
                 associationStore,
                 onAssociated = ::onAssociated,

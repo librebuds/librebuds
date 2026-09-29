@@ -4,11 +4,6 @@ package io.github.librebuds.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.librebuds.protocol.command.AncState
-import io.github.librebuds.session.AncRejectedException
-import io.github.librebuds.session.NotConnectedException
-import io.github.librebuds.session.RequestTimeoutException
-import io.github.librebuds.session.SessionClosedException
-import io.github.librebuds.session.SettingUnavailableException
 import io.github.librebuds.state.BudsRepository
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.LinkError
@@ -42,13 +37,6 @@ private data class Failure(val kind: UiError, val at: ErrorScope)
 
 private fun LinkError.toUiError(): UiError = when (this) {
     LinkError.NO_REPLY -> UiError.NO_REPLY
-}
-
-private fun Throwable.toUiError(): UiError = when (this) {
-    is AncRejectedException -> UiError.REJECTED
-    is NotConnectedException -> UiError.NOT_CONNECTED
-    is RequestTimeoutException, is SessionClosedException, is SettingUnavailableException -> UiError.NO_REPLY
-    else -> UiError.UNKNOWN
 }
 
 /** Screen state. A noise-mode tap shows immediately; the repository result confirms or reverts it. */

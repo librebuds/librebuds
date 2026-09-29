@@ -20,6 +20,7 @@ import io.github.librebuds.companion.Stored
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.ui.screens.AddDeviceScreen
 import io.github.librebuds.ui.screens.DeviceScreen
+import io.github.librebuds.ui.screens.MultipointScreen
 import io.github.librebuds.ui.screens.SettingsScreen
 import io.github.librebuds.ui.screens.onboarding.OnboardingScreen
 import io.github.librebuds.ui.theme.DesignSystem
@@ -29,15 +30,17 @@ private const val ONBOARDING = "onboarding"
 private const val DEVICE = "device"
 private const val SETTINGS = "settings"
 private const val ADD_DEVICE = "add_device"
+private const val MULTIPOINT = "multipoint"
 
 /**
- * Top-level navigation: onboarding once, then the device screen with settings and the earbud picker on top.
+ * Top-level navigation: onboarding once, then the device screen with settings, multipoint and the earbud picker on top.
  * [onAssociated] runs after the user associated new earbuds (the Bluetooth service hooks in here);
  * [onExportDiagnostics] shares the recent frame log.
  */
 @Composable
 fun AppRoot(
     viewModel: DeviceViewModel,
+    settingsViewModel: SettingsViewModel,
     preferences: AppPreferences,
     associationStore: AssociationStore,
     onAssociated: (Stored) -> Unit = {},
@@ -58,11 +61,17 @@ fun AppRoot(
             ONBOARDING -> OnboardingScreen(preferences = preferences, onDone = { screen = DEVICE })
             DEVICE -> DeviceScreen(
                 viewModel = viewModel,
+                settingsViewModel = settingsViewModel,
                 showOffMode = showOffMode,
                 hasDevice = stored != null,
                 onAddDevice = { screen = ADD_DEVICE },
-                onOpenSettings = { screen = SETTINGS }
+                onOpenSettings = { screen = SETTINGS },
+                onOpenMultipoint = { screen = MULTIPOINT }
             )
+            MULTIPOINT -> {
+                BackHandler { screen = DEVICE }
+                MultipointScreen(viewModel = settingsViewModel, onNavigateBack = { screen = DEVICE })
+            }
             ADD_DEVICE -> {
                 BackHandler { screen = DEVICE }
                 AddDeviceScreen(
