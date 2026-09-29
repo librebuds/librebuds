@@ -14,6 +14,7 @@ class FdeeBeaconTest {
     fun parsesPopupBeacon() {
         val beacon = FdeeBeacon.parse("01 01 01 02 BA 03 00 01 55 04 01 0C E4 0D 50 0E 30 11 C4".hexToBytes())!!
         assertEquals(1, beacon.businessType)
+        assertEquals(1, beacon.businessFlags)
         assertTrue(beacon.closeRangeEnabled)
         assertFalse(beacon.reconnectEnabled)
         assertEquals(-70, beacon.referenceRssi)

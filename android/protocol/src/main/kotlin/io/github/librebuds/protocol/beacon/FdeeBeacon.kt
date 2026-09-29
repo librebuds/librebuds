@@ -11,6 +11,8 @@ data class BeaconBattery(val percent: Int, val charging: Boolean) {
 
 class Beacon(
     val businessType: Int,
+    /** Raw flags byte from the type-1 (business) record, byte 1: bit 0 popup allowed, bit 1 reconnect allowed. */
+    val businessFlags: Int,
     val closeRangeEnabled: Boolean,
     val reconnectEnabled: Boolean,
     val modelId: String?,
@@ -43,6 +45,9 @@ object FdeeBeacon {
     private const val BUSINESS = 1
     private const val DEVICE_ID = 5
     private const val CUSTOM = 0xFF
+
+    // SPEC-GAP: business type 1 is assumed to mean "proximity"/close range; not confirmed
+    // against a captured beacon. See docs/protocol/open-questions.md.
     private const val BUSINESS_CLOSE_RANGE = 1
 
     private val VALUE_LENGTHS = mapOf(
@@ -78,11 +83,12 @@ object FdeeBeacon {
         val isCloseRange = businessType == BUSINESS_CLOSE_RANGE
         return Beacon(
             businessType = businessType,
+            businessFlags = flags,
             closeRangeEnabled = isCloseRange && flags and 0x01 != 0,
             reconnectEnabled = isCloseRange && flags and 0x02 != 0,
             modelId = fields[3]?.hex(),
             subModelId = fields[4]?.single(),
-            // SPEC-GAP: the "00" prefix follows the vendor decoder; confirm against captured beacons.
+            // SPEC-GAP: 6-char id = fixed "00" prefix + 4 ASCII chars from the type-18 record; unconfirmed.
             newModelId = fields[18]?.let { "00" + it.toString(Charsets.US_ASCII) },
             total = fields[11]?.battery(),
             left = fields[12]?.battery(),

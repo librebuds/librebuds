@@ -17,9 +17,6 @@
   "capabilities": {
     "battery": {
       "verified": null
-    },
-    "anc": {
-      "verified": null
     }
   }
 }

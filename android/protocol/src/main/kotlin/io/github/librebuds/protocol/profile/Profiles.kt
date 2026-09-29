@@ -45,7 +45,7 @@ class ProfileRegistry(val profiles: List<Profile>) {
 
         val GENERIC = Profile(
             id = "generic",
-            name = "FreeBuds",
+            name = "Unknown model",
             capabilities = mapOf("battery" to JsonObject(emptyMap()), "anc" to JsonObject(emptyMap())),
         )
 
