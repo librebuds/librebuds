@@ -24,6 +24,8 @@ data class PersistedState(
     val ancModeCode: Int?,
     val ancLevel: Int?,
     val updatedAtMillis: Long?,
+    /** The phone's boot count when this was saved; null when it could not be read. */
+    val bootCount: Int?,
 ) {
     @Serializable
     data class PersistedBattery(
@@ -40,12 +42,15 @@ data class PersistedState(
 
     /**
      * The state to start from. No link survives a restart, so a live link comes back
-     * DISCONNECTED (the values stay as last known). TAKEN_OVER is kept only while [audioUp]
-     * says the phone still has audio to these earbuds, so only the user's take-over reconnects
-     * them; once audio is gone (a reboot drops it) nothing holds them back from connecting.
+     * DISCONNECTED (the values stay as last known). TAKEN_OVER is kept only within the same boot
+     * ([currentBootCount] equals the saved [bootCount]) and while [audioUp] says the phone still
+     * has audio to these earbuds, so only the user's take-over reconnects them. After a reboot the
+     * other device's hold is no longer known, so the earbuds may connect on their own even if
+     * they already play audio to the phone. A boot count that is unknown on either side leaves
+     * the decision to [audioUp] alone.
      */
-    fun toBudsState(audioUp: (String) -> Boolean): BudsState = BudsState(
-        link = if (link == LinkState.TAKEN_OVER && address != null && audioUp(address)) LinkState.TAKEN_OVER else LinkState.DISCONNECTED,
+    fun toBudsState(audioUp: (String) -> Boolean, currentBootCount: Int?): BudsState = BudsState(
+        link = if (keepsTakeOver(audioUp, currentBootCount)) LinkState.TAKEN_OVER else LinkState.DISCONNECTED,
         address = address,
         name = name,
         profileId = profileId,
@@ -56,13 +61,19 @@ data class PersistedState(
         updatedAtMillis = updatedAtMillis,
     )
 
+    private fun keepsTakeOver(audioUp: (String) -> Boolean, currentBootCount: Int?): Boolean {
+        if (link != LinkState.TAKEN_OVER || address == null) return false
+        if (bootCount != null && currentBootCount != null && bootCount != currentBootCount) return false
+        return audioUp(address)
+    }
+
     companion object {
         /** Bumped whenever the format changes; a stored state of another version is dropped. */
-        const val VERSION = 1
+        const val VERSION = 2
 
         private val json = Json
 
-        fun from(state: BudsState) = PersistedState(
+        fun from(state: BudsState, bootCount: Int?) = PersistedState(
             version = VERSION,
             link = state.link,
             address = state.address,
@@ -74,6 +85,7 @@ data class PersistedState(
             ancModeCode = state.anc?.modeCode,
             ancLevel = state.anc?.level,
             updatedAtMillis = state.updatedAtMillis,
+            bootCount = bootCount,
         )
 
         /** Null for anything but a well-formed state of the current [VERSION]: a fresh start, never a crash. */

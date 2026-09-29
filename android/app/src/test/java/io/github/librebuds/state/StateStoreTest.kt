@@ -25,8 +25,12 @@ class StateStoreTest {
         updatedAtMillis = 1_700_000_000_000,
     )
 
-    private fun roundTrip(state: BudsState, audioUp: (String) -> Boolean = { false }): BudsState? =
-        PersistedState.decode(PersistedState.from(state).encode())?.toBudsState(audioUp)
+    private fun roundTrip(
+        state: BudsState,
+        audioUp: (String) -> Boolean = { false },
+        savedBoot: Int? = BOOT,
+        currentBoot: Int? = BOOT,
+    ): BudsState? = PersistedState.decode(PersistedState.from(state, savedBoot).encode())?.toBudsState(audioUp, currentBoot)
 
     @Test
     fun roundTripKeepsPersistedFields() {
@@ -91,7 +95,7 @@ class StateStoreTest {
     // Task 6 review #4: complete, otherwise valid documents, so only the one odd field decides.
     @Test
     fun unknownLinkValueInAFullDocumentIsAFreshStart() {
-        val valid = PersistedState.from(full).encode()
+        val valid = PersistedState.from(full, BOOT).encode()
         assertNotNull(PersistedState.decode(valid))
         val unknownLink = valid.replace("\"link\":\"DISCONNECTED\"", "\"link\":\"SOMETHING_NEW\"")
         assertNotEquals(valid, unknownLink)
@@ -100,17 +104,52 @@ class StateStoreTest {
 
     @Test
     fun extraUnknownKeyInAFullDocumentIsAFreshStart() {
-        val valid = PersistedState.from(full).encode()
+        val valid = PersistedState.from(full, BOOT).encode()
         val extra = valid.replaceFirst("{", "{\"somethingNew\":1,")
         assertNull(PersistedState.decode(extra))
+    }
+
+    // Coordinator ruling on I2: a take-over from an earlier boot never survives, even with audio up.
+    @Test
+    fun takenOverFromTheSameBootWithAudioUpSurvives() {
+        val restored = roundTrip(full.copy(link = LinkState.TAKEN_OVER), audioUp = { true }, savedBoot = BOOT, currentBoot = BOOT)!!
+        assertEquals(LinkState.TAKEN_OVER, restored.link)
+        assertFalse(shouldLaunchConnect(restored, full.address!!))
+    }
+
+    @Test
+    fun takenOverFromAnEarlierBootComesBackDisconnectedEvenWithAudioUp() {
+        val restored = roundTrip(full.copy(link = LinkState.TAKEN_OVER), audioUp = { true }, savedBoot = BOOT, currentBoot = BOOT + 1)!!
+        assertEquals(LinkState.DISCONNECTED, restored.link)
+        assertTrue(shouldLaunchConnect(restored, full.address!!))
+    }
+
+    @Test
+    fun unknownBootCountLeavesItToAudio() {
+        val takenOver = full.copy(link = LinkState.TAKEN_OVER)
+        for ((saved, current) in listOf(null to BOOT, BOOT to null, null to null)) {
+            assertEquals(LinkState.TAKEN_OVER, roundTrip(takenOver, audioUp = { true }, savedBoot = saved, currentBoot = current)?.link)
+            assertEquals(LinkState.DISCONNECTED, roundTrip(takenOver, audioUp = { false }, savedBoot = saved, currentBoot = current)?.link)
+        }
+    }
+
+    @Test
+    fun formatOneWithoutBootCountIsAFreshStart() {
+        val v1 = """{"version":1,"link":"TAKEN_OVER","address":"AA:BB:CC:DD:EE:FF","name":null,"profileId":"generic",""" +
+            """"battery":null,"ancModeCode":null,"ancLevel":null,"updatedAtMillis":null}"""
+        assertNull(PersistedState.decode(v1))
     }
 
     @Test
     fun oldOrOtherFormatIsAFreshStart() {
         // No version field: written by a build before the current format.
         assertNull(PersistedState.decode("""{"link":"TAKEN_OVER","address":"AA","profileId":"generic"}"""))
-        val current = PersistedState.from(full).encode()
+        val current = PersistedState.from(full, BOOT).encode()
         assertNotNull(PersistedState.decode(current))
         assertNull(PersistedState.decode(current.replace("\"version\":${PersistedState.VERSION}", "\"version\":${PersistedState.VERSION + 1}")))
+    }
+
+    private companion object {
+        const val BOOT = 7
     }
 }

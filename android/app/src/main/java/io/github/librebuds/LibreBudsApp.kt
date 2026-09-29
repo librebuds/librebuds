@@ -4,6 +4,7 @@ package io.github.librebuds
 import android.app.Application
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.provider.Settings
 import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.bt.LinkFactory
 import io.github.librebuds.bt.RfcommLinkFactory
@@ -59,6 +60,7 @@ class LibreBudsApp : Application() {
         registry = ProfileAssets.load(this)
         val adapter = getSystemService(BluetoothManager::class.java)?.adapter
         val stateStore = StateStore(this)
+        val bootCount = readBootCount()
         controller = BudsController(
             linkFactory = adapter?.let(::RfcommLinkFactory) ?: LinkFactory { throw IOException("No Bluetooth adapter") },
             registry = registry,
@@ -67,9 +69,10 @@ class LibreBudsApp : Application() {
             frameLog = frameLog,
             // Whether audio to the earbuds is up is not known yet: the profile proxies answer later.
             // A stored take-over is kept for now and settled in keepAudioConnectionsFresh().
-            initial = stateStore.load()?.toBudsState(audioUp = { true }) ?: BudsState(),
+            // A take-over saved in an earlier boot is dropped right here (bootCount differs).
+            initial = stateStore.load()?.toBudsState(audioUp = { true }, currentBootCount = bootCount) ?: BudsState(),
         )
-        persistState(stateStore)
+        persistState(stateStore, bootCount)
         val preferences = AppPreferences(this)
         repository = if (BuildConfig.DEBUG && preferences.demoMode) DemoBudsRepository() else controller
         WidgetUpdater(this, repository, appScope).start()
@@ -85,14 +88,21 @@ class LibreBudsApp : Application() {
      * Only changes to the stored part count: settings or host updates do not restart the wait.
      */
     @OptIn(FlowPreview::class)
-    private fun persistState(store: StateStore) {
+    private fun persistState(store: StateStore, bootCount: Int?) {
         appScope.launch {
             controller.state.drop(1)
-                .map(PersistedState::from)
+                .map { PersistedState.from(it, bootCount) }
                 .distinctUntilChanged()
                 .debounce(SAVE_DEBOUNCE_MILLIS)
                 .collect(store::save)
         }
+    }
+
+    /** The phone's boot count, or null when the system does not report it. */
+    private fun readBootCount(): Int? = try {
+        Settings.Global.getInt(contentResolver, Settings.Global.BOOT_COUNT, -1).takeIf { it >= 0 }
+    } catch (e: SecurityException) {
+        null
     }
 
     /**
