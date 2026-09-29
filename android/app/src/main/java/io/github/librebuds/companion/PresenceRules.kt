@@ -1,6 +1,9 @@
 // LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.librebuds.companion
 
+import io.github.librebuds.bt.AclTracker
+import io.github.librebuds.bt.AudioConnections
+
 /** A presence change for some earbuds, from the companion device service or an ACL broadcast. */
 enum class Presence { APPEARED, DISAPPEARED }
 
@@ -23,4 +26,19 @@ private fun Presence?.toAction(): PresenceAction = when (this) {
     Presence.APPEARED -> PresenceAction.START
     Presence.DISAPPEARED -> PresenceAction.STOP
     null -> PresenceAction.IGNORE
+}
+
+/**
+ * Records a presence change for [address] in [AclTracker] (and clears [AudioConnections] when the
+ * earbuds left), so a link drop after a process start is still recognised as a takeover.
+ */
+fun trackPresence(presence: Presence?, address: String) {
+    when (presence) {
+        Presence.APPEARED -> AclTracker.onConnected(address)
+        Presence.DISAPPEARED -> {
+            AclTracker.onDisconnected(address)
+            AudioConnections.forget(address)
+        }
+        null -> Unit
+    }
 }

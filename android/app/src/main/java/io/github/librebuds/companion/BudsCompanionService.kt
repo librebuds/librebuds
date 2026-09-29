@@ -32,7 +32,10 @@ class BudsCompanionService : CompanionDeviceService() {
 
     private fun handle(presence: Presence?, associationId: Int) {
         val stored = AssociationStore(this).primary()
-        when (presenceAction(presence, associationId, stored)) {
+        val action = presenceAction(presence, associationId, stored)
+        // Presence is also what tells a later link drop apart: TAKEN_OVER while the earbuds are here.
+        if (stored != null && action != PresenceAction.IGNORE) trackPresence(presence, stored.address)
+        when (action) {
             PresenceAction.START -> stored?.let { BudsService.start(this, it.address, it.name) }
             PresenceAction.STOP -> BudsService.stop(this)
             PresenceAction.IGNORE -> Unit

@@ -1,13 +1,9 @@
 // LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.librebuds
 
-import android.Manifest
-import android.bluetooth.BluetoothManager
-import android.bluetooth.BluetoothProfile
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -20,6 +16,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.librebuds.bt.AclTracker
+import io.github.librebuds.bt.AudioConnections
+import io.github.librebuds.bt.refreshAudioConnections
 import io.github.librebuds.companion.AssociationStore
 import io.github.librebuds.companion.Stored
 import io.github.librebuds.service.BudsService
@@ -48,7 +46,7 @@ class MainActivity : ComponentActivity() {
                 viewModel,
                 preferences,
                 associationStore,
-                onAssociated = { BudsService.start(this, it.address, it.name) },
+                onAssociated = ::onAssociated,
                 onExportDiagnostics = ::exportDiagnostics
             )
         }
@@ -67,31 +65,26 @@ class MainActivity : ComponentActivity() {
 
     /**
      * [AclTracker] is empty after the process restarted, so also look for the stored earbuds among
-     * the connected A2DP and headset devices. The profile proxies answer asynchronously on the main thread.
+     * the connected A2DP and headset devices, and record them in [AclTracker] when found.
      */
     private fun startIfAudioConnected(stored: Stored) {
-        if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return
-        val adapter = getSystemService(BluetoothManager::class.java)?.adapter ?: return
         var started = false
-        val listener = object : BluetoothProfile.ServiceListener {
-            override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
-                try {
-                    val present = proxy.connectedDevices.any { it.address.equals(stored.address, ignoreCase = true) }
-                    if (present && !started && lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
-                        started = true
-                        BudsService.start(this@MainActivity, stored.address, stored.name)
-                    }
-                } catch (e: SecurityException) {
-                    Log.w(TAG, "Cannot list connected audio devices", e)
-                } finally {
-                    adapter.closeProfileProxy(profile, proxy)
-                }
+        refreshAudioConnections(this) {
+            if (started || !AudioConnections.contains(stored.address)) return@refreshAudioConnections
+            AclTracker.onConnected(stored.address)
+            if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                started = true
+                BudsService.start(this, stored.address, stored.name)
             }
-
-            override fun onServiceDisconnected(profile: Int) = Unit
         }
-        adapter.getProfileProxy(this, listener, BluetoothProfile.A2DP)
-        adapter.getProfileProxy(this, listener, BluetoothProfile.HEADSET)
+    }
+
+    /** Starts the service for fresh earbuds and records them as present if their audio is already up. */
+    private fun onAssociated(stored: Stored) {
+        BudsService.start(this, stored.address, stored.name)
+        refreshAudioConnections(this) {
+            if (AudioConnections.contains(stored.address)) AclTracker.onConnected(stored.address)
+        }
     }
 
     /** Shares the frame log as a cache file; a large log would not fit in an intent extra. */

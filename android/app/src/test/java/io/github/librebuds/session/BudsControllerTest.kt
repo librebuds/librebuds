@@ -2,6 +2,9 @@
 package io.github.librebuds.session
 
 import io.github.librebuds.bt.LinkFactory
+import io.github.librebuds.bt.isAudioConnected
+import io.github.librebuds.companion.Presence
+import io.github.librebuds.companion.trackPresence
 import io.github.librebuds.protocol.command.AncMode
 import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.state.LinkError
@@ -113,6 +116,29 @@ class BudsControllerTest {
         advanceTimeBy(60_000)
         assertEquals(LinkState.TAKEN_OVER, c.state.value.link)
         assertEquals(1, links.size)
+    }
+
+    // Final review I1: after a process start AclTracker has seen no ACL broadcast. A companion
+    // presence event alone must be enough for a remote drop to count as TAKEN_OVER (and not as
+    // DISCONNECTED, which would let a later START reconnect by itself).
+    @Test
+    fun dropWithAudioSeededOnlyByPresenceIsTakenOver() = runTest {
+        trackPresence(Presence.APPEARED, "AA")
+        try {
+            val links = mutableListOf<FakeLink>()
+            val c = BudsController(
+                linkFactory = LinkFactory { FakeEarbuds().link().also { links += it } },
+                registry = registry,
+                scope = backgroundScope,
+                isAudioConnected = ::isAudioConnected,
+            )
+            c.connect("AA", "x")
+            links.single().endOfStream()
+            runCurrent()
+            assertEquals(LinkState.TAKEN_OVER, c.state.value.link)
+        } finally {
+            trackPresence(Presence.DISAPPEARED, "AA")
+        }
     }
 
     @Test
