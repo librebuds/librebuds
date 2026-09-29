@@ -149,7 +149,7 @@ fun NoiseControlSettings(
                             ) {
                                 Icon(
                                     imageVector = ImageVector.vectorResource(iconRes),
-                                    contentDescription = null,
+                                    contentDescription = stringResource(labelRes),
                                     modifier = Modifier.size(42.dp)
                                 )
                             }
