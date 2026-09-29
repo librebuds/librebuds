@@ -326,4 +326,60 @@ class BudsControllerTest {
         assertEquals(null, c.state.value.battery)
         assertEquals(null, c.state.value.anc)
     }
+
+    // Final review I1: an open that fails once while audio is up is retried after about a second.
+    @Test
+    fun openRetrySucceedsWithoutTakenOver() = runTest {
+        var opens = 0
+        val c = BudsController(
+            linkFactory = LinkFactory { if (++opens == 1) throw IOException("busy") else FakeEarbuds().link() },
+            registry = registry,
+            scope = backgroundScope,
+            isAudioConnected = { true },
+        )
+        val seen = mutableListOf<LinkState>()
+        backgroundScope.launch { c.state.collect { seen += it.link } }
+        backgroundScope.launch { c.connect("AA", "x") }
+        runCurrent()
+        assertEquals(1, opens)
+        assertEquals(LinkState.CONNECTING, c.state.value.link)
+        advanceTimeBy(1000)
+        runCurrent()
+        assertEquals(2, opens)
+        advanceTimeBy(10_000)
+        assertEquals(LinkState.CONNECTED, c.state.value.link)
+        assertFalse(LinkState.TAKEN_OVER in seen)
+    }
+
+    @Test
+    fun openFailingTwiceWithAudioUpIsTakenOver() = runTest {
+        var opens = 0
+        val c = BudsController(LinkFactory { opens++; throw IOException("busy") }, registry, backgroundScope, isAudioConnected = { true })
+        c.connect("AA", "x")
+        assertEquals(2, opens)
+        assertEquals(LinkState.TAKEN_OVER, c.state.value.link)
+    }
+
+    @Test
+    fun openFailureWithoutAudioIsNotRetried() = runTest {
+        var opens = 0
+        val c = BudsController(LinkFactory { opens++; throw IOException("page timeout") }, registry, backgroundScope, isAudioConnected = { false })
+        c.connect("AA", "x")
+        assertEquals(1, opens)
+        assertEquals(LinkState.DISCONNECTED, c.state.value.link)
+    }
+
+    @Test
+    fun disconnectDuringOpenRetryWins() = runTest {
+        var opens = 0
+        val c = BudsController(LinkFactory { opens++; throw IOException("busy") }, registry, backgroundScope, isAudioConnected = { true })
+        val job = backgroundScope.launch { c.connect("AA", "x") }
+        runCurrent()
+        c.disconnect()
+        advanceTimeBy(5_000)
+        runCurrent()
+        assertEquals(1, opens)
+        assertEquals(LinkState.DISCONNECTED, c.state.value.link)
+        assertTrue(job.isCompleted)
+    }
 }

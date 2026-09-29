@@ -1,6 +1,7 @@
 // LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.librebuds.session
 
+import io.github.librebuds.bt.Link
 import io.github.librebuds.bt.LinkFactory
 import io.github.librebuds.diag.FrameLog
 import io.github.librebuds.protocol.Packet
@@ -123,12 +124,10 @@ class BudsController(
             anc = previous?.anc,
             updatedAtMillis = previous?.updatedAtMillis,
         )
-        val link = try {
-            linkFactory.open(address)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            // With audio up, the earbuds are there but another device holds the control channel.
+        val link = openLink(address, myGeneration)
+        if (link == null) {
+            // With audio still up after the retry, the earbuds are there but another device holds
+            // the control channel.
             val next = if (isAudioConnected(address)) LinkState.TAKEN_OVER else LinkState.DISCONNECTED
             if (generation.get() == myGeneration) mutable.update { it.copy(link = next) }
             return@withLock
@@ -169,6 +168,26 @@ class BudsController(
         }
 
         readSettings(current, myGeneration)
+    }
+
+    /**
+     * Opens the link; null when it failed. A failure while audio to [address] is up is often
+     * transient (the earbuds were busy for a moment), so the open is tried once more after
+     * [OPEN_RETRY_MILLIS], unless a [disconnect] or newer [connect] came in meanwhile.
+     */
+    private suspend fun openLink(address: String, myGeneration: Int): Link? {
+        repeat(2) { attempt ->
+            try {
+                return linkFactory.open(address)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (attempt > 0 || !isAudioConnected(address)) return null
+            }
+            delay(OPEN_RETRY_MILLIS)
+            if (generation.get() != myGeneration) return null
+        }
+        return null
     }
 
     /**
@@ -490,6 +509,9 @@ class BudsController(
         const val OPTIONAL_READ_MILLIS = 1200L
         const val HOST_POLL_ATTEMPTS = 3
         const val HOST_POLL_MILLIS = 2000L
+
+        /** Pause before the second link open when the first failed while audio was up. */
+        const val OPEN_RETRY_MILLIS = 1000L
     }
 }
 
