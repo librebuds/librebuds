@@ -36,7 +36,7 @@ class ProfileRegistryTest {
     fun matchesBySkuFirst() {
         val profile = registry.match(sku = "BTFT0020", modelId = "000149", btName = "whatever")
         assertEquals("freebuds-6", profile.id)
-        assertEquals("2026-09-28", profile.verifiedOn("anc"))
+        assertEquals("2026-09-29", profile.verifiedOn("anc"))
     }
 
     @Test
@@ -77,7 +77,10 @@ class ProfileRegistryTest {
      * Every gesture sub-key a target profile lists carries an `options` map (plus `inCallOptions`
      * when it declares `inCall`), and every `equalizer`/`soundQuality` block carries its own
      * options map. Option keys are the signed device codes the controller compares against, so
-     * they must all parse as integers. New M4 capabilities stay unverified until round 3.
+     * they must all parse as integers.
+     *
+     * Capabilities confirmed by a live round carry that round's date; anything still unconfirmed
+     * on a given model stays null, so an untested model can never silently claim verification.
      */
     @Test
     fun targetProfilesDeclareSettingTables() {
@@ -91,6 +94,14 @@ class ProfileRegistryTest {
             "freebuds-4",
         )
         val gestureSubKeys = listOf("doubleTap", "tripleTap", "longPress", "noiseCycle", "swipe")
+
+        // Swept on real hardware in round 2 (2026-09-29); every other model stays unverified.
+        val sweptInRound2 = mapOf(
+            "freebuds-6" to setOf("battery", "anc", "wear", "gestures", "equalizer", "multipoint", "language"),
+            "freebuds-5" to setOf("battery", "anc", "wear", "gestures", "equalizer", "multipoint", "language"),
+            "freebuds-pro-3" to setOf("battery", "anc", "wear", "gestures", "equalizer", "multipoint", "language"),
+            "freebuds-pro-2" to setOf("battery", "anc"),
+        )
         val newCapabilities = listOf("wear", "gestures", "equalizer", "lowLatency", "soundQuality", "multipoint", "language")
 
         fun assertOptions(id: String, label: String, value: JsonElement?) {
@@ -103,8 +114,14 @@ class ProfileRegistryTest {
         for (id in targetIds) {
             val profile = registry.profiles.first { it.id == id }
 
+            val confirmed = sweptInRound2[id].orEmpty()
             for (capability in newCapabilities) {
-                if (profile.supports(capability)) assertNull(profile.verifiedOn(capability), "$id: $capability should be unverified")
+                if (!profile.supports(capability)) continue
+                if (capability in confirmed) {
+                    assertEquals("2026-09-29", profile.verifiedOn(capability), "$id: $capability was confirmed in round 2")
+                } else {
+                    assertNull(profile.verifiedOn(capability), "$id: $capability should be unverified")
+                }
             }
 
             val gestures = profile.capabilities["gestures"]

@@ -18,7 +18,7 @@
   "art": "round",
   "capabilities": {
     "battery": {
-      "verified": "2026-09-28"
+      "verified": "2026-09-29"
     },
     "anc": {
       "modes": [
@@ -29,13 +29,13 @@
       "cancellationLevels": [
         3
       ],
-      "verified": "2026-09-28"
+      "verified": "2026-09-29"
     },
     "wear": {
-      "verified": null
+      "verified": "2026-09-29"
     },
     "gestures": {
-      "verified": null,
+      "verified": "2026-09-29",
       "doubleTap": {
         "inCall": true,
         "options": {
@@ -81,13 +81,19 @@
       }
     },
     "equalizer": {
-      "verified": null,
+      "verified": "2026-09-29",
       "presets": {
         "1": "default",
         "2": "bass",
         "3": "treble",
         "9": "voice"
-      }
+      },
+      "offered": [
+        1,
+        2,
+        3,
+        9
+      ]
     },
     "lowLatency": {
       "verified": null
@@ -100,10 +106,10 @@
       }
     },
     "multipoint": {
-      "verified": null
+      "verified": "2026-09-29"
     },
     "language": {
-      "verified": null
+      "verified": "2026-09-29"
     }
   }
 }
