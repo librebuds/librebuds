@@ -37,4 +37,7 @@ interface BudsRepository {
     suspend fun setAnc(mode: AncMode): Result<AncState>
 
     suspend fun refresh(): Result<Unit>
+
+    /** Reconnects after another client took the link (spec 8). */
+    suspend fun takeOver(): Result<Unit> = Result.success(Unit)
 }
