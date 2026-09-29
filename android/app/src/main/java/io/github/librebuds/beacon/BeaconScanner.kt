@@ -54,9 +54,10 @@ object BeaconScanner {
         val filter = ScanFilter.Builder()
             .setServiceData(ParcelUuid.fromString(FdeeBeacon.SERVICE_UUID), byteArrayOf(), byteArrayOf())
             .build()
+        val offloaded = adapter.isOffloadedFilteringSupported
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
-            .setCallbackType(scanCallbackType(offloadedFiltering = adapter.isOffloadedFilteringSupported))
+            .setCallbackType(scanCallbackType(offloadedFiltering = offloaded))
             .build()
         val intent = pendingIntent(context)
         return try {
@@ -64,7 +65,10 @@ object BeaconScanner {
             scanner.stopScan(intent)
             val status = scanner.startScan(listOf(filter), settings, intent)
             if (status != 0) Log.w(TAG, "Beacon scan not started: $status")
-            if (status == 0) preferences.scanMarker = currentMarker(context)
+            if (status == 0) {
+                preferences.scanMarker = currentMarker(context)
+                Log.i(TAG, "Beacon scan started (offloaded filtering: $offloaded)")
+            }
             status == 0
         } catch (e: SecurityException) {
             Log.w(TAG, "Beacon scan refused", e)
