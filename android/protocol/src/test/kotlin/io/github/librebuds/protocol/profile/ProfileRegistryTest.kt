@@ -1,6 +1,11 @@
+// LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.librebuds.protocol.profile
 
 import io.github.librebuds.protocol.repoRoot
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -66,5 +71,60 @@ class ProfileRegistryTest {
     fun ignoresUnknownJsonKeys() {
         val r = ProfileRegistry.fromJson(listOf("""{"id":"x","name":"X","future":1,"capabilities":{"anc":{"verified":null}}}"""))
         assertEquals("x", r.profiles.single().id)
+    }
+
+    /**
+     * Every gesture sub-key a target profile lists carries an `options` map (plus `inCallOptions`
+     * when it declares `inCall`), and every `equalizer`/`soundQuality` block carries its own
+     * options map. Option keys are the signed device codes the controller compares against, so
+     * they must all parse as integers. New M4 capabilities stay unverified until round 3.
+     */
+    @Test
+    fun targetProfilesDeclareSettingTables() {
+        val targetIds = listOf(
+            "freebuds-6",
+            "freebuds-5",
+            "freebuds-pro-2",
+            "freebuds-pro-3",
+            "freebuds-pro-4",
+            "freebuds-pro-5",
+            "freebuds-4",
+        )
+        val gestureSubKeys = listOf("doubleTap", "tripleTap", "longPress", "noiseCycle", "swipe")
+        val newCapabilities = listOf("wear", "gestures", "equalizer", "lowLatency", "soundQuality", "multipoint", "language")
+
+        fun assertOptions(id: String, label: String, value: JsonElement?) {
+            val options = value as? JsonObject
+            assertTrue(options != null, "$id: $label has no options object")
+            assertTrue(options!!.isNotEmpty(), "$id: $label options is empty")
+            for (key in options.keys) assertTrue(key.toIntOrNull() != null, "$id: $label option key '$key' is not an int")
+        }
+
+        for (id in targetIds) {
+            val profile = registry.profiles.first { it.id == id }
+
+            for (capability in newCapabilities) {
+                if (profile.supports(capability)) assertNull(profile.verifiedOn(capability), "$id: $capability should be unverified")
+            }
+
+            val gestures = profile.capabilities["gestures"]
+            assertTrue(gestures != null, "$id: expected a gestures capability")
+            for (key in gestureSubKeys) {
+                val entry = gestures!![key] as? JsonObject ?: continue
+                assertOptions(id, "gestures.$key", entry["options"])
+                val declaresInCall = (entry["inCall"] as? JsonPrimitive)?.booleanOrNull == true
+                if (declaresInCall) assertOptions(id, "gestures.$key.inCallOptions", entry["inCallOptions"])
+            }
+
+            profile.capabilities["equalizer"]?.let { assertOptions(id, "equalizer.presets", it["presets"]) }
+            profile.capabilities["soundQuality"]?.let { assertOptions(id, "soundQuality.options", it["options"]) }
+        }
+
+        val freebuds4 = registry.profiles.first { it.id == "freebuds-4" }
+        assertFalse(freebuds4.supports("equalizer"), "freebuds-4: equalizer is omitted per the analysis")
+        assertFalse(freebuds4.supports("multipoint"), "freebuds-4: multipoint support is unknown, so it is omitted")
+
+        val freebudsPro2 = registry.profiles.first { it.id == "freebuds-pro-2" }
+        assertFalse(freebudsPro2.supports("lowLatency"), "freebuds-pro-2: lowLatency is not on this model")
     }
 }
