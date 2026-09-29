@@ -3,6 +3,7 @@ package io.github.librebuds.popup
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.KeyguardManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -29,10 +30,14 @@ sealed interface PopupAction {
     data object Nothing : PopupAction
 }
 
-/** The overlay when allowed, else a notification; nothing when the popup is off or neither is allowed. */
-fun popupAction(enabled: Boolean, canDrawOverlays: Boolean, notificationsAllowed: Boolean): PopupAction = when {
+/**
+ * The overlay when allowed, else a notification; nothing when the popup is off or neither is allowed.
+ * On a [locked] screen the overlay would not be seen (it stays behind the keyguard), so only the
+ * notification is used.
+ */
+fun popupAction(enabled: Boolean, canDrawOverlays: Boolean, notificationsAllowed: Boolean, locked: Boolean): PopupAction = when {
     !enabled -> PopupAction.Nothing
-    canDrawOverlays -> PopupAction.Overlay
+    canDrawOverlays && !locked -> PopupAction.Overlay
     notificationsAllowed -> PopupAction.Notification
     else -> PopupAction.Nothing
 }
@@ -53,6 +58,7 @@ object PopupPresenter {
             enabled = AppPreferences(context).popupEnabled,
             canDrawOverlays = Settings.canDrawOverlays(context),
             notificationsAllowed = notificationsAllowed(context),
+            locked = context.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked == true,
         )
         when (action) {
             PopupAction.Overlay -> if (!showOverlay(context, model, art) && notificationsAllowed(context)) notify(context, model)
@@ -64,10 +70,11 @@ object PopupPresenter {
     /** Whether a case-open popup for [profileId] is on screen (the connection island then stays away). */
     fun isShowing(profileId: String): Boolean = window?.let { it.isOpen && it.profileId == profileId } == true
 
-    /** Closes the popup if one is on screen, for example when the user turned the popup off. */
-    fun dismiss() {
+    /** Closes the popup and its notification fallback, for example when the user turned the popup off. */
+    fun dismiss(context: Context) {
         window?.close()
         window = null
+        context.getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
     }
 
     /** Replaces any popup still on screen (another pair of earbuds, say) with a new one. */
@@ -99,6 +106,8 @@ object PopupPresenter {
             .setContentText(batterySummary(model.batteries.toBatteryState()))
             .setContentIntent(open)
             .setAutoCancel(true)
+            // A repeat for the same earbuds updates the notification quietly instead of alerting again.
+            .setOnlyAlertOnce(true)
             .setTimeoutAfter(NOTIFICATION_TIMEOUT_MILLIS)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .build()

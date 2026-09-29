@@ -99,7 +99,7 @@ fun AppRoot(
                             BeaconScanner.start(context)
                         } else {
                             BeaconScanner.stop(context)
-                            PopupPresenter.dismiss()
+                            PopupPresenter.dismiss(context)
                         }
                     },
                     demoMode = demoMode,
