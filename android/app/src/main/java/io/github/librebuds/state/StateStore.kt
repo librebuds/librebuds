@@ -40,11 +40,12 @@ data class PersistedState(
 
     /**
      * The state to start from. No link survives a restart, so a live link comes back
-     * DISCONNECTED (the values stay as last known); TAKEN_OVER is kept, so only the user's
-     * take-over reconnects.
+     * DISCONNECTED (the values stay as last known). TAKEN_OVER is kept only while [audioUp]
+     * says the phone still has audio to these earbuds, so only the user's take-over reconnects
+     * them; once audio is gone (a reboot drops it) nothing holds them back from connecting.
      */
-    fun toBudsState(): BudsState = BudsState(
-        link = if (link == LinkState.TAKEN_OVER) LinkState.TAKEN_OVER else LinkState.DISCONNECTED,
+    fun toBudsState(audioUp: (String) -> Boolean): BudsState = BudsState(
+        link = if (link == LinkState.TAKEN_OVER && address != null && audioUp(address)) LinkState.TAKEN_OVER else LinkState.DISCONNECTED,
         address = address,
         name = name,
         profileId = profileId,

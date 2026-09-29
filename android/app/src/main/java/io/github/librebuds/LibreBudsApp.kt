@@ -64,7 +64,9 @@ class LibreBudsApp : Application() {
             scope = appScope,
             isAudioConnected = ::isAudioConnected,
             frameLog = frameLog,
-            initial = stateStore.load()?.toBudsState() ?: BudsState(),
+            // Whether audio to the earbuds is up is not known yet: the profile proxies answer later.
+            // A stored take-over is kept for now and settled in keepAudioConnectionsFresh().
+            initial = stateStore.load()?.toBudsState(audioUp = { true }) ?: BudsState(),
         )
         persistState(stateStore)
         val preferences = AppPreferences(this)
@@ -90,9 +92,14 @@ class LibreBudsApp : Application() {
     /**
      * Refreshes [io.github.librebuds.bt.AudioConnections] at start and whenever the earbuds connect,
      * so a later link drop can tell a takeover from a disconnect even before any ACL broadcast arrived.
+     * Once both audio profiles answered at start, a restored take-over without audio to those
+     * earbuds (for example after a reboot) is cleared, so they connect again on their own.
      */
     private fun keepAudioConnectionsFresh() {
-        refreshAudioConnections(this)
+        var answers = 0
+        refreshAudioConnections(this) {
+            if (++answers == AUDIO_PROFILE_COUNT) controller.clearTakeOver(keepWhile = ::isAudioConnected)
+        }
         appScope.launch {
             controller.state.map { it.link }.distinctUntilChanged().collect { link ->
                 if (link == LinkState.CONNECTED) refreshAudioConnections(this@LibreBudsApp)
@@ -102,6 +109,9 @@ class LibreBudsApp : Application() {
 
     companion object {
         private const val SAVE_DEBOUNCE_MILLIS = 1000L
+
+        /** A2DP and headset: the profiles [refreshAudioConnections] asks. */
+        private const val AUDIO_PROFILE_COUNT = 2
 
         fun from(context: Context): LibreBudsApp = context.applicationContext as LibreBudsApp
     }

@@ -382,4 +382,27 @@ class BudsControllerTest {
         assertEquals(LinkState.DISCONNECTED, c.state.value.link)
         assertTrue(job.isCompleted)
     }
+
+    // Final review I2: a restored take-over is cleared once audio turns out to be down (and when the
+    // earbuds go away while the service is not running), without opening a link.
+    @Test
+    fun clearTakeOverWithoutAudioAllowsConnectAgain() = runTest {
+        var opens = 0
+        val restored = BudsState(link = LinkState.TAKEN_OVER, address = "AA:BB:CC:DD:EE:FF", name = "x")
+        val c = BudsController(LinkFactory { opens++; FakeEarbuds().link() }, registry, backgroundScope, initial = restored)
+        c.clearTakeOver(keepWhile = { true })
+        assertEquals(LinkState.TAKEN_OVER, c.state.value.link)
+        c.clearTakeOver(keepWhile = { false })
+        assertEquals(LinkState.DISCONNECTED, c.state.value.link)
+        assertTrue(shouldLaunchConnect(c.state.value, "AA:BB:CC:DD:EE:FF"))
+        assertEquals(0, opens)
+    }
+
+    @Test
+    fun clearTakeOverLeavesALiveSessionAlone() = runTest {
+        val c = controller(FakeEarbuds())
+        c.connect("AA", "x")
+        c.clearTakeOver()
+        assertEquals(LinkState.CONNECTED, c.state.value.link)
+    }
 }

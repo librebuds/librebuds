@@ -4,9 +4,12 @@ package io.github.librebuds.state
 import io.github.librebuds.protocol.command.AncState
 import io.github.librebuds.protocol.command.BatteryState
 import io.github.librebuds.protocol.command.HostRow
+import io.github.librebuds.service.shouldLaunchConnect
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StateStoreTest {
@@ -21,8 +24,8 @@ class StateStoreTest {
         updatedAtMillis = 1_700_000_000_000,
     )
 
-    private fun roundTrip(state: BudsState): BudsState? =
-        PersistedState.decode(PersistedState.from(state).encode())?.toBudsState()
+    private fun roundTrip(state: BudsState, audioUp: (String) -> Boolean = { false }): BudsState? =
+        PersistedState.decode(PersistedState.from(state).encode())?.toBudsState(audioUp)
 
     @Test
     fun roundTripKeepsPersistedFields() {
@@ -43,9 +46,21 @@ class StateStoreTest {
         assertEquals(LinkState.DISCONNECTED, roundTrip(full.copy(link = LinkState.CONNECTING))?.link)
     }
 
+    // Final review I2: a take-over outlives a restart only while the phone still has audio to the earbuds.
     @Test
-    fun takenOverSurvives() {
-        assertEquals(LinkState.TAKEN_OVER, roundTrip(full.copy(link = LinkState.TAKEN_OVER))?.link)
+    fun takenOverSurvivesWhileAudioIsUp() {
+        val restored = roundTrip(full.copy(link = LinkState.TAKEN_OVER), audioUp = { it == full.address })!!
+        assertEquals(LinkState.TAKEN_OVER, restored.link)
+        assertFalse(shouldLaunchConnect(restored, full.address!!))
+    }
+
+    @Test
+    fun takenOverWithoutAudioComesBackDisconnected() {
+        val restored = roundTrip(full.copy(link = LinkState.TAKEN_OVER), audioUp = { false })!!
+        assertEquals(LinkState.DISCONNECTED, restored.link)
+        assertTrue(shouldLaunchConnect(restored, full.address!!))
+        // Audio to some other device does not count.
+        assertEquals(LinkState.DISCONNECTED, roundTrip(full.copy(link = LinkState.TAKEN_OVER), audioUp = { it == "11:22:33:44:55:66" })?.link)
     }
 
     @Test

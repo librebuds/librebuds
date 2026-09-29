@@ -232,6 +232,19 @@ class BudsController(
 
     private fun gestureKey(subKey: String) = "gestures.$subKey"
 
+    /**
+     * Moves a TAKEN_OVER state without a session to DISCONNECTED unless [keepWhile] says the
+     * earbuds still have audio to this phone; never connects. Used once the audio state is known
+     * after a restart, and when the earbuds go away while the connection service is not running.
+     */
+    fun clearTakeOver(keepWhile: (String) -> Boolean = { false }) {
+        if (session != null) return
+        mutable.update { state ->
+            val keep = state.link != LinkState.TAKEN_OVER || state.address?.let(keepWhile) == true
+            if (keep) state else state.copy(link = LinkState.DISCONNECTED)
+        }
+    }
+
     fun disconnect() {
         generation.incrementAndGet()
         closeSession()
