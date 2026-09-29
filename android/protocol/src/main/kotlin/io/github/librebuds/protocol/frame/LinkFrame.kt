@@ -5,7 +5,7 @@ package io.github.librebuds.protocol.frame
  * payload, CRC-16/XMODEM over everything before it (big-endian).
  * Requests are always small, so only the single-frame form (flag 0) is built.
  */
-object MbbFrame {
+object LinkFrame {
     const val MAGIC = 0x5A
     const val FLAG_SINGLE = 0
 

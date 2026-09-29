@@ -1,6 +1,6 @@
 package io.github.librebuds.protocol
 
-import io.github.librebuds.protocol.frame.MbbFrame
+import io.github.librebuds.protocol.frame.LinkFrame
 import io.github.librebuds.protocol.tlv.Tlv
 import io.github.librebuds.protocol.util.u8
 
@@ -15,7 +15,7 @@ class Packet(val id: CommandId, val tlvs: List<Tlv>) {
 
     fun toPayload(): ByteArray = byteArrayOf(id.service.toByte(), id.command.toByte()) + Tlv.encode(tlvs)
 
-    fun toFrame(): ByteArray = MbbFrame.encode(toPayload())
+    fun toFrame(): ByteArray = LinkFrame.encode(toPayload())
 
     override fun toString(): String = "Packet($id, $tlvs)"
 

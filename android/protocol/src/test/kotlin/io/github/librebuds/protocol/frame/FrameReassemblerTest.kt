@@ -60,6 +60,14 @@ class FrameReassemblerTest {
     }
 
     @Test
+    fun badCrcDropReportsOnlyTheConsumedByte() {
+        val corrupted = "5A 00 07 00 2B 2A 01 02 00 00 15 32"
+        val events = FrameReassembler().feed(corrupted.hexToBytes())
+        val dropped = events.filterIsInstance<RxEvent.Dropped>().first { it.reason == DropReason.BAD_CRC }
+        assertEquals("5A", dropped.bytes.toHex())
+    }
+
+    @Test
     fun rejectsImpossibleLengthAndResyncs() {
         val events = FrameReassembler().feed("5A FF FF $ancState".hexToBytes())
         assertEquals(DropReason.BAD_LENGTH, drops(events).first())
@@ -83,6 +91,22 @@ class FrameReassemblerTest {
         val lastWithIndexTwo = "5A 00 03 03 02 64 7E 5A"
         val events = FrameReassembler().feed("$first $lastWithIndexTwo".hexToBytes())
         assertEquals(listOf(DropReason.FRAGMENT_SEQUENCE), drops(events))
+        assertEquals(emptyList<String>(), payloads(events))
+    }
+
+    @Test
+    fun rejectsOrphanLastFragment() {
+        val orphanLast = "5A 00 03 03 00 64 18 38"
+        val events = FrameReassembler().feed(orphanLast.hexToBytes())
+        assertEquals(listOf(DropReason.FRAGMENT_SEQUENCE), drops(events))
+        assertEquals(emptyList<String>(), payloads(events))
+    }
+
+    @Test
+    fun unknownFlagIsDropped() {
+        val unknownFlag = "5A 00 01 04 6E 25"
+        val events = FrameReassembler().feed(unknownFlag.hexToBytes())
+        assertEquals(listOf(DropReason.UNKNOWN_FLAG), drops(events))
         assertEquals(emptyList<String>(), payloads(events))
     }
 

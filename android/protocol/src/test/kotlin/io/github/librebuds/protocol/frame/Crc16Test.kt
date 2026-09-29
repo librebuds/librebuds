@@ -12,7 +12,7 @@ class Crc16Test {
 
     @Test
     fun tableStartsWithDocumentedValues() {
-        // docs/protocol/spp.md: the table must begin 0, 4129, 8258, 12387.
+        // Standard CRC-16/XMODEM table: the table must begin 0, 4129, 8258, 12387.
         assertEquals(listOf(0, 4129, 8258, 12387), Crc16.tableHead(4))
     }
 

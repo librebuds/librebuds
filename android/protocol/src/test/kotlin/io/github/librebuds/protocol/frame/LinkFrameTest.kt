@@ -9,16 +9,16 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
-class MbbFrameTest {
+class LinkFrameTest {
     @Test
     fun encodesBatteryRequest() {
-        val frame = MbbFrame.encode("01 08 01 00 02 00 03 00".hexToBytes())
+        val frame = LinkFrame.encode("01 08 01 00 02 00 03 00".hexToBytes())
         assertEquals("5A 00 09 00 01 08 01 00 02 00 03 00 FB B9", frame.toHex())
     }
 
     @Test
     fun encodesAncReadRequest() {
-        assertEquals("5A 00 05 00 2B 2A 01 00 42 7E", MbbFrame.encode("2B 2A 01 00".hexToBytes()).toHex())
+        assertEquals("5A 00 05 00 2B 2A 01 00 42 7E", LinkFrame.encode("2B 2A 01 00".hexToBytes()).toHex())
     }
 
     @Test

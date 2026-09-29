@@ -19,7 +19,7 @@ data class BatteryState(
  * Battery query (01/08) and unsolicited battery report (01/27).
  * TLV 1: overall level. TLV 2: levels [left, right, case]. TLV 3: charging flags, same order.
  * SPEC-GAP: TLV 2 order differs between sources: live tests and OpenFreebuds use [left, right, case],
- * but SPP_PROTOCOL.md lists [case, left, right]. We follow live tests.
+ * but an earlier analysis lists [case, left, right]. We follow live tests.
  */
 object Battery {
     val GET = CommandId(0x01, 0x08)
@@ -31,8 +31,8 @@ object Battery {
         if (packet.id != GET && packet.id != PUSH) return null
         val overall = packet.find(1)?.takeIf { it.size == 1 }?.get(0)?.u8()
         // SPEC-GAP: devices with a single battery report TLV 2 with one byte; treated as "no earbud levels".
-        val levels = packet.find(2)?.takeIf { it.size == 3 }
-        val charging = packet.find(3)?.takeIf { it.size == 3 }
+        val levels = packet.find(2)?.takeIf { it.size >= 3 }
+        val charging = packet.find(3)?.takeIf { it.size >= 3 }
         return BatteryState(
             overall = overall,
             left = levels?.get(0)?.u8(),

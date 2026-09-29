@@ -43,4 +43,12 @@ class BatteryTest {
         val state = Battery.parse(Packet(CommandId(1, 8), listOf(Tlv.of(1, 40), Tlv.of(2, 40), Tlv.of(3, 1))))
         assertEquals(BatteryState(40, null, null, null, null, null, null), state)
     }
+
+    @Test
+    fun extraTrailingBytesInLevelsAndChargingAreIgnored() {
+        val state = Battery.parse(
+            Packet(CommandId(1, 8), listOf(Tlv.of(1, 74), Tlv.of(2, 100, 84, 74, 0xFF), Tlv.of(3, 0, 0, 0))),
+        )
+        assertEquals(BatteryState(74, 100, 84, 74, false, false, false), state)
+    }
 }

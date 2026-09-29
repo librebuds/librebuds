@@ -11,7 +11,7 @@ object Crc16 {
         crc and 0xFFFF
     }
 
-    fun tableHead(count: Int): List<Int> = TABLE.take(count)
+    internal fun tableHead(count: Int): List<Int> = TABLE.take(count)
 
     fun xmodem(data: ByteArray, from: Int = 0, to: Int = data.size): Int {
         var crc = 0
