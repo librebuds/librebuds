@@ -1,0 +1,12 @@
+<!-- Same capsule paths as ic_launcher_foreground.xml, cropped to the shapes' bounds. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="56" android:viewportHeight="56"
+    android:tint="?android:attr/colorControlNormal">
+    <group android:translateX="-26" android:translateY="-30">
+        <path android:fillColor="#FFFFFFFF"
+            android:pathData="M42,34a14,14 0 1,1 0,28a14,14 0 1,1 0,-28zM38,60h8v18a4,4 0 0,1 -8,0z" />
+        <path android:fillColor="#FFFFFFFF"
+            android:pathData="M66,34a14,14 0 1,1 0,28a14,14 0 1,1 0,-28zM62,60h8v18a4,4 0 0,1 -8,0z" />
+    </group>
+</vector>
