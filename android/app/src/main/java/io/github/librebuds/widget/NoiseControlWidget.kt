@@ -7,10 +7,12 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import android.view.View
 import android.widget.RemoteViews
 import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.R
 import io.github.librebuds.protocol.command.AncMode
+import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.ui.model.NoiseControlMode
 import kotlinx.coroutines.CoroutineScope
@@ -21,7 +23,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 /** Home-screen widget with one button per noise-control mode; the active mode is highlighted. */
 class NoiseControlWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        appWidgetManager.updateAppWidget(appWidgetIds, render(context, LibreBudsApp.from(context).repository.state.value))
+        val showOff = AppPreferences(context).showOffMode
+        appWidgetManager.updateAppWidget(appWidgetIds, render(context, LibreBudsApp.from(context).repository.state.value, showOff))
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -57,12 +60,17 @@ class NoiseControlWidget : AppWidgetProvider() {
             Button(NoiseControlMode.AWARENESS, R.id.widget_mode_awareness, R.id.widget_mode_awareness_icon, R.id.widget_mode_awareness_label),
         )
 
-        fun render(context: Context, state: BudsState): RemoteViews {
+        fun render(context: Context, state: BudsState, showOffMode: Boolean): RemoteViews {
             val selected = NoiseControlMode.of(state.anc).takeIf { state.isConnected }
             val selectedColor = context.getColor(R.color.widget_on_accent)
             val normalColor = context.getColor(R.color.widget_text)
             return RemoteViews(context.packageName, R.layout.widget_noise_control).apply {
                 buttons.forEach { button ->
+                    if (button.mode == NoiseControlMode.OFF && !showOffMode) {
+                        setViewVisibility(button.container, View.GONE)
+                        return@forEach
+                    }
+                    setViewVisibility(button.container, View.VISIBLE)
                     val active = button.mode == selected
                     val color = if (active) selectedColor else normalColor
                     setInt(button.container, "setBackgroundResource", if (active) R.drawable.widget_mode_selected else 0)

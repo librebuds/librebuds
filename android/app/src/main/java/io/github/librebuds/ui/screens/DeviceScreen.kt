@@ -85,7 +85,7 @@ fun DeviceScreen(
             if (batteries.isNotEmpty()) {
                 BatteryView(batteries)
             }
-            if ("anc" in ui.state.capabilities) {
+            if (ui.state.isConnected && "anc" in ui.state.capabilities) {
                 NoiseControlSettings(
                     selected = ui.selectedNoiseMode,
                     showOff = showOffMode,

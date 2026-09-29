@@ -7,6 +7,7 @@ import android.content.Context
 import android.service.quicksettings.TileService
 import android.util.Log
 import io.github.librebuds.qs.BudsTileService
+import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.BudsRepository
 import io.github.librebuds.state.BudsState
 import kotlinx.coroutines.CoroutineScope
@@ -34,7 +35,7 @@ class WidgetUpdater(
         manager.getAppWidgetIds(ComponentName(context, BatteryWidget::class.java)).takeIf { it.isNotEmpty() }
             ?.let { manager.updateAppWidget(it, BatteryWidget.render(context, state)) }
         manager.getAppWidgetIds(ComponentName(context, NoiseControlWidget::class.java)).takeIf { it.isNotEmpty() }
-            ?.let { manager.updateAppWidget(it, NoiseControlWidget.render(context, state)) }
+            ?.let { manager.updateAppWidget(it, NoiseControlWidget.render(context, state, AppPreferences(context).showOffMode)) }
         TileService.requestListeningState(context, ComponentName(context, BudsTileService::class.java))
     }
 
