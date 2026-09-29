@@ -237,9 +237,15 @@ class BudsService : Service() {
             }
         }
 
-        /** Disconnects and stops the service; a no-op when it is not running. */
+        /**
+         * Disconnects and stops the service. When it is not running there is nothing to stop, but
+         * a take-over is cleared: the earbuds are gone, so the next START may connect them again.
+         */
         fun stop(context: Context) {
-            if (!running) return
+            if (!running) {
+                LibreBudsApp.from(context).controller.clearTakeOver()
+                return
+            }
             try {
                 context.startService(Intent(context, BudsService::class.java).setAction(ACTION_STOP))
             } catch (e: IllegalStateException) {

@@ -4,6 +4,7 @@ package io.github.librebuds
 import android.app.Application
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.provider.Settings
 import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.bt.LinkFactory
 import io.github.librebuds.bt.RfcommLinkFactory
@@ -15,11 +16,17 @@ import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.session.BudsController
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.BudsRepository
+import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.DemoBudsRepository
 import io.github.librebuds.state.LinkState
+import io.github.librebuds.state.PersistedState
+import io.github.librebuds.state.StateStore
 import io.github.librebuds.widget.WidgetUpdater
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -52,13 +59,20 @@ class LibreBudsApp : Application() {
         frameLog = FrameLog()
         registry = ProfileAssets.load(this)
         val adapter = getSystemService(BluetoothManager::class.java)?.adapter
+        val stateStore = StateStore(this)
+        val bootCount = readBootCount()
         controller = BudsController(
             linkFactory = adapter?.let(::RfcommLinkFactory) ?: LinkFactory { throw IOException("No Bluetooth adapter") },
             registry = registry,
             scope = appScope,
             isAudioConnected = ::isAudioConnected,
             frameLog = frameLog,
+            // Whether audio to the earbuds is up is not known yet: the profile proxies answer later.
+            // A stored take-over is kept for now and settled in keepAudioConnectionsFresh().
+            // A take-over saved in an earlier boot is dropped right here (bootCount differs).
+            initial = stateStore.load()?.toBudsState(audioUp = { true }, currentBootCount = bootCount) ?: BudsState(),
         )
+        persistState(stateStore, bootCount)
         val preferences = AppPreferences(this)
         repository = if (BuildConfig.DEBUG && preferences.demoMode) DemoBudsRepository() else controller
         WidgetUpdater(this, repository, appScope).start()
@@ -69,11 +83,39 @@ class LibreBudsApp : Application() {
     }
 
     /**
+     * Saves the controller's state (never the demo data) once it has been stable for a second,
+     * so the next process starts from the last known values and a take-over outlives a restart.
+     * Identical stored values are skipped; most updates still count because they refresh the timestamp.
+     */
+    @OptIn(FlowPreview::class)
+    private fun persistState(store: StateStore, bootCount: Int?) {
+        appScope.launch {
+            controller.state.drop(1)
+                .map { PersistedState.from(it, bootCount) }
+                .distinctUntilChanged()
+                .debounce(SAVE_DEBOUNCE_MILLIS)
+                .collect(store::save)
+        }
+    }
+
+    /** The phone's boot count, or null when the system does not report it. */
+    private fun readBootCount(): Int? = try {
+        Settings.Global.getInt(contentResolver, Settings.Global.BOOT_COUNT, -1).takeIf { it >= 0 }
+    } catch (e: SecurityException) {
+        null
+    }
+
+    /**
      * Refreshes [io.github.librebuds.bt.AudioConnections] at start and whenever the earbuds connect,
      * so a later link drop can tell a takeover from a disconnect even before any ACL broadcast arrived.
+     * Once both audio profiles answered at start, a restored take-over without audio to those
+     * earbuds (for example after a reboot) is cleared, so they connect again on their own.
      */
     private fun keepAudioConnectionsFresh() {
-        refreshAudioConnections(this)
+        var answers = 0
+        refreshAudioConnections(this) {
+            if (++answers == AUDIO_PROFILE_COUNT) controller.clearTakeOver(keepWhile = ::isAudioConnected)
+        }
         appScope.launch {
             controller.state.map { it.link }.distinctUntilChanged().collect { link ->
                 if (link == LinkState.CONNECTED) refreshAudioConnections(this@LibreBudsApp)
@@ -82,6 +124,11 @@ class LibreBudsApp : Application() {
     }
 
     companion object {
+        private const val SAVE_DEBOUNCE_MILLIS = 1000L
+
+        /** A2DP and headset: the profiles [refreshAudioConnections] asks. */
+        private const val AUDIO_PROFILE_COUNT = 2
+
         fun from(context: Context): LibreBudsApp = context.applicationContext as LibreBudsApp
     }
 }

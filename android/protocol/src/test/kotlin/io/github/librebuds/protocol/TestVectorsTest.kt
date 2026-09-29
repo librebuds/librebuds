@@ -26,7 +26,7 @@ class TestVectorsTest {
     @Test
     fun vectorSetIsNotEmptyAndIdsAreUnique() {
         val ids = vectors().map { it["id"]!!.jsonPrimitive.content }
-        assertTrue(ids.size >= 12, "expected round 1 vectors, found ${ids.size}")
+        assertTrue(ids.size >= 23, "expected round 1 vectors, found ${ids.size}")
         assertEquals(ids.size, ids.toSet().size, "duplicate vector ids")
     }
 

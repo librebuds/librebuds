@@ -103,7 +103,19 @@ class DeviceSession(
         }
     }
 
-    suspend fun request(packet: Packet, reply: CommandId = packet.id): Result<Packet> = requestLock.withLock {
+    /**
+     * Sends [packet] and waits for the reply with id [reply]. [timeoutMillis] and [retries] default
+     * to the session's. With [countsTowardGiveUp] = false an unanswered request (for example an
+     * optional, unverified setting read) neither adds to nor trips the give-up counter; any answered
+     * request still resets it.
+     */
+    suspend fun request(
+        packet: Packet,
+        reply: CommandId = packet.id,
+        timeoutMillis: Long = this.timeoutMillis,
+        retries: Int = this.retries,
+        countsTowardGiveUp: Boolean = true,
+    ): Result<Packet> = requestLock.withLock {
         repeat(retries + 1) {
             if (closedSignal.isCompleted) return Result.failure(SessionClosedException())
             val current = Waiter(reply, CompletableDeferred())
@@ -129,8 +141,10 @@ class DeviceSession(
                 waiter = null
             }
         }
-        consecutiveFailures++
-        if (consecutiveFailures >= maxConsecutiveFailures) closeWith(SessionGaveUpException())
+        if (countsTowardGiveUp) {
+            consecutiveFailures++
+            if (consecutiveFailures >= maxConsecutiveFailures) closeWith(SessionGaveUpException())
+        }
         Result.failure(RequestTimeoutException(reply))
     }
 

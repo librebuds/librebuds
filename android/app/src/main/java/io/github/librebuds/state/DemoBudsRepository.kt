@@ -4,13 +4,23 @@ package io.github.librebuds.state
 import io.github.librebuds.protocol.command.AncMode
 import io.github.librebuds.protocol.command.AncState
 import io.github.librebuds.protocol.command.BatteryState
+import io.github.librebuds.protocol.command.EqualizerState
+import io.github.librebuds.protocol.command.Gesture
+import io.github.librebuds.protocol.command.GestureSetting
+import io.github.librebuds.protocol.command.HostRow
+import io.github.librebuds.protocol.command.LanguageInfo
+import io.github.librebuds.ui.model.applyTo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-/** In-memory earbuds used until Bluetooth is wired in (M2b) and for UI work without hardware. */
+/**
+ * In-memory earbuds for UI work without hardware (debug builds, demo mode). Every per-model
+ * setting and two multipoint hosts are seeded so all sections can be seen; changes only update
+ * this in-memory state. Nothing here reaches the Bluetooth controller or the stored state.
+ */
 class DemoBudsRepository(
     private val clock: () -> Long = System::currentTimeMillis,
     private val applyDelayMillis: Long = 800,
@@ -21,11 +31,30 @@ class DemoBudsRepository(
             address = "00:00:00:00:00:00",
             name = "Demo earbuds",
             profileId = "freebuds-6",
-            capabilities = setOf("battery", "anc"),
+            capabilities = setOf("battery", "anc", "wear", "gestures", "equalizer", "lowLatency", "soundQuality", "multipoint", "language"),
             battery = BatteryState(90, 100, 85, 60, false, false, true),
             anc = AncState(modeCode = AncMode.OFF.code, level = 3),
             device = DeviceSummary(model = "Demo earbuds", firmware = "1.0.0", serial = "DEMO0001"),
             updatedAtMillis = clock(),
+            settings = DeviceSettings(
+                wearDetection = true,
+                gestures = mapOf(
+                    Gesture.DOUBLE_TAP to GestureSetting(left = 1, right = 2, inCall = 0, supported = listOf(-1, 0, 1, 2, 7)),
+                    Gesture.TRIPLE_TAP to GestureSetting(left = 2, right = 7, inCall = null, supported = listOf(-1, 0, 1, 2, 7)),
+                    Gesture.LONG_PRESS to GestureSetting(left = 10, right = 10, inCall = null, supported = listOf(-1, 10)),
+                    Gesture.NOISE_CYCLE to GestureSetting(left = 2, right = 2, inCall = null, supported = listOf(1, 2, 3, 4)),
+                    Gesture.SWIPE to GestureSetting(left = 0, right = 0, inCall = null, supported = listOf(-1, 0)),
+                ),
+                equalizer = EqualizerState(active = 1, available = listOf(1, 2, 3, 9)),
+                lowLatency = false,
+                soundQuality = 1,
+                language = LanguageInfo(current = "en-GB", supported = listOf("en-GB", "de-DE")),
+            ),
+            multipointEnabled = true,
+            hosts = listOf(
+                HostRow(index = 0, count = 2, mac = "11:22:33:44:55:66", name = "Phone", connection = 9, preferred = true, autoConnect = true),
+                HostRow(index = 1, count = 2, mac = "11:22:33:44:55:77", name = "Laptop", connection = 1, preferred = false, autoConnect = true),
+            ),
         ),
     )
 
@@ -41,5 +70,17 @@ class DemoBudsRepository(
     override suspend fun refresh(): Result<Unit> {
         mutable.update { it.copy(updatedAtMillis = clock()) }
         return Result.success(Unit)
+    }
+
+    /** Takes every change as the device would: the same optimistic result the screens show. */
+    override suspend fun apply(change: SettingChange): Result<Unit> {
+        delay(applyDelayMillis)
+        mutable.update { change.applyTo(it).copy(updatedAtMillis = clock()) }
+        return Result.success(Unit)
+    }
+
+    override suspend fun refreshHosts(): Result<List<HostRow>> {
+        delay(applyDelayMillis)
+        return Result.success(mutable.value.hosts)
     }
 }

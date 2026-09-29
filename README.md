@@ -6,12 +6,19 @@ No root, no vendor app.
 
 Status: The Android app connects to FreeBuds over Bluetooth (battery, noise control, quick settings tile,
 widgets) and shows a popup when the case opens nearby, with animated vector artwork per model shape.
-Full per-model settings are next.
+Per-model settings are also in, shown only when the connected model's profile lists the capability:
+wear detection, gestures (double tap, triple tap, touch and hold, noise-control cycle, swipe, with
+in-call actions where the model has them), an equalizer preset switch, low latency, a sound-quality
+priority, multipoint (host list, preferred host, connect/disconnect, no unpair) and a read-only voice
+language row. A control with no `verified` date in the model's profile shows an "Experimental" label
+until a live test confirms it.
 
 See [docs/devices.md](docs/devices.md) for per-model support,
-[docs/protocol](docs/protocol) for the wire formats, and
+[docs/protocol](docs/protocol) for the wire formats,
 [docs/testing/m3-device-checklist.md](docs/testing/m3-device-checklist.md) for the case-open popup
-device checklist.
+device checklist, and
+[docs/testing/m4-device-checklist.md](docs/testing/m4-device-checklist.md) for the per-model settings
+and multipoint device checklist.
 
 Debug builds add a Settings section to test the popup without real hardware: a "Popup artwork" switch
 between the vector drawing (variant A) and the generated video clip (variant B, round-shaped models

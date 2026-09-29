@@ -4,6 +4,7 @@ package io.github.librebuds.state
 import io.github.librebuds.protocol.command.AncMode
 import io.github.librebuds.protocol.command.AncState
 import io.github.librebuds.protocol.command.BatteryState
+import io.github.librebuds.protocol.command.HostRow
 import kotlinx.coroutines.flow.StateFlow
 
 enum class LinkState { DISCONNECTED, CONNECTING, CONNECTED, TAKEN_OVER }
@@ -25,6 +26,10 @@ data class BudsState(
     val device: DeviceSummary = DeviceSummary(),
     val updatedAtMillis: Long? = null,
     val lastError: LinkError? = null,
+    val settings: DeviceSettings = DeviceSettings(),
+    val hosts: List<HostRow> = emptyList(),
+    val multipointEnabled: Boolean? = null,
+    val inEar: Boolean? = null,
 ) {
     val isConnected: Boolean get() = link == LinkState.CONNECTED
 }
@@ -44,4 +49,13 @@ interface BudsRepository {
 
     /** Reconnects after another client took the link (spec 8). */
     suspend fun takeOver(): Result<Unit> = Result.success(Unit)
+
+    /**
+     * Applies one settings change; succeeds only once a read-back after the settle delay shows
+     * the device took it. Same cancellation contract as [setAnc].
+     */
+    suspend fun apply(change: SettingChange): Result<Unit> = Result.failure(UnsupportedOperationException())
+
+    /** Re-enumerates the multipoint hosts; a list that stays incomplete is returned as far as it got. */
+    suspend fun refreshHosts(): Result<List<HostRow>> = Result.failure(UnsupportedOperationException())
 }

@@ -6,7 +6,11 @@ import io.github.librebuds.bt.isAudioConnected
 import io.github.librebuds.companion.Presence
 import io.github.librebuds.companion.trackPresence
 import io.github.librebuds.protocol.command.AncMode
+import io.github.librebuds.protocol.command.AncState
+import io.github.librebuds.protocol.command.BatteryState
 import io.github.librebuds.protocol.profile.ProfileRegistry
+import io.github.librebuds.service.shouldLaunchConnect
+import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.LinkError
 import io.github.librebuds.state.LinkState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,6 +22,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.IOException
@@ -266,5 +271,138 @@ class BudsControllerTest {
         runCurrent()
         assertEquals(LinkState.DISCONNECTED, c.state.value.link)
         assertTrue(job.isCompleted)
+    }
+
+    @Test
+    fun restoredTakenOverStateBlocksAutoConnect() = runTest {
+        val restored = BudsState(link = LinkState.TAKEN_OVER, address = "AA:BB:CC:DD:EE:FF", name = "x", battery = null)
+        val c = BudsController(LinkFactory { FakeEarbuds().link() }, registry, backgroundScope, initial = restored)
+        assertEquals(LinkState.TAKEN_OVER, c.state.value.link)
+        assertFalse(shouldLaunchConnect(c.state.value, "AA:BB:CC:DD:EE:FF"))
+        assertFalse(shouldLaunchConnect(c.state.value, "aa:bb:cc:dd:ee:ff"))
+        assertTrue(shouldLaunchConnect(c.state.value, "11:22:33:44:55:66"))
+    }
+
+    @Test
+    fun takeOverFromRestoredStateReconnects() = runTest {
+        val restored = BudsState(link = LinkState.TAKEN_OVER, address = "AA", name = "x")
+        val c = BudsController(LinkFactory { FakeEarbuds().link() }, registry, backgroundScope, initial = restored)
+        assertTrue(c.takeOver().isSuccess)
+        assertEquals(LinkState.CONNECTED, c.state.value.link)
+    }
+
+    @Test
+    fun openFailureWithAudioUpIsTakenOver() = runTest {
+        val c = BudsController(LinkFactory { throw IOException("busy") }, registry, backgroundScope, isAudioConnected = { it == "AA" })
+        c.connect("AA", "x")
+        assertEquals(LinkState.TAKEN_OVER, c.state.value.link)
+        assertFalse(shouldLaunchConnect(c.state.value, "AA"))
+        c.connect("BB", "y")
+        assertEquals(LinkState.DISCONNECTED, c.state.value.link)
+    }
+
+    @Test
+    fun reconnectKeepsLastKnownValuesUntilFreshOnesArrive() = runTest {
+        val battery = BatteryState(50, 50, 50, 50, false, false, false)
+        val restored = BudsState(address = "AA", battery = battery, anc = AncState(1, 3), updatedAtMillis = 42)
+        val c = BudsController(LinkFactory { throw IOException("page timeout") }, registry, backgroundScope, initial = restored)
+        c.connect("AA", "x")
+        assertEquals(LinkState.DISCONNECTED, c.state.value.link)
+        assertEquals(battery, c.state.value.battery)
+        assertEquals(42L, c.state.value.updatedAtMillis)
+        c.connect("BB", "y")
+        assertEquals(null, c.state.value.battery)
+    }
+
+    // Task 6 review #1: carried-over values are cleared when the connected session cannot read them.
+    @Test
+    fun failedReadsOnAConnectedSessionClearCarriedOverValues() = runTest {
+        val battery = BatteryState(50, 50, 50, 50, false, false, false)
+        val restored = BudsState(address = "AA", battery = battery, anc = AncState(1, 3), updatedAtMillis = 42)
+        val earbuds = FakeEarbuds(ignoreReads = setOf("01/08", "2B/2A"))
+        val c = BudsController(LinkFactory { earbuds.link() }, registry, backgroundScope, initial = restored)
+        c.connect("AA", "x")
+        assertEquals(LinkState.CONNECTED, c.state.value.link)
+        assertEquals(null, c.state.value.battery)
+        assertEquals(null, c.state.value.anc)
+    }
+
+    // Final review I1: an open that fails once while audio is up is retried after about a second.
+    @Test
+    fun openRetrySucceedsWithoutTakenOver() = runTest {
+        var opens = 0
+        val c = BudsController(
+            linkFactory = LinkFactory { if (++opens == 1) throw IOException("busy") else FakeEarbuds().link() },
+            registry = registry,
+            scope = backgroundScope,
+            isAudioConnected = { true },
+        )
+        val seen = mutableListOf<LinkState>()
+        backgroundScope.launch { c.state.collect { seen += it.link } }
+        backgroundScope.launch { c.connect("AA", "x") }
+        runCurrent()
+        assertEquals(1, opens)
+        assertEquals(LinkState.CONNECTING, c.state.value.link)
+        advanceTimeBy(1000)
+        runCurrent()
+        assertEquals(2, opens)
+        advanceTimeBy(10_000)
+        assertEquals(LinkState.CONNECTED, c.state.value.link)
+        assertFalse(LinkState.TAKEN_OVER in seen)
+    }
+
+    @Test
+    fun openFailingTwiceWithAudioUpIsTakenOver() = runTest {
+        var opens = 0
+        val c = BudsController(LinkFactory { opens++; throw IOException("busy") }, registry, backgroundScope, isAudioConnected = { true })
+        c.connect("AA", "x")
+        assertEquals(2, opens)
+        assertEquals(LinkState.TAKEN_OVER, c.state.value.link)
+    }
+
+    @Test
+    fun openFailureWithoutAudioIsNotRetried() = runTest {
+        var opens = 0
+        val c = BudsController(LinkFactory { opens++; throw IOException("page timeout") }, registry, backgroundScope, isAudioConnected = { false })
+        c.connect("AA", "x")
+        assertEquals(1, opens)
+        assertEquals(LinkState.DISCONNECTED, c.state.value.link)
+    }
+
+    @Test
+    fun disconnectDuringOpenRetryWins() = runTest {
+        var opens = 0
+        val c = BudsController(LinkFactory { opens++; throw IOException("busy") }, registry, backgroundScope, isAudioConnected = { true })
+        val job = backgroundScope.launch { c.connect("AA", "x") }
+        runCurrent()
+        c.disconnect()
+        advanceTimeBy(5_000)
+        runCurrent()
+        assertEquals(1, opens)
+        assertEquals(LinkState.DISCONNECTED, c.state.value.link)
+        assertTrue(job.isCompleted)
+    }
+
+    // Final review I2: a restored take-over is cleared once audio turns out to be down (and when the
+    // earbuds go away while the service is not running), without opening a link.
+    @Test
+    fun clearTakeOverWithoutAudioAllowsConnectAgain() = runTest {
+        var opens = 0
+        val restored = BudsState(link = LinkState.TAKEN_OVER, address = "AA:BB:CC:DD:EE:FF", name = "x")
+        val c = BudsController(LinkFactory { opens++; FakeEarbuds().link() }, registry, backgroundScope, initial = restored)
+        c.clearTakeOver(keepWhile = { true })
+        assertEquals(LinkState.TAKEN_OVER, c.state.value.link)
+        c.clearTakeOver(keepWhile = { false })
+        assertEquals(LinkState.DISCONNECTED, c.state.value.link)
+        assertTrue(shouldLaunchConnect(c.state.value, "AA:BB:CC:DD:EE:FF"))
+        assertEquals(0, opens)
+    }
+
+    @Test
+    fun clearTakeOverLeavesALiveSessionAlone() = runTest {
+        val c = controller(FakeEarbuds())
+        c.connect("AA", "x")
+        c.clearTakeOver()
+        assertEquals(LinkState.CONNECTED, c.state.value.link)
     }
 }

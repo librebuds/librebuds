@@ -1,0 +1,11 @@
+{"id":"wear-read","model":"any","synthetic":true,"source":"LibreBuds M4 codec (not yet confirmed on hardware)","hex":"5A 00 05 00 2B 11 01 00 77 2A","expect":{"cmd":"2B/11","tlv":{"1":""}}}
+{"id":"wear-write-on","model":"any","synthetic":true,"source":"LibreBuds M4 codec (not yet confirmed on hardware)","hex":"5A 00 06 00 2B 10 01 01 01 A9 56","expect":{"cmd":"2B/10","tlv":{"1":"01"}}}
+{"id":"double-tap-read","model":"any","synthetic":true,"source":"LibreBuds M4 codec (not yet confirmed on hardware)","hex":"5A 00 07 00 01 20 01 00 02 00 E8 97","expect":{"cmd":"01/20","tlv":{"1":"","2":""}}}
+{"id":"double-tap-write-left-off","model":"any","synthetic":true,"source":"LibreBuds M4 codec (not yet confirmed on hardware)","hex":"5A 00 06 00 01 1F 01 01 FF 3D 73","expect":{"cmd":"01/1F","tlv":{"1":"FF"}}}
+{"id":"swipe-write-volume","model":"any","synthetic":true,"source":"LibreBuds M4 codec (not yet confirmed on hardware)","hex":"5A 00 09 00 2B 1E 01 01 03 02 01 03 63 77","expect":{"cmd":"2B/1E","tlv":{"1":"03","2":"03"}}}
+{"id":"eq-read","model":"any","synthetic":true,"source":"LibreBuds M4 codec (not yet confirmed on hardware)","hex":"5A 00 13 00 2B 4A 01 00 02 00 03 00 04 00 05 00 06 00 07 00 08 00 E9 0C","expect":{"cmd":"2B/4A","tlv":{"1":"","2":"","3":"","4":"","5":"","6":"","7":"","8":""}}}
+{"id":"eq-select-9","model":"any","synthetic":true,"source":"LibreBuds M4 codec (not yet confirmed on hardware)","hex":"5A 00 06 00 2B 49 01 01 09 AE 12","expect":{"cmd":"2B/49","tlv":{"1":"09"}}}
+{"id":"low-latency-read","model":"any","synthetic":true,"source":"LibreBuds M4 codec (not yet confirmed on hardware)","hex":"5A 00 05 00 2B 6C 02 00 B8 20","expect":{"cmd":"2B/6C","tlv":{"2":""}}}
+{"id":"low-latency-write-on","model":"any","synthetic":true,"source":"LibreBuds M4 codec (not yet confirmed on hardware)","hex":"5A 00 06 00 2B 6C 01 01 01 A4 11","expect":{"cmd":"2B/6C","tlv":{"1":"01"}}}
+{"id":"sound-quality-read","model":"any","synthetic":true,"source":"LibreBuds M4 codec (not yet confirmed on hardware)","hex":"5A 00 05 00 2B A3 01 00 E7 B5","expect":{"cmd":"2B/A3","tlv":{"1":""}}}
+{"id":"voice-language-read","model":"any","synthetic":true,"source":"LibreBuds M4 codec (not yet confirmed on hardware)","hex":"5A 00 09 00 0C 02 01 00 02 00 03 00 5E 93","expect":{"cmd":"0C/02","tlv":{"1":"","2":"","3":""}}}

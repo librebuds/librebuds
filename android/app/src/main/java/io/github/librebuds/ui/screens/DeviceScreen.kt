@@ -32,6 +32,7 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.librebuds.R
 import io.github.librebuds.state.LinkState
 import io.github.librebuds.ui.DeviceViewModel
+import io.github.librebuds.ui.SettingsViewModel
 import io.github.librebuds.ui.components.AboutCard
 import io.github.librebuds.ui.components.BatteryView
 import io.github.librebuds.ui.components.MaterialButtonStyle
@@ -56,12 +57,15 @@ internal fun screenContentPadding(): PaddingValues {
 @Composable
 fun DeviceScreen(
     viewModel: DeviceViewModel,
+    settingsViewModel: SettingsViewModel,
     showOffMode: Boolean,
     hasDevice: Boolean,
     onAddDevice: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onOpenMultipoint: () -> Unit
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
+    val settings by settingsViewModel.ui.collectAsStateWithLifecycle()
     val batteries = ui.state.battery.toUiBatteries()
 
     StyledScaffold(
@@ -116,6 +120,18 @@ fun DeviceScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
+            }
+            // Like noise control, settings only show while connected: a change could not be sent otherwise.
+            if (ui.state.isConnected) {
+                DeviceSettingsSections(settings, onChange = settingsViewModel::apply, onOpenMultipoint = onOpenMultipoint)
+                settings.error?.let { error ->
+                    Text(
+                        text = stringResource(error.messageRes()),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
             }
             AboutCard(ui.state.device.model, ui.state.device.firmware, ui.state.device.serial)
         }

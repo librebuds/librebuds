@@ -20,6 +20,80 @@
     },
     "anc": {
       "verified": null
+    },
+    "wear": {
+      "verified": null
+    },
+    "gestures": {
+      "verified": null,
+      "doubleTap": {
+        "inCall": true,
+        "options": {
+          "-1": "off",
+          "1": "pause",
+          "2": "next",
+          "7": "previous",
+          "0": "assistant"
+        },
+        "inCallOptions": {
+          "-1": "off",
+          "0": "answer"
+        }
+      },
+      "tripleTap": {
+        "options": {
+          "-1": "off",
+          "1": "pause",
+          "2": "next",
+          "7": "previous",
+          "0": "assistant"
+        }
+      },
+      "longPress": {
+        "options": {
+          "-1": "off",
+          "10": "switch_anc"
+        }
+      },
+      "noiseCycle": {
+        "options": {
+          "1": "off_on",
+          "2": "off_on_awareness",
+          "3": "on_awareness",
+          "4": "off_awareness"
+        }
+      },
+      "swipe": {
+        "options": {
+          "-1": "off",
+          "0": "volume"
+        }
+      }
+    },
+    "equalizer": {
+      "verified": null,
+      "presets": {
+        "5": "default",
+        "1": "bass",
+        "2": "treble",
+        "9": "voice"
+      }
+    },
+    "lowLatency": {
+      "verified": null
+    },
+    "soundQuality": {
+      "verified": null,
+      "options": {
+        "0": "connectivity",
+        "1": "quality"
+      }
+    },
+    "multipoint": {
+      "verified": null
+    },
+    "language": {
+      "verified": null
     }
   }
 }
