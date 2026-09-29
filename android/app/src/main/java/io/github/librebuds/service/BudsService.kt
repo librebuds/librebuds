@@ -41,6 +41,13 @@ import kotlinx.coroutines.launch
 class BudsService : Service() {
     private val scope = MainScope()
     private var collector: Job? = null
+    private var stopTracker = ServiceStopTracker()
+
+    // The latest connect launched by this service; it runs on the app scope (see the class KDoc).
+    private var connectJob: Job? = null
+
+    // Stopping with the latest startId never discards a START that is still being delivered.
+    private var lastStartId = 0
     private var island: IslandWindow? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -53,6 +60,7 @@ class BudsService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        lastStartId = startId
         val app = LibreBudsApp.from(this)
         when (intent?.action) {
             ACTION_START -> {
@@ -65,8 +73,9 @@ class BudsService : Service() {
                     return START_NOT_STICKY
                 }
                 val name = intent.getStringExtra(EXTRA_NAME)
+                // Launch before the collector starts, so its first state already sees the active connect.
+                if (shouldLaunchConnect(app.controller.state.value, address)) launchConnect(address, name)
                 watchState()
-                app.appScope.launch { app.controller.connect(address, name) }
             }
             else -> {
                 app.controller.disconnect()
@@ -78,6 +87,9 @@ class BudsService : Service() {
 
     override fun onDestroy() {
         running = false
+        // Nothing keeps a session alive without the service; drop it rather than leak it.
+        val link = LibreBudsApp.from(this).controller.state.value.link
+        if (link == LinkState.CONNECTED || link == LinkState.CONNECTING) LibreBudsApp.from(this).controller.disconnect()
         island?.forceClose()
         island = null
         scope.cancel()
@@ -89,12 +101,12 @@ class BudsService : Service() {
         true
     } catch (e: ForegroundServiceStartNotAllowedException) {
         Log.w(TAG, "Not allowed to start the connection service now", e)
-        stopSelf()
+        stopSelfResult(lastStartId)
         false
     } catch (e: SecurityException) {
         // The connectedDevice type needs a granted Bluetooth permission at this moment.
         Log.w(TAG, "Missing permission for the connection service", e)
-        stopSelf()
+        stopSelfResult(lastStartId)
         false
     }
 
@@ -103,12 +115,11 @@ class BudsService : Service() {
         if (collector?.isActive == true) return
         val controller = LibreBudsApp.from(this).controller
         val manager = getSystemService(NotificationManager::class.java)
+        stopTracker = ServiceStopTracker()
         collector = scope.launch {
             var previous: LinkState? = null
-            var hadConnected = false
             controller.state.collect { state ->
-                if (state.link == LinkState.CONNECTED) hadConnected = true
-                if (serviceShouldStop(previous, state.link, hadConnected)) {
+                if (stopTracker.onState(state.link, connectActive = connectJob?.isActive == true)) {
                     stopService()
                     return@collect
                 }
@@ -120,6 +131,17 @@ class BudsService : Service() {
                 // Without POST_NOTIFICATIONS the update is dropped; the service keeps running.
                 manager.notify(NOTIFICATION_ID, notification(state))
             }
+        }
+    }
+
+    private fun launchConnect(address: String, name: String?) {
+        val app = LibreBudsApp.from(this)
+        val job = app.appScope.launch { app.controller.connect(address, name) }
+        connectJob = job
+        // A stop deferred while this connect ran applies once it finished (the state may not change again).
+        scope.launch {
+            job.join()
+            if (connectJob === job && stopTracker.onConnectFinished(app.controller.state.value.link)) stopService()
         }
     }
 
@@ -146,11 +168,12 @@ class BudsService : Service() {
         }
     }
 
+    /** Stops unless a newer START is still pending; that START then keeps the service running. */
     private fun stopService() {
+        if (!stopSelfResult(lastStartId)) return
         collector?.cancel()
         collector = null
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
-        stopSelf()
     }
 
     private fun notification(state: BudsState): Notification {
