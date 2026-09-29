@@ -10,9 +10,12 @@ import io.github.librebuds.protocol.util.u8
  * One paired host from a 2B/31 enumeration reply. [connection] is the raw connection-state
  * code: 0 = not connected, any other positive value = connected, 9 = actively playing audio.
  * [mac] is upper-case `AA:BB:CC:DD:EE:FF`.
- * SPEC-GAP: the MAC byte order the device sends on this command is unconfirmed; device info
- * (01/07 TLV 27) sends its address reversed, but multipoint rows appear not to, so [mac] is
- * built in the byte order received, unreversed.
+ *
+ * Addresses travel least-significant byte first, like device info (01/07 TLV 27). Round-2
+ * captures settle it: a row carrying 66 55 44 33 22 11 is the phone at 11:22:33:44:55:66,
+ * and 77 55 44 33 22 11 is the laptop at 11:22:33:44:55:77. Rows are therefore reversed on
+ * the way in, and [Multipoint.execute] reverses on the way out; sending an address the other
+ * way round makes the device answer with an error result.
  */
 data class HostRow(
     val index: Int,
@@ -80,9 +83,10 @@ object Multipoint {
     }
 
     /** Throws [IllegalArgumentException] for a malformed [mac], as does [execute]. */
-    fun setPreferred(mac: String): Packet = Packet(PREFERRED, listOf(Tlv(1, mac.macBytes())))
+    fun setPreferred(mac: String): Packet = Packet(PREFERRED, listOf(Tlv(1, mac.macBytes().reversedArray())))
 
-    fun execute(action: HostAction, mac: String): Packet = Packet(EXECUTE, listOf(Tlv(action.code, mac.macBytes())))
+    fun execute(action: HostAction, mac: String): Packet =
+        Packet(EXECUTE, listOf(Tlv(action.code, mac.macBytes().reversedArray())))
 
     fun isChange(packet: Packet): Boolean = packet.id == CHANGED
 
@@ -96,7 +100,9 @@ object Multipoint {
         else -> null
     }
 
-    private fun ByteArray.toMacText(): String = joinToString(":") { "%02X".format(it.toInt() and 0xFF) }
+    /** Wire order is least-significant byte first, so it is reversed for display. */
+    private fun ByteArray.toMacText(): String =
+        reversedArray().joinToString(":") { "%02X".format(it.toInt() and 0xFF) }
 
     /** Throws [IllegalArgumentException] unless this is six colon-separated hex bytes. */
     private fun String.macBytes(): ByteArray {
