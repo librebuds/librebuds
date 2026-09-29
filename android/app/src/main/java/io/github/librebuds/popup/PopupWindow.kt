@@ -76,6 +76,10 @@ class PopupWindow(
     val isOpen: Boolean
         get() = mView.parent != null && !isClosing
 
+    /** The profile of the earbuds this popup shows, once opened. */
+    val profileId: String?
+        get() = model?.profileId
+
     @Suppress("DEPRECATION")
     private val mParams: WindowManager.LayoutParams = WindowManager.LayoutParams().apply {
         height = WindowManager.LayoutParams.WRAP_CONTENT

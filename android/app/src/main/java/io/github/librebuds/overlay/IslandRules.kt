@@ -9,10 +9,18 @@ import io.github.librebuds.state.LinkState
  *
  * Only a real transition into CONNECTED counts. [previous] is null for the first state the service
  * observes; a CONNECTED value there means the earbuds were already up before this start (for example
- * a second start request), which is not a fresh connection.
+ * a second start request), which is not a fresh connection. While the case-open popup for these
+ * earbuds is on screen ([popupShowing]) it already shows the connection, so the island stays away.
  */
-fun islandShouldShow(previous: LinkState?, current: LinkState, enabled: Boolean, canDrawOverlays: Boolean): Boolean =
-    enabled && canDrawOverlays && current == LinkState.CONNECTED && previous != null && previous != LinkState.CONNECTED
+fun islandShouldShow(
+    previous: LinkState?,
+    current: LinkState,
+    enabled: Boolean,
+    canDrawOverlays: Boolean,
+    popupShowing: Boolean,
+): Boolean =
+    enabled && canDrawOverlays && !popupShowing &&
+        current == LinkState.CONNECTED && previous != null && previous != LinkState.CONNECTED
 
 /** The lower of the two earbud levels, or whichever one is known; 0 when neither is. */
 fun islandBatteryLevel(battery: BatteryState?): Int =

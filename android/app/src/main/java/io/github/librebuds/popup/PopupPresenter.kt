@@ -61,6 +61,9 @@ object PopupPresenter {
         }
     }
 
+    /** Whether a case-open popup for [profileId] is on screen (the connection island then stays away). */
+    fun isShowing(profileId: String): Boolean = window?.let { it.isOpen && it.profileId == profileId } == true
+
     /** Closes the popup if one is on screen, for example when the user turned the popup off. */
     fun dismiss() {
         window?.close()

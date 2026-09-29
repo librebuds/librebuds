@@ -9,8 +9,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class IslandRulesTest {
-    private fun show(previous: LinkState?, current: LinkState, enabled: Boolean = true, overlay: Boolean = true) =
-        islandShouldShow(previous, current, enabled, overlay)
+    private fun show(previous: LinkState?, current: LinkState, enabled: Boolean = true, overlay: Boolean = true, popup: Boolean = false) =
+        islandShouldShow(previous, current, enabled, overlay, popupShowing = popup)
 
     @Test
     fun connectingToConnectedShows() {
@@ -52,6 +52,13 @@ class IslandRulesTest {
     @Test
     fun missingOverlayPermissionDoesNotShow() {
         assertFalse(show(LinkState.CONNECTING, LinkState.CONNECTED, overlay = false))
+    }
+
+    @Test
+    fun popupForTheseEarbudsOnScreenDoesNotShow() {
+        // The case-open popup already reports the connection; two overlays at once would be noise.
+        assertFalse(show(LinkState.CONNECTING, LinkState.CONNECTED, popup = true))
+        assertTrue(show(LinkState.CONNECTING, LinkState.CONNECTED, popup = false))
     }
 
     private fun battery(left: Int?, right: Int?) = BatteryState(null, left, right, 90, null, null, null)

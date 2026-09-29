@@ -22,6 +22,7 @@ import io.github.librebuds.overlay.IslandHost
 import io.github.librebuds.overlay.IslandWindow
 import io.github.librebuds.overlay.islandBatteryLevel
 import io.github.librebuds.overlay.islandShouldShow
+import io.github.librebuds.popup.PopupPresenter
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.LinkState
@@ -123,7 +124,14 @@ class BudsService : Service() {
                     stopService()
                     return@collect
                 }
-                if (islandShouldShow(previous, state.link, AppPreferences(this@BudsService).showIsland, Settings.canDrawOverlays(this@BudsService))) {
+                val islandWanted = islandShouldShow(
+                    previous = previous,
+                    current = state.link,
+                    enabled = AppPreferences(this@BudsService).showIsland,
+                    canDrawOverlays = Settings.canDrawOverlays(this@BudsService),
+                    popupShowing = PopupPresenter.isShowing(state.profileId),
+                )
+                if (islandWanted) {
                     showIsland(state)
                 }
                 island?.update(state.battery.toUiBatteries())
