@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-neo",
+  "name": "FreeBuds Neo",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000175"
+    ],
+    "productId": [
+      "ZAB4"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds Neo"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

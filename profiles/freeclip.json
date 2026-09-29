@@ -1,0 +1,25 @@
+{
+  "id": "freeclip",
+  "name": "FreeClip",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "00014B"
+    ],
+    "productId": [
+      "ZAAI"
+    ],
+    "btName": [
+      "HUAWEI FreeClip"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

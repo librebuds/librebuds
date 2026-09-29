@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-pro-4",
+  "name": "FreeBuds Pro 4",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000157"
+    ],
+    "productId": [
+      "ZAAM"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds Pro 4"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

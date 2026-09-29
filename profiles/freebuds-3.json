@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-3",
+  "name": "FreeBuds 3",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000027"
+    ],
+    "productId": [
+      "004O"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds 3"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

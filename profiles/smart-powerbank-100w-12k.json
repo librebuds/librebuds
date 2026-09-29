@@ -1,0 +1,25 @@
+{
+  "id": "smart-powerbank-100w-12k",
+  "name": "Smart PowerBank(100W 12k)",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000177"
+    ],
+    "productId": [
+      "9MMY"
+    ],
+    "btName": [
+      "HUAWEI Smart PowerBank(100W 12k)"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

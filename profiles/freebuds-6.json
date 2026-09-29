@@ -1,0 +1,37 @@
+{
+  "id": "freebuds-6",
+  "name": "FreeBuds 6",
+  "match": {
+    "sku": [
+      "BTFT0020"
+    ],
+    "modelId": [
+      "000155",
+      "000161"
+    ],
+    "productId": [
+      "ZAAL",
+      "ZAAQ"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds 6"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": "2026-09-28"
+    },
+    "anc": {
+      "modes": [
+        "off",
+        "cancellation",
+        "awareness"
+      ],
+      "cancellationLevels": [
+        3
+      ],
+      "verified": "2026-09-28"
+    }
+  }
+}

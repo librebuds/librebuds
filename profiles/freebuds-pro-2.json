@@ -1,0 +1,35 @@
+{
+  "id": "freebuds-pro-2",
+  "name": "FreeBuds Pro 2",
+  "match": {
+    "sku": [
+      "BTFT0006"
+    ],
+    "modelId": [
+      "000131"
+    ],
+    "productId": [
+      "ZAA7"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds Pro 2"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": "2026-09-28"
+    },
+    "anc": {
+      "modes": [
+        "off",
+        "cancellation",
+        "awareness"
+      ],
+      "cancellationLevels": [
+        3
+      ],
+      "verified": "2026-09-28"
+    }
+  }
+}

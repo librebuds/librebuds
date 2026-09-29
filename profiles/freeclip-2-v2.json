@@ -1,0 +1,25 @@
+{
+  "id": "freeclip-2-v2",
+  "name": "FreeClip 2 典藏版",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000173"
+    ],
+    "productId": [
+      "ZAB2"
+    ],
+    "btName": [
+      "HUAWEI FreeClip 2 典藏版"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

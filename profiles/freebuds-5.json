@@ -1,0 +1,35 @@
+{
+  "id": "freebuds-5",
+  "name": "FreeBuds 5",
+  "match": {
+    "sku": [
+      "BTFT0013"
+    ],
+    "modelId": [
+      "000141"
+    ],
+    "productId": [
+      "ZAAB"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds 5"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": "2026-09-28"
+    },
+    "anc": {
+      "modes": [
+        "off",
+        "cancellation",
+        "awareness"
+      ],
+      "cancellationLevels": [
+        3
+      ],
+      "verified": "2026-09-28"
+    }
+  }
+}

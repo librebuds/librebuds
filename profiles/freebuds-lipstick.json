@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-lipstick",
+  "name": "FreeBuds Lipstick",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "00012A"
+    ],
+    "productId": [
+      "ZAA0"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds Lipstick"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

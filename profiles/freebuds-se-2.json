@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-se-2",
+  "name": "FreeBuds SE 2",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000147"
+    ],
+    "productId": [
+      "ZAAF"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds SE 2"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

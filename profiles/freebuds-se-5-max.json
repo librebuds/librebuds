@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-se-5-max",
+  "name": "FreeBuds SE 5 MAX",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "00017D"
+    ],
+    "productId": [
+      "2SFW"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds SE 5 MAX"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "freeclip-2",
+  "name": "FreeClip 2",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000167"
+    ],
+    "productId": [
+      "ZAAS"
+    ],
+    "btName": [
+      "HUAWEI FreeClip 2"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

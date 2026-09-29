@@ -1,0 +1,27 @@
+{
+  "id": "freebuds-5i",
+  "name": "FreeBuds 5i",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "00013D",
+      "000145"
+    ],
+    "productId": [
+      "ZAA9",
+      "ZAAD"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds 5i"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

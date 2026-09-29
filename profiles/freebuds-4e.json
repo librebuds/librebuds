@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-4e",
+  "name": "FreeBuds 4E",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000135"
+    ],
+    "productId": [
+      "ZAA4"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds 4E"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "w-buds-2",
+  "name": "W Buds 2",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "00016F"
+    ],
+    "productId": [
+      "ZAAX"
+    ],
+    "btName": [
+      "HUAWEI W Buds 2"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

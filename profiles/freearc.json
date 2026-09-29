@@ -1,0 +1,25 @@
+{
+  "id": "freearc",
+  "name": "FreeArc",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "00015D"
+    ],
+    "productId": [
+      "ZAAP"
+    ],
+    "btName": [
+      "HUAWEI FreeArc"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

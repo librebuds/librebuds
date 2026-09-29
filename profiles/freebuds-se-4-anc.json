@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-se-4-anc",
+  "name": "FreeBuds SE 4 ANC",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000169"
+    ],
+    "productId": [
+      "ZAAT"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds SE 4 ANC"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

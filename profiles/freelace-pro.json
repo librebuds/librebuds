@@ -1,0 +1,25 @@
+{
+  "id": "freelace-pro",
+  "name": "FreeLace Pro",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000117"
+    ],
+    "productId": [
+      "ZA04"
+    ],
+    "btName": [
+      "HUAWEI FreeLace Pro"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

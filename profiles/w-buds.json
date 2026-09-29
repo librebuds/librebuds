@@ -1,0 +1,25 @@
+{
+  "id": "w-buds",
+  "name": "W Buds",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000137"
+    ],
+    "productId": [
+      "ZAAA"
+    ],
+    "btName": [
+      "HUAWEI W Buds"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

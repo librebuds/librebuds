@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-6i",
+  "name": "FreeBuds 6i",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000153"
+    ],
+    "productId": [
+      "ZAAK"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds 6i"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

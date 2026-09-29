@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-studio",
+  "name": "FreeBuds Studio",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "00003B"
+    ],
+    "productId": [
+      "ZA06"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds Studio"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

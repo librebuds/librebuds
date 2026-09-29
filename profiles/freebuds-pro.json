@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-pro",
+  "name": "FreeBuds Pro",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "00003C"
+    ],
+    "productId": [
+      "ZA07"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds Pro"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

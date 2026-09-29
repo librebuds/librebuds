@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-4e-v2",
+  "name": "FreeBuds 4E 无降噪版",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000159"
+    ],
+    "productId": [
+      "ZAAN"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds 4E 无降噪版"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

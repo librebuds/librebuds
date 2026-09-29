@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-3i",
+  "name": "FreeBuds 3i",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000039"
+    ],
+    "productId": [
+      "ZA02"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds 3i"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

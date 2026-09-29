@@ -1,0 +1,25 @@
+{
+  "id": "freebuds-7",
+  "name": "FreeBuds 7",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000174"
+    ],
+    "productId": [
+      "ZAB1"
+    ],
+    "btName": [
+      "HUAWEI FreeBuds 7"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

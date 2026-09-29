@@ -1,0 +1,21 @@
+{
+  "id": "freebuds-pro-5",
+  "name": "FreeBuds Pro 5",
+  "match": {
+    "sku": [],
+    "modelId": [],
+    "productId": [],
+    "btName": [
+      "HUAWEI FreeBuds Pro 5"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

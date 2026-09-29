@@ -1,0 +1,25 @@
+{
+  "id": "eyewear",
+  "name": "Eyewear",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "000139"
+    ],
+    "productId": [
+      "ZCA0"
+    ],
+    "btName": [
+      "HUAWEI Eyewear"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}

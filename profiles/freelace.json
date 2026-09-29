@@ -1,0 +1,25 @@
+{
+  "id": "freelace",
+  "name": "FreeLace 活力版",
+  "match": {
+    "sku": [],
+    "modelId": [
+      "00012F"
+    ],
+    "productId": [
+      "ZAA2"
+    ],
+    "btName": [
+      "HUAWEI FreeLace 活力版"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    },
+    "anc": {
+      "verified": null
+    }
+  }
+}
