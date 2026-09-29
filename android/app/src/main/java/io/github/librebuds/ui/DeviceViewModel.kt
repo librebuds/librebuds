@@ -37,7 +37,8 @@ class DeviceViewModel(private val repository: BudsRepository) : ViewModel() {
         error.value = null
         job = viewModelScope.launch {
             val result = repository.setAnc(mode.anc)
-            if (pending.value == mode) pending.value = null
+            if (pending.value != mode) return@launch
+            pending.value = null
             result.onFailure { error.value = it.message ?: "The earbuds rejected the setting" }
         }
     }

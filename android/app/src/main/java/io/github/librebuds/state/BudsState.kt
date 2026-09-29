@@ -29,7 +29,11 @@ data class BudsState(
 interface BudsRepository {
     val state: StateFlow<BudsState>
 
-    /** Requests a noise-control mode; succeeds only once the device confirmed it. */
+    /**
+     * Requests a noise-control mode; succeeds only once the device confirmed it.
+     * Implementations must tolerate cancellation: the caller may cancel after the write was sent;
+     * state must still converge through later reads or reports.
+     */
     suspend fun setAnc(mode: AncMode): Result<AncState>
 
     suspend fun refresh(): Result<Unit>

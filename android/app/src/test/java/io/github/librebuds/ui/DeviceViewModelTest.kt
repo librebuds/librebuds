@@ -30,10 +30,12 @@ class DeviceViewModelTest {
 
     private class FakeRepository : BudsRepository {
         val flow = MutableStateFlow(BudsState(link = LinkState.CONNECTED, anc = AncState(modeCode = 0, level = 3)))
-        var next = CompletableDeferred<Result<AncState>>()
+        val calls = mutableListOf<CompletableDeferred<Result<AncState>>>()
         override val state: StateFlow<BudsState> = flow
         override suspend fun setAnc(mode: AncMode): Result<AncState> {
-            val result = next.await()
+            val deferred = CompletableDeferred<Result<AncState>>()
+            calls.add(deferred)
+            val result = deferred.await()
             result.onSuccess { flow.value = flow.value.copy(anc = it) }
             return result
         }
@@ -52,7 +54,7 @@ class DeviceViewModelTest {
         assertEquals(NoiseControlMode.AWARENESS, vm.ui.value.selectedNoiseMode)
         assertEquals(NoiseControlMode.AWARENESS, vm.ui.value.pendingNoiseMode)
 
-        repo.next.complete(Result.success(AncState(modeCode = 2, level = 2)))
+        repo.calls[0].complete(Result.success(AncState(modeCode = 2, level = 2)))
         advanceUntilIdle()
         assertEquals(NoiseControlMode.AWARENESS, vm.ui.value.selectedNoiseMode)
         assertNull(vm.ui.value.pendingNoiseMode)
@@ -63,7 +65,8 @@ class DeviceViewModelTest {
         val repo = FakeRepository()
         val vm = DeviceViewModel(repo)
         vm.selectNoiseMode(NoiseControlMode.NOISE_CANCELLATION)
-        repo.next.complete(Result.failure(IllegalStateException("rejected")))
+        advanceUntilIdle()
+        repo.calls[0].complete(Result.failure(IllegalStateException("rejected")))
         advanceUntilIdle()
         assertEquals(NoiseControlMode.OFF, vm.ui.value.selectedNoiseMode)
         assertNull(vm.ui.value.pendingNoiseMode)
@@ -78,6 +81,13 @@ class DeviceViewModelTest {
         advanceUntilIdle()
         vm.selectNoiseMode(NoiseControlMode.AWARENESS)
         advanceUntilIdle()
+        repo.calls[0].complete(Result.failure(IllegalStateException("superseded")))
+        advanceUntilIdle()
         assertEquals(NoiseControlMode.AWARENESS, vm.ui.value.pendingNoiseMode)
+        assertNull(vm.ui.value.error)
+        repo.calls[1].complete(Result.success(AncState(modeCode = 2, level = 2)))
+        advanceUntilIdle()
+        assertNull(vm.ui.value.pendingNoiseMode)
+        assertEquals(NoiseControlMode.AWARENESS, vm.ui.value.selectedNoiseMode)
     }
 }
