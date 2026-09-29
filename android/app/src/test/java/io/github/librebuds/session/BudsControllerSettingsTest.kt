@@ -134,6 +134,31 @@ class BudsControllerSettingsTest {
         assertFalse(c.state.value.hosts[1].connected)
     }
 
+    // Final review I3: rows the device pushes on its own (no enumerate sent) still make a list, and a
+    // second burst with fewer hosts replaces the first instead of merging with it.
+    @Test
+    fun unsolicitedHostBurstsReplaceEachOther() = runTest {
+        val threeHosts = twoHosts().apply { add(FakeHost(mac = "11:22:33:44:55:77", name = "Tablet", state = 0)) }
+        // The toggle read goes unanswered, so the controller never enumerates hosts itself.
+        val earbuds = FakeEarbuds(sku = "BTFT0030", hosts = threeHosts, ignoreReads = setOf("2B/2F"))
+        val links = mutableListOf<FakeLink>()
+        val c = controller(earbuds, links)
+        c.connect("AA", "x")
+        val link = links.single()
+        assertEquals(0, link.sentIds().count { it == "2B/31" })
+        assertEquals(emptyList<Any>(), c.state.value.hosts)
+
+        earbuds.hostRowPush().forEach { link.deliver(it) }
+        runCurrent()
+        assertEquals(listOf("11:22:33:44:55:66", "AA:BB:CC:00:11:22", "11:22:33:44:55:77"), c.state.value.hosts.map { it.mac })
+
+        earbuds.hosts.removeAt(1)
+        earbuds.hostRowPush().forEach { link.deliver(it) }
+        runCurrent()
+        assertEquals(listOf("11:22:33:44:55:66", "11:22:33:44:55:77"), c.state.value.hosts.map { it.mac })
+        assertEquals(listOf(0, 1), c.state.value.hosts.map { it.index })
+    }
+
     @Test
     fun disconnectHostCommandVerified() = runTest {
         val earbuds = FakeEarbuds(sku = "BTFT0030", hosts = twoHosts())

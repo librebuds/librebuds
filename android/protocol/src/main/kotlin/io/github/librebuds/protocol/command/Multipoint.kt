@@ -102,16 +102,21 @@ object Multipoint {
 
 /**
  * Accumulates 2B/31 enumeration replies (one packet per host) into a complete, index-sorted
- * list once as many distinct host indexes have arrived as the last-seen [HostRow.count].
- * A duplicate index overwrites the earlier row rather than counting twice.
+ * list once as many distinct host indexes have arrived as [HostRow.count]. A duplicate index
+ * overwrites the earlier row rather than counting twice. Each complete list starts a new burst,
+ * and so does a row whose count differs from the rows held, so two bursts never mix. Rows that
+ * cannot belong to any list (count below 1, index outside 0 until count) are ignored.
  */
 class HostCollector {
     private val rows = mutableMapOf<Int, HostRow>()
 
     /** Adds one row; returns the complete sorted list once enough distinct indexes arrived, else null. */
     fun add(row: HostRow): List<HostRow>? {
+        if (row.count <= 0 || row.index !in 0 until row.count) return null
+        if (rows.values.any { it.count != row.count }) rows.clear()
         rows[row.index] = row
-        return if (rows.size >= row.count) partial() else null
+        if (rows.size < row.count) return null
+        return partial().also { reset() }
     }
 
     fun partial(): List<HostRow> = rows.values.sortedBy { it.index }

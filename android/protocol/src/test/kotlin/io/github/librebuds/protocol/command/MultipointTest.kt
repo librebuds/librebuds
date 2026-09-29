@@ -70,4 +70,36 @@ class MultipointTest {
         val all = collector.add(Multipoint.parseRow(row(index = 0))!!)!!
         assertEquals(listOf(0, 1), all.map { it.index })
     }
+
+    @Test
+    fun collectorStartsANewBurstAfterACompleteList() {
+        val collector = HostCollector()
+        assertNull(collector.add(Multipoint.parseRow(row(index = 0, count = 3))!!))
+        assertNull(collector.add(Multipoint.parseRow(row(index = 1, count = 3))!!))
+        assertEquals(listOf(0, 1, 2), collector.add(Multipoint.parseRow(row(index = 2, count = 3))!!)!!.map { it.index })
+        // The next burst reports one host fewer: exactly its two rows, nothing left from the first.
+        assertNull(collector.add(Multipoint.parseRow(row(index = 1, count = 2))!!))
+        val second = collector.add(Multipoint.parseRow(row(index = 0, count = 2))!!)!!
+        assertEquals(listOf(0, 1), second.map { it.index })
+        assertEquals(listOf(2, 2), second.map { it.count })
+    }
+
+    @Test
+    fun collectorDropsACutShortBurstWhenTheCountChanges() {
+        val collector = HostCollector()
+        assertNull(collector.add(Multipoint.parseRow(row(index = 0, count = 3))!!))
+        assertNull(collector.add(Multipoint.parseRow(row(index = 1, count = 3))!!))
+        val next = collector.add(Multipoint.parseRow(row(index = 0, count = 1))!!)!!
+        assertEquals(listOf(1), next.map { it.count })
+    }
+
+    @Test
+    fun collectorIgnoresRowsOutsideTheirCount() {
+        val collector = HostCollector()
+        assertNull(collector.add(Multipoint.parseRow(row(index = 0, count = 0))!!))
+        assertNull(collector.add(Multipoint.parseRow(row(index = 2, count = 2))!!))
+        assertNull(collector.add(Multipoint.parseRow(row(index = 0, count = -1))!!))
+        assertEquals(emptyList<HostRow>(), collector.partial())
+        assertEquals(listOf(0), collector.add(Multipoint.parseRow(row(index = 0, count = 1))!!)!!.map { it.index })
+    }
 }

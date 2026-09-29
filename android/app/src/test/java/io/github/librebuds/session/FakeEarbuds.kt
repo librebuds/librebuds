@@ -58,6 +58,9 @@ class FakeEarbuds(
 
     fun inEarPush(inEar: Boolean): ByteArray = Packet(CommandId(0x2B, 0x03), listOf(Tlv.of(8, if (inEar) 1 else 0))).toFrame()
 
+    /** The current [hosts] as unsolicited `2B/31` rows, in the same order an enumerate gets them. */
+    fun hostRowPush(): List<ByteArray> = hostRows().map { it.toFrame() }
+
     fun hostChangePush(): ByteArray = Packet(CommandId(0x2B, 0x36), listOf(Tlv.of(1, 1))).toFrame()
 
     private fun answer(bytes: ByteArray): List<ByteArray> {
