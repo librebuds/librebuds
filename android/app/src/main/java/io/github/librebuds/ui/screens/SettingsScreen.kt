@@ -23,6 +23,11 @@ fun SettingsScreen(
     onDesignSystemChange: (DesignSystem) -> Unit,
     showOffMode: Boolean,
     onShowOffModeChange: (Boolean) -> Unit,
+    showIsland: Boolean,
+    onShowIslandChange: (Boolean) -> Unit,
+    demoMode: Boolean,
+    onDemoModeChange: (Boolean) -> Unit,
+    onExportDiagnostics: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     StyledScaffold(
@@ -46,6 +51,22 @@ fun SettingsScreen(
                     label = stringResource(R.string.show_off_mode),
                     checked = showOffMode,
                     onCheckedChange = onShowOffModeChange
+                )
+                StyledToggle(
+                    label = stringResource(R.string.show_island),
+                    checked = showIsland,
+                    onCheckedChange = onShowIslandChange
+                )
+                if (BuildConfig.DEBUG) {
+                    StyledToggle(
+                        label = stringResource(R.string.demo_mode),
+                        checked = demoMode,
+                        onCheckedChange = onDemoModeChange
+                    )
+                }
+                StyledListItem(
+                    name = stringResource(R.string.export_diagnostics),
+                    onClick = onExportDiagnostics
                 )
                 StyledListItem(
                     name = stringResource(R.string.app_version, BuildConfig.VERSION_NAME),

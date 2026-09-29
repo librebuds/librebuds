@@ -25,18 +25,22 @@ private const val ADD_DEVICE = "add_device"
 
 /**
  * Top-level navigation: onboarding once, then the device screen with settings and the earbud picker on top.
- * [onAssociated] runs after the user associated new earbuds (the Bluetooth service hooks in here).
+ * [onAssociated] runs after the user associated new earbuds (the Bluetooth service hooks in here);
+ * [onExportDiagnostics] shares the recent frame log.
  */
 @Composable
 fun AppRoot(
     viewModel: DeviceViewModel,
     preferences: AppPreferences,
     associationStore: AssociationStore,
-    onAssociated: (Stored) -> Unit = {}
+    onAssociated: (Stored) -> Unit = {},
+    onExportDiagnostics: () -> Unit = {}
 ) {
     var screen by rememberSaveable { mutableStateOf(if (preferences.onboardingDone) DEVICE else ONBOARDING) }
     var designSystem by remember { mutableStateOf(preferences.designSystem) }
     var showOffMode by remember { mutableStateOf(preferences.showOffMode) }
+    var showIsland by remember { mutableStateOf(preferences.showIsland) }
+    var demoMode by remember { mutableStateOf(preferences.demoMode) }
     var stored by remember { mutableStateOf(associationStore.primary()) }
 
     LibreBudsTheme(m3eEnabled = designSystem == DesignSystem.Material) {
@@ -72,6 +76,17 @@ fun AppRoot(
                         showOffMode = it
                         preferences.showOffMode = it
                     },
+                    showIsland = showIsland,
+                    onShowIslandChange = {
+                        showIsland = it
+                        preferences.showIsland = it
+                    },
+                    demoMode = demoMode,
+                    onDemoModeChange = {
+                        demoMode = it
+                        preferences.demoMode = it
+                    },
+                    onExportDiagnostics = onExportDiagnostics,
                     onNavigateBack = { screen = DEVICE }
                 )
             }

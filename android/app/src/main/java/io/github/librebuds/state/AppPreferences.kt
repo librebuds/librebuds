@@ -25,4 +25,13 @@ class AppPreferences(context: Context) {
     var showOffMode: Boolean
         get() = prefs.getBoolean("show_off_mode", true)
         set(value) = prefs.edit { putBoolean("show_off_mode", value) }
+
+    /** Replaces the earbuds with demo data; read at app start and only honoured in debug builds. */
+    var demoMode: Boolean
+        get() = prefs.getBoolean("demo_mode", false)
+        set(value) = prefs.edit { putBoolean("demo_mode", value) }
+
+    var showIsland: Boolean
+        get() = prefs.getBoolean("show_island", true)
+        set(value) = prefs.edit { putBoolean("show_island", value) }
 }

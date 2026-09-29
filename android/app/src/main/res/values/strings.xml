@@ -53,4 +53,10 @@
     <string name="controlled_by_other">Controlled by another device</string>
     <string name="take_over">Take over</string>
     <string name="last_updated">Last updated %1$s</string>
+    <string name="connecting">Connecting…</string>
+    <string name="notification_channel_connection">Earbud connection</string>
+    <string name="show_island">Show connection island</string>
+    <string name="demo_mode">Demo mode (restart app)</string>
+    <string name="export_diagnostics">Export diagnostics</string>
+    <string name="diagnostics_subject">LibreBuds diagnostics</string>
 </resources>
