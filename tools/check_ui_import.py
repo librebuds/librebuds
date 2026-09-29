@@ -4,6 +4,7 @@
 Fails when a banned asset reference or an SF Symbols glyph (Unicode private use areas, raw or
 as a \\u escape) remains in android/app/src, or when an imported file lacks the modification notice.
 """
+import fnmatch
 import pathlib
 import re
 import sys
@@ -26,6 +27,8 @@ BANNED_FILE_GLOBS = [
     "drawable*/noise_cancellation.png",
     "drawable*/transparency.png",
 ]
+# Our own generated popup clips (art/prompts.md) are the only videos allowed, and only in res/raw.
+ALLOWED_FILES = ["main/res/raw/popup_*.mp4"]
 # XML numeric character references pointing into the SF Symbols private-use ranges (hex or decimal).
 NUMERIC_CHAR_REF = re.compile(r"&#(x[0-9a-fA-F]+|[0-9]+);")
 HEADER_MARKERS = ("LibreBuds contributors", "LibrePods contributors")
@@ -39,7 +42,8 @@ def main() -> int:
     problems = []
     for pattern in BANNED_FILE_GLOBS:
         for path in sorted(ROOT.rglob(pattern)):
-            if path.is_file():
+            relative = path.relative_to(ROOT).as_posix()
+            if path.is_file() and not any(fnmatch.fnmatchcase(relative, allowed) for allowed in ALLOWED_FILES):
                 problems.append(f"{path}: banned file matches {pattern!r}")
     for path in sorted(ROOT.rglob("*")):
         if path.suffix not in {".kt", ".xml"} or not path.is_file():
