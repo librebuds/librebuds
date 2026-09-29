@@ -38,6 +38,18 @@ class MultipointTest {
     }
 
     @Test
+    fun rowWithoutCountIsIgnored() {
+        val packet = Packet(CommandId(0x2B, 0x31), listOf(Tlv.of(3, 0), Tlv(4, "11 22 33 44 55 61".hexToBytes())))
+        assertNull(Multipoint.parseRow(packet))
+    }
+
+    @Test
+    fun rowWithoutIndexIsIgnored() {
+        val packet = Packet(CommandId(0x2B, 0x31), listOf(Tlv.of(2, 1), Tlv(4, "11 22 33 44 55 61".hexToBytes())))
+        assertNull(Multipoint.parseRow(packet))
+    }
+
+    @Test
     fun buildsRequests() {
         assertEquals("2B 31 01 00", Multipoint.enumerate().toPayload().toHex())
         assertEquals("2B 32 01 06 11 22 33 44 55 66", Multipoint.setPreferred("11:22:33:44:55:66").toPayload().toHex())

@@ -4,6 +4,7 @@ package io.github.librebuds.protocol.command
 import io.github.librebuds.protocol.CommandId
 import io.github.librebuds.protocol.Packet
 import io.github.librebuds.protocol.tlv.Tlv
+import io.github.librebuds.protocol.util.u8
 
 /**
  * One paired host from a 2B/31 enumeration reply. [connection] is the raw connection-state
@@ -53,7 +54,7 @@ object Multipoint {
     fun parseToggle(packet: Packet): Boolean? {
         if (packet.id != TOGGLE_GET) return null
         val value = packet.find(1)?.takeIf { it.size == 1 } ?: return null
-        return value[0].toInt() != 0
+        return value[0].u8() != 0
     }
 
     fun writeToggle(enabled: Boolean): Packet = Packet(TOGGLE_SET, listOf(Tlv.of(1, if (enabled) 1 else 0)))
@@ -62,10 +63,14 @@ object Multipoint {
 
     fun parseRow(packet: Packet): HostRow? {
         if (packet.id != ENUMERATE) return null
+        // Count and index identify the row within the enumeration; without either one the row
+        // can't be placed, so it's dropped (same treatment as a missing MAC).
+        val count = packet.find(2)?.toSignedInt() ?: return null
+        val index = packet.find(3)?.toSignedInt() ?: return null
         val macBytes = packet.find(4)?.takeIf { it.size == 6 } ?: return null
         return HostRow(
-            index = packet.find(3)?.toSignedInt() ?: 0,
-            count = packet.find(2)?.toSignedInt() ?: 0,
+            index = index,
+            count = count,
             mac = macBytes.toMacText(),
             name = packet.find(9)?.let { text(it) },
             connection = packet.find(5)?.toSignedInt() ?: 0,
@@ -83,10 +88,11 @@ object Multipoint {
     private fun text(value: ByteArray): String? =
         value.toString(Charsets.UTF_8).trimEnd('\u0000').trim().takeIf { it.isNotEmpty() }
 
-    private fun ByteArray.toSignedInt(): Int = when (size) {
+    /** Big-endian signed value of a 1- or 2-byte TLV; null for any other length (malformed). */
+    private fun ByteArray.toSignedInt(): Int? = when (size) {
         1 -> this[0].toInt()
         2 -> (this[0].toInt() shl 8) or (this[1].toInt() and 0xFF)
-        else -> 0
+        else -> null
     }
 
     private fun ByteArray.toMacText(): String = joinToString(":") { "%02X".format(it.toInt() and 0xFF) }
