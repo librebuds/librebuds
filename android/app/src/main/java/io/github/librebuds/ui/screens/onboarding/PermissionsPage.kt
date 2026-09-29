@@ -1,0 +1,190 @@
+/*
+    LibrePods - AirPods liberated from Apple’s ecosystem
+    Copyright (C) 2025 LibrePods contributors
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    Modified for LibreBuds (2026): adapted to FreeBuds; see NOTICE.
+*/
+package io.github.librebuds.ui.screens.onboarding
+
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import io.github.librebuds.R
+import io.github.librebuds.ui.components.ListItemOrientation
+import io.github.librebuds.ui.components.StyledButton
+import io.github.librebuds.ui.components.StyledList
+import io.github.librebuds.ui.components.StyledListItem
+import io.github.librebuds.ui.components.StyledListScope
+import io.github.librebuds.ui.icons.MaterialIcons
+
+/** Current permission items plus a way to ask for one of them. */
+class PermissionRequests(val items: List<PermissionItem>, val request: (PermissionItem) -> Unit)
+
+/** Tracks the onboarding permissions; the overlay grant is re-read whenever the app resumes. */
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun rememberPermissionRequests(): PermissionRequests {
+    val context = LocalContext.current
+    var canDrawOverlays by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
+
+    // Connect and scan share the "Nearby devices" group, so Android asks for them together.
+    val bluetoothState = rememberMultiplePermissionsState(
+        listOf(OnboardingState.BLUETOOTH_CONNECT, OnboardingState.BLUETOOTH_SCAN)
+    )
+    val notificationState = rememberMultiplePermissionsState(listOf(OnboardingState.POST_NOTIFICATIONS))
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                canDrawOverlays = Settings.canDrawOverlays(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val granted = (bluetoothState.permissions + notificationState.permissions)
+        .filter { it.status.isGranted }
+        .map { it.permission }
+        .toSet()
+    val items = OnboardingState.items(Build.VERSION.SDK_INT, granted, canDrawOverlays)
+
+    return PermissionRequests(items) { item ->
+        when (item.key) {
+            OnboardingState.BLUETOOTH_CONNECT, OnboardingState.BLUETOOTH_SCAN -> bluetoothState.launchMultiplePermissionRequest()
+            OnboardingState.POST_NOTIFICATIONS -> notificationState.launchMultiplePermissionRequest()
+            OnboardingState.OVERLAY -> openOverlaySettings(context)
+        }
+    }
+}
+
+private fun openOverlaySettings(context: Context) {
+    val intent = Intent(
+        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+        "package:${context.packageName}".toUri()
+    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(intent)
+}
+
+private class PermissionText(val title: Int, val reason: Int, val icon: ImageVector)
+
+private fun textFor(key: String): PermissionText = when (key) {
+    OnboardingState.BLUETOOTH_CONNECT -> PermissionText(R.string.permission_bluetooth_connect, R.string.permission_bluetooth_connect_reason, MaterialIcons.bluetooth)
+    OnboardingState.BLUETOOTH_SCAN -> PermissionText(R.string.permission_bluetooth_scan, R.string.permission_bluetooth_scan_reason, MaterialIcons.bluetooth_searching)
+    OnboardingState.POST_NOTIFICATIONS -> PermissionText(R.string.permission_notifications, R.string.permission_notifications_reason, MaterialIcons.notifications)
+    else -> PermissionText(R.string.permission_overlay, R.string.permission_overlay_reason, MaterialIcons.stack)
+}
+
+@Composable
+fun PermissionsPage(
+    items: List<PermissionItem>,
+    onRequest: (PermissionItem) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        StyledList(title = stringResource(R.string.required_permissions)) {
+            items.filter { it.required }.forEach { PermissionRow(it, onRequest) }
+        }
+        StyledList(title = stringResource(R.string.optional_permissions)) {
+            items.filterNot { it.required }.forEach { PermissionRow(it, onRequest) }
+        }
+    }
+}
+
+@Composable
+private fun StyledListScope.PermissionRow(
+    item: PermissionItem,
+    onRequest: (PermissionItem) -> Unit
+) {
+    val text = textFor(item.key)
+    val title = stringResource(text.title)
+    val iconColor by animateColorAsState(
+        if (item.granted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+    )
+    val containerColor by animateColorAsState(
+        if (item.granted) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest
+    )
+
+    StyledListItem(
+        name = title,
+        description = stringResource(text.reason),
+        orientation = ListItemOrientation.Horizontal,
+        leadingContent = {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(containerColor, MaterialShapes.SoftBurst.normalized().toShape()),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = text.icon,
+                    contentDescription = title,
+                    modifier = Modifier.size(24.dp),
+                    tint = iconColor
+                )
+            }
+        },
+        trailingContent = {
+            if (item.granted) {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = stringResource(R.string.granted),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            } else {
+                StyledButton(
+                    onClick = { onRequest(item) },
+                    backdrop = rememberLayerBackdrop()
+                ) {
+                    Text(text = stringResource(R.string.grant), style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+    )
+}

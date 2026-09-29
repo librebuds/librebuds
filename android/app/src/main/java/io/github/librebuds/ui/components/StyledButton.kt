@@ -103,6 +103,7 @@ fun StyledButton(
                     Button(
                         modifier = modifier.height(48.dp),
                         onClick = onClick,
+                        enabled = enabled,
                         content = content
                     )
                 }
@@ -110,6 +111,7 @@ fun StyledButton(
                     FilledTonalButton(
                         modifier = modifier.height(48.dp),
                         onClick = onClick,
+                        enabled = enabled,
                         content = content,
                         colors = ButtonDefaults.filledTonalButtonColors(containerColor = surfaceColor)
                     )
@@ -119,6 +121,7 @@ fun StyledButton(
                     OutlinedButton(
                         modifier = modifier.height(48.dp),
                         onClick = onClick,
+                        enabled = enabled,
                         content = content
                     )
                 }
@@ -127,6 +130,7 @@ fun StyledButton(
                     TextButton(
                         modifier = modifier.height(48.dp),
                         onClick = onClick,
+                        enabled = enabled,
                         content = content
                     )
                 }
