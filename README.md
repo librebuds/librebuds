@@ -6,7 +6,7 @@ No root, no vendor app.
 
 Status: The Android app connects to FreeBuds over Bluetooth (battery, noise control, quick settings tile,
 widgets) and shows a popup when the case opens nearby, with vector or AI-generated video artwork per
-model. Full per-model settings are next.
+model shape. Full per-model settings are next.
 
 See [docs/devices.md](docs/devices.md) for per-model support,
 [docs/protocol](docs/protocol) for the wire formats, and

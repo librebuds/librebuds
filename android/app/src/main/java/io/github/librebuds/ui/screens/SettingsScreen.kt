@@ -13,6 +13,7 @@ import io.github.librebuds.BuildConfig
 import io.github.librebuds.R
 import io.github.librebuds.beacon.LastBeacon
 import io.github.librebuds.popup.ArtVariant
+import io.github.librebuds.ui.components.ListItemOrientation
 import io.github.librebuds.ui.components.StyledList
 import io.github.librebuds.ui.components.StyledListItem
 import io.github.librebuds.ui.components.StyledScaffold
@@ -89,6 +90,9 @@ fun SettingsScreen(
                     )
                     StyledListItem(
                         name = stringResource(R.string.last_beacon),
+                        // Vertical: the description is 3 lines (fields, time, hex) and needs the row's full
+                        // width, not the narrow column Horizontal reserves to the right of the name.
+                        orientation = ListItemOrientation.Vertical,
                         description = lastBeacon?.let {
                             val model = it.modelId ?: "?"
                             val sub = it.subModelId?.toString() ?: "?"
