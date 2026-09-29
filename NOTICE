@@ -11,6 +11,11 @@ Third-party references:
   929a5358c62ce1fc66fa63200d77eab872a07507): Android UI components, theme and
   quick-settings patterns, imported by tools/import_librepods_ui.sh and modified.
   No LibrePods media (videos, images, AirPods artwork) or fonts are included.
+  The connection island is also imported from LibrePods and modified:
+  android/app/src/main/java/io/github/librebuds/overlay/IslandWindow.kt,
+  res/layout/island_window.xml, res/drawable/island_*.xml and
+  res/drawable/ic_undo_button_bg.xml.
+- res/drawable/ic_undo.xml: Material Symbols icon path (Google, Apache License 2.0).
 - Material Symbols icon paths (Google, Apache License 2.0), via LibrePods'
   presentation/MaterialIcons.kt (android/app/.../ui/icons/MaterialIcons.kt).
 - Inter typeface (SIL Open Font License 1.1), loaded at runtime through Google Fonts.
