@@ -5,8 +5,8 @@ noise control, multipoint and per-model settings, plus a popup when you open the
 No root, no vendor app.
 
 Status: The Android app connects to FreeBuds over Bluetooth (battery, noise control, quick settings tile,
-widgets) and shows a popup when the case opens nearby, with vector or AI-generated video artwork per
-model shape. Full per-model settings are next.
+widgets) and shows a popup when the case opens nearby, with animated vector artwork per model shape.
+Full per-model settings are next.
 
 See [docs/devices.md](docs/devices.md) for per-model support,
 [docs/protocol](docs/protocol) for the wire formats, and
@@ -16,6 +16,10 @@ device checklist.
 Debug builds add a Settings section to test the popup without real hardware: a "Popup artwork" switch
 between the vector drawing (variant A) and the generated video clip (variant B, round-shaped models
 only), a "Show test popup" button, and a "Last beacon" row with the most recently parsed beacon.
+
+Release builds always show the vector artwork. The AI-generated clips (CC BY-SA 4.0, credited in
+[NOTICE](NOTICE) and [art/README.md](art/README.md)) live in `android/app/src/debug/res/raw` and are a
+debug-only comparison: they are not in release APKs.
 
 ## Build the app
 

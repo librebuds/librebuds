@@ -4,7 +4,6 @@
 Fails when a banned asset reference or an SF Symbols glyph (Unicode private use areas, raw or
 as a \\u escape) remains in android/app/src, or when an imported file lacks the modification notice.
 """
-import fnmatch
 import pathlib
 import re
 import sys
@@ -19,7 +18,7 @@ PRIVATE_USE = re.compile("[-\U000f0000-\U0010ffff]")
 NOTICE = "Modified for LibreBuds (2026)"
 # Files that must not be reintroduced anywhere under ROOT (LibrePods media/icons/fonts).
 BANNED_FILE_GLOBS = [
-    "res/raw/*.mp4",
+    "res/raw*/*.mp4",
     "res/font/*.ttf",
     "res/font/*.otf",
     "drawable*/airpods*",
@@ -27,8 +26,12 @@ BANNED_FILE_GLOBS = [
     "drawable*/noise_cancellation.png",
     "drawable*/transparency.png",
 ]
-# Our own generated popup clips (art/prompts.md) are the only videos allowed, and only in res/raw.
-ALLOWED_FILES = ["main/res/raw/popup_*.mp4"]
+# Our own generated popup clips (art/prompts.md, CC BY-SA) are the only videos allowed, and only in the
+# debug source set: release APKs must not ship them. Exact paths, relative to android/app/src.
+ALLOWED_FILES = [
+    "debug/res/raw/popup_round_light.mp4",
+    "debug/res/raw/popup_round_dark.mp4",
+]
 # XML numeric character references pointing into the SF Symbols private-use ranges (hex or decimal).
 NUMERIC_CHAR_REF = re.compile(r"&#(x[0-9a-fA-F]+|[0-9]+);")
 HEADER_MARKERS = ("LibreBuds contributors", "LibrePods contributors")
@@ -43,7 +46,7 @@ def main() -> int:
     for pattern in BANNED_FILE_GLOBS:
         for path in sorted(ROOT.rglob(pattern)):
             relative = path.relative_to(ROOT).as_posix()
-            if path.is_file() and not any(fnmatch.fnmatchcase(relative, allowed) for allowed in ALLOWED_FILES):
+            if path.is_file() and relative not in ALLOWED_FILES:
                 problems.append(f"{path}: banned file matches {pattern!r}")
     for path in sorted(ROOT.rglob("*")):
         if path.suffix not in {".kt", ".xml"} or not path.is_file():

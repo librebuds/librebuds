@@ -34,12 +34,3 @@ fun artFor(shape: String, variant: ArtVariant, videos: Map<String, Pair<Int, Int
     }
 }
 
-/**
- * The generated clips bundled in res/raw, as shape to light/dark clip for [artFor]. See art/prompts.md
- * for how they were made; shapes without an entry use the vector animation.
- */
-object PopupVideos {
-    fun map(): Map<String, Pair<Int, Int>> = mapOf(
-        "round" to (R.raw.popup_round_light to R.raw.popup_round_dark),
-    )
-}

@@ -21,7 +21,7 @@ Third-party references:
 - Material Symbols icon paths (Google, Apache License 2.0), via LibrePods'
   presentation/MaterialIcons.kt (android/app/.../ui/icons/MaterialIcons.kt).
 - Inter typeface (SIL Open Font License 1.1), loaded at runtime through Google Fonts.
-- Popup video clips in android/app/src/main/res/raw/popup_*.mp4 are derived from
+- Popup video clips in android/app/src/debug/res/raw/popup_*.mp4 (debug builds only) are derived from
   "HUAWEI FreeBuds 6.jpg" by Kyu3a (Wikimedia Commons, CC BY-SA 4.0,
   https://commons.wikimedia.org/wiki/File:HUAWEI_FreeBuds_6.jpg), animated with an
   image-to-video model; licensed CC BY-SA 4.0. The photo, the intermediate images and the raw
