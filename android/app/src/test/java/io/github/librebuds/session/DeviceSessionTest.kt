@@ -5,9 +5,12 @@ import io.github.librebuds.protocol.Packet
 import io.github.librebuds.protocol.command.Anc
 import io.github.librebuds.protocol.command.Battery
 import io.github.librebuds.protocol.util.hexToBytes
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -97,5 +100,46 @@ class DeviceSessionTest {
         assertTrue(session.closed.isCompleted)
         assertTrue(link.closed)
         assertTrue(session.request(Battery.request()).exceptionOrNull() is SessionClosedException)
+    }
+
+    @Test
+    fun closeWhilePendingFailsRequestPromptly() = runTest {
+        val link = FakeLink()
+        val session = DeviceSession(link, backgroundScope)
+        val pending = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) { session.request(Battery.request()) }
+        session.close()
+        val result = pending.await()
+        assertTrue(result.exceptionOrNull() is SessionClosedException)
+        assertEquals(null, session.closed.await())
+        assertTrue(testScheduler.currentTime < 3000L)
+    }
+
+    @Test
+    fun timeoutDiscardsHalfFrame() = runTest {
+        val fullFrame = ancState.hexToBytes()
+        var writes = 0
+        val link = FakeLink {
+            writes++
+            if (writes == 1) {
+                deliver(fullFrame.copyOfRange(0, fullFrame.size / 2))
+            } else {
+                deliver(fullFrame)
+            }
+        }
+        val session = DeviceSession(link, backgroundScope, timeoutMillis = 3000, retries = 2)
+        val result = session.request(Anc.readRequest())
+        assertTrue(result.isSuccess)
+        assertEquals("2B/2A", result.getOrThrow().id.toString())
+    }
+
+    @Test
+    fun cancellingScopeClosesLink() = runTest {
+        val link = FakeLink()
+        val job = Job(coroutineContext[Job])
+        val scope = CoroutineScope(coroutineContext + job)
+        DeviceSession(link, scope)
+        advanceUntilIdle() // let readLoop start and park in link.read() before cancelling it
+        job.cancelAndJoin()
+        assertTrue(link.closed)
     }
 }

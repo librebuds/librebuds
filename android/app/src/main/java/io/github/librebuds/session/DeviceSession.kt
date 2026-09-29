@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -63,17 +64,20 @@ class DeviceSession(
             while (true) {
                 val count = link.read(buffer)
                 if (count < 0) break
-                if (count == 0) continue
+                if (count == 0) {
+                    yield()
+                    continue
+                }
                 val chunk = buffer.copyOf(count)
                 onFrame(FrameDirection.RX, chunk)
                 if (resetRequested.getAndSet(false)) reassembler.reset()
                 for (event in reassembler.feed(chunk)) {
                     if (event !is RxEvent.Payload) continue
                     val packet = Packet.fromPayload(event.bytes) ?: continue
-                    // Publish on the packets flow before resolving a matching waiter: a collector
-                    // subscribed on the packets flow must observe the packet no later than a
-                    // request() call for it returns, and completing the waiter first can let the
-                    // resumed caller race ahead of a background collector that hasn't run yet.
+                    // Emit on the packets flow before completing a matching waiter: on the
+                    // single-threaded scheduler our tests run on, this guarantees a packets
+                    // collector observes the packet before the resumed request() call returns.
+                    // It is not a guarantee across real threads/dispatchers.
                     mutablePackets.emit(packet)
                     waiter?.let { if (it.reply == packet.id) it.result.complete(packet) }
                 }
@@ -83,6 +87,10 @@ class DeviceSession(
         } catch (e: Exception) {
             failure = e
         } finally {
+            // The reader is done - end of stream, an error, or the scope was cancelled - so the
+            // socket is no longer being serviced. Release it here rather than only on an explicit
+            // close() call.
+            runCatching { link.close() }
             waiter?.result?.completeExceptionally(SessionClosedException())
             closedSignal.complete(failure)
         }
@@ -93,6 +101,10 @@ class DeviceSession(
             if (closedSignal.isCompleted) return Result.failure(SessionClosedException())
             val current = Waiter(reply, CompletableDeferred())
             waiter = current
+            if (closedSignal.isCompleted) {
+                waiter = null
+                return Result.failure(SessionClosedException())
+            }
             try {
                 write(packet.toFrame())
                 // await() throws SessionClosedException (an IOException, caught below) if the link ends.
@@ -102,7 +114,9 @@ class DeviceSession(
                     return Result.success(answer)
                 }
                 resetRequested.set(true)
-            } catch (e: IOException) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
                 return Result.failure(e)
             } finally {
                 waiter = null
@@ -118,9 +132,12 @@ class DeviceSession(
     }
 
     fun close() {
-        runCatching { link.close() }
-        waiter?.result?.completeExceptionally(SessionClosedException())
+        // Complete closedSignal with null before closing the link: a requested close is always a
+        // clean end, and completing it first wins the race against the reader coroutine's own
+        // completion, which would otherwise report the reader's IOException from the closed socket.
         closedSignal.complete(null)
+        waiter?.result?.completeExceptionally(SessionClosedException())
+        runCatching { link.close() }
     }
 
     private suspend fun write(frame: ByteArray) {
