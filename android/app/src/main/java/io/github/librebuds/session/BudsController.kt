@@ -78,8 +78,9 @@ class BudsController(
     private val settleMillis: Long = 1500,
     private val hostListMillis: Long = 3000,
     val frameLog: FrameLog? = null,
+    initial: BudsState = BudsState(),
 ) : BudsRepository {
-    private val mutable = MutableStateFlow(BudsState())
+    private val mutable = MutableStateFlow(initial)
     private val connectLock = Mutex()
 
     // Bumped by every connect() attempt and by disconnect(), so a connect() that resumes after a
@@ -111,13 +112,25 @@ class BudsController(
         if (session != null && mutable.value.address == address && mutable.value.isConnected) return@withLock
         val myGeneration = generation.incrementAndGet()
         closeSession()
-        mutable.value = BudsState(link = LinkState.CONNECTING, address = address, name = name)
+        // The last known battery and noise control of the same earbuds stay visible (and stored)
+        // until this session reads fresh ones; a failed attempt must not erase them.
+        val previous = mutable.value.takeIf { it.address.equals(address, ignoreCase = true) }
+        mutable.value = BudsState(
+            link = LinkState.CONNECTING,
+            address = address,
+            name = name,
+            battery = previous?.battery,
+            anc = previous?.anc,
+            updatedAtMillis = previous?.updatedAtMillis,
+        )
         val link = try {
             linkFactory.open(address)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            if (generation.get() == myGeneration) mutable.update { it.copy(link = LinkState.DISCONNECTED) }
+            // With audio up, the earbuds are there but another device holds the control channel.
+            val next = if (isAudioConnected(address)) LinkState.TAKEN_OVER else LinkState.DISCONNECTED
+            if (generation.get() == myGeneration) mutable.update { it.copy(link = next) }
             return@withLock
         }
         if (generation.get() != myGeneration) {

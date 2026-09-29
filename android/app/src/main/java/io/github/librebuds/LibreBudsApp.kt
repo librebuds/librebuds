@@ -15,11 +15,16 @@ import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.session.BudsController
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.BudsRepository
+import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.DemoBudsRepository
 import io.github.librebuds.state.LinkState
+import io.github.librebuds.state.StateStore
 import io.github.librebuds.widget.WidgetUpdater
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -52,13 +57,16 @@ class LibreBudsApp : Application() {
         frameLog = FrameLog()
         registry = ProfileAssets.load(this)
         val adapter = getSystemService(BluetoothManager::class.java)?.adapter
+        val stateStore = StateStore(this)
         controller = BudsController(
             linkFactory = adapter?.let(::RfcommLinkFactory) ?: LinkFactory { throw IOException("No Bluetooth adapter") },
             registry = registry,
             scope = appScope,
             isAudioConnected = ::isAudioConnected,
             frameLog = frameLog,
+            initial = stateStore.load()?.toBudsState() ?: BudsState(),
         )
+        persistState(stateStore)
         val preferences = AppPreferences(this)
         repository = if (BuildConfig.DEBUG && preferences.demoMode) DemoBudsRepository() else controller
         WidgetUpdater(this, repository, appScope).start()
@@ -66,6 +74,17 @@ class LibreBudsApp : Application() {
         // A no-op when already registered in this boot; false without BLUETOOTH_SCAN or with Bluetooth off.
         BeaconScanner.ensureStarted(this)
         BeaconScanner.watchBluetooth(this)
+    }
+
+    /**
+     * Saves the controller's state (never the demo data) once it has been stable for a second,
+     * so the next process starts from the last known values and a take-over outlives a restart.
+     */
+    @OptIn(FlowPreview::class)
+    private fun persistState(store: StateStore) {
+        appScope.launch {
+            controller.state.drop(1).debounce(SAVE_DEBOUNCE_MILLIS).collect(store::save)
+        }
     }
 
     /**
@@ -82,6 +101,8 @@ class LibreBudsApp : Application() {
     }
 
     companion object {
+        private const val SAVE_DEBOUNCE_MILLIS = 1000L
+
         fun from(context: Context): LibreBudsApp = context.applicationContext as LibreBudsApp
     }
 }
