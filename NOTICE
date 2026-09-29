@@ -24,5 +24,6 @@ Third-party references:
 - Popup video clips in android/app/src/main/res/raw/popup_*.mp4 are derived from
   "HUAWEI FreeBuds 6.jpg" by Kyu3a (Wikimedia Commons, CC BY-SA 4.0,
   https://commons.wikimedia.org/wiki/File:HUAWEI_FreeBuds_6.jpg), animated with an
-  image-to-video model; licensed CC BY-SA 4.0. The photo and the intermediate images are in
-  art/sources/ and art/inputs/ under the same licence; see art/sources/README.md.
+  image-to-video model; licensed CC BY-SA 4.0. The photo, the intermediate images and the raw
+  model output are in art/sources/, art/inputs/ and art/generated/ under the same licence; see
+  art/sources/README.md.
