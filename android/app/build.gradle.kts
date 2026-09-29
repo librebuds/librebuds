@@ -38,6 +38,27 @@ kotlin {
     }
 }
 
+// Bundles the repository's profiles/*.json as app assets, so ProfileAssets can load them at
+// runtime without duplicating the files under android/app/src/main/assets.
+abstract class CopyProfilesTask : Sync() {
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+}
+
+val copyProfiles = tasks.register<CopyProfilesTask>("copyProfiles") {
+    // outputDir is the assets source root; files land under its "profiles/" subdirectory so
+    // they end up at assets/profiles/*.json rather than flattened at the assets root.
+    from(rootDir.parentFile.resolve("profiles")) { include("*.json"); into("profiles") }
+    outputDir.set(layout.buildDirectory.dir("generated/profileAssets"))
+    into(outputDir)
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(copyProfiles) { it.outputDir }
+    }
+}
+
 dependencies {
     implementation(project(":protocol"))
 
