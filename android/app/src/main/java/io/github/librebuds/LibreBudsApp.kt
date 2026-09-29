@@ -4,6 +4,7 @@ package io.github.librebuds
 import android.app.Application
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.bt.LinkFactory
 import io.github.librebuds.bt.RfcommLinkFactory
 import io.github.librebuds.bt.isAudioConnected
@@ -58,9 +59,12 @@ class LibreBudsApp : Application() {
             isAudioConnected = ::isAudioConnected,
             frameLog = frameLog,
         )
-        repository = if (BuildConfig.DEBUG && AppPreferences(this).demoMode) DemoBudsRepository() else controller
+        val preferences = AppPreferences(this)
+        repository = if (BuildConfig.DEBUG && preferences.demoMode) DemoBudsRepository() else controller
         WidgetUpdater(this, repository, appScope).start()
         keepAudioConnectionsFresh()
+        // Returns false without BLUETOOTH_SCAN or with Bluetooth off; the popup then stays off.
+        if (preferences.popupEnabled) BeaconScanner.start(this)
     }
 
     /**

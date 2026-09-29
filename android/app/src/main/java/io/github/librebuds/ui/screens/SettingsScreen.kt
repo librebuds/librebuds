@@ -25,6 +25,8 @@ fun SettingsScreen(
     onShowOffModeChange: (Boolean) -> Unit,
     showIsland: Boolean,
     onShowIslandChange: (Boolean) -> Unit,
+    popupEnabled: Boolean,
+    onPopupEnabledChange: (Boolean) -> Unit,
     demoMode: Boolean,
     onDemoModeChange: (Boolean) -> Unit,
     onExportDiagnostics: () -> Unit,
@@ -56,6 +58,11 @@ fun SettingsScreen(
                     label = stringResource(R.string.show_island),
                     checked = showIsland,
                     onCheckedChange = onShowIslandChange
+                )
+                StyledToggle(
+                    label = stringResource(R.string.popup_enabled),
+                    checked = popupEnabled,
+                    onCheckedChange = onPopupEnabledChange
                 )
                 if (BuildConfig.DEBUG) {
                     StyledToggle(

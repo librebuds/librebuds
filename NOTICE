@@ -14,7 +14,9 @@ Third-party references:
   The connection island is also imported from LibrePods and modified:
   android/app/src/main/java/io/github/librebuds/overlay/IslandWindow.kt,
   res/layout/island_window.xml, res/drawable/island_*.xml and
-  res/drawable/ic_undo_button_bg.xml.
+  res/drawable/ic_undo_button_bg.xml. The case-open popup window is imported the same
+  way and modified: android/app/src/main/java/io/github/librebuds/popup/PopupWindow.kt;
+  its layout (res/layout/popup_window.xml) is written for LibreBuds.
 - res/drawable/ic_undo.xml: Material Symbols icon path (Google, Apache License 2.0).
 - Material Symbols icon paths (Google, Apache License 2.0), via LibrePods'
   presentation/MaterialIcons.kt (android/app/.../ui/icons/MaterialIcons.kt).

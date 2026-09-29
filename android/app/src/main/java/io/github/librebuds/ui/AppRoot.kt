@@ -8,6 +8,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.companion.AssociationStore
 import io.github.librebuds.companion.Stored
 import io.github.librebuds.state.AppPreferences
@@ -40,6 +42,8 @@ fun AppRoot(
     var designSystem by remember { mutableStateOf(preferences.designSystem) }
     var showOffMode by remember { mutableStateOf(preferences.showOffMode) }
     var showIsland by remember { mutableStateOf(preferences.showIsland) }
+    var popupEnabled by remember { mutableStateOf(preferences.popupEnabled) }
+    val context = LocalContext.current
     var demoMode by remember { mutableStateOf(preferences.demoMode) }
     var stored by remember { mutableStateOf(associationStore.primary()) }
 
@@ -80,6 +84,12 @@ fun AppRoot(
                     onShowIslandChange = {
                         showIsland = it
                         preferences.showIsland = it
+                    },
+                    popupEnabled = popupEnabled,
+                    onPopupEnabledChange = {
+                        popupEnabled = it
+                        preferences.popupEnabled = it
+                        if (it) BeaconScanner.start(context) else BeaconScanner.stop(context)
                     },
                     demoMode = demoMode,
                     onDemoModeChange = {

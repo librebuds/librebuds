@@ -34,4 +34,15 @@ class AppPreferences(context: Context) {
     var showIsland: Boolean
         get() = prefs.getBoolean("show_island", true)
         set(value) = prefs.edit { putBoolean("show_island", value) }
+
+    /** Whether a case-open beacon may raise the popup; the beacon scan runs only while this is on. */
+    var popupEnabled: Boolean
+        get() = prefs.getBoolean("popup_enabled", true)
+        set(value) = prefs.edit { putBoolean("popup_enabled", value) }
+
+    /** Wall-clock time the popup was last shown for [address], for the per-device cooldown. */
+    fun lastPopupAt(address: String): Long? =
+        prefs.getLong("popup_at_$address", -1L).takeIf { it >= 0 }
+
+    fun markPopupShown(address: String, at: Long) = prefs.edit { putLong("popup_at_$address", at) }
 }

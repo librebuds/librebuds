@@ -1,0 +1,66 @@
+// LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
+package io.github.librebuds.beacon
+
+import android.bluetooth.le.BluetoothLeScanner
+import android.bluetooth.le.ScanResult
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.os.ParcelUuid
+import android.util.Log
+import io.github.librebuds.LibreBudsApp
+import io.github.librebuds.companion.AssociationStore
+import io.github.librebuds.popup.ArtVariant
+import io.github.librebuds.popup.PopupPresenter
+import io.github.librebuds.popup.artFor
+import io.github.librebuds.popup.popupModel
+import io.github.librebuds.protocol.beacon.FdeeBeacon
+import io.github.librebuds.protocol.profile.Profile
+import io.github.librebuds.protocol.profile.ProfileRegistry
+import io.github.librebuds.state.AppPreferences
+
+/**
+ * Receives the beacon scan results from [BeaconScanner] and raises the popup when [PopupRules] says so.
+ * Runs on the main thread (manifest receiver); it never connects to the earbuds.
+ */
+class BeaconReceiver : BroadcastReceiver() {
+    private val rules = PopupRules()
+
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.hasExtra(BluetoothLeScanner.EXTRA_ERROR_CODE)) {
+            Log.w(TAG, "Beacon scan failed: ${intent.getIntExtra(BluetoothLeScanner.EXTRA_ERROR_CODE, 0)}")
+            return
+        }
+        val results = intent.getParcelableArrayListExtra(BluetoothLeScanner.EXTRA_LIST_SCAN_RESULT, ScanResult::class.java)
+            ?: return
+        val app = LibreBudsApp.from(context)
+        val preferences = AppPreferences(context)
+        val associated = associatedProfile(context, app.registry)
+        val associatedModelIds = associated?.match?.modelId?.toSet() ?: emptySet()
+        for (result in results) {
+            val data = result.scanRecord?.getServiceData(FDEE) ?: continue
+            val beacon = FdeeBeacon.parse(data) ?: continue
+            // Wall clock, like the stored cooldown; the result's own timestamp is elapsed realtime.
+            val sighting = BeaconSighting(result.device.address, result.rssi, beacon, System.currentTimeMillis())
+            val known = isKnown(beacon, app.registry, associatedModelIds)
+            // Read per result: one batch often holds several sightings of the same case.
+            val decision = rules.decide(sighting, known, preferences.lastPopupAt(sighting.address))
+            if (decision != PopupDecision.SHOW) continue
+            val matched = app.registry.match(modelId = beacon.modelId)
+            val profile = if (matched.id == ProfileRegistry.GENERIC.id) associated ?: matched else matched
+            PopupPresenter.show(app, popupModel(beacon, profile), artFor(profile.art, ArtVariant.VECTOR, emptyMap()))
+            preferences.markPopupShown(sighting.address, sighting.atMillis)
+        }
+    }
+
+    /** The profile of the earbuds added in the app, found by their Bluetooth name; null if none or unknown. */
+    private fun associatedProfile(context: Context, registry: ProfileRegistry): Profile? {
+        val stored = AssociationStore(context).primary() ?: return null
+        return registry.match(btName = stored.name).takeIf { it.id != ProfileRegistry.GENERIC.id }
+    }
+
+    private companion object {
+        const val TAG = "BeaconReceiver"
+        val FDEE: ParcelUuid = ParcelUuid.fromString(FdeeBeacon.SERVICE_UUID)
+    }
+}

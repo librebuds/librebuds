@@ -65,4 +65,10 @@
     <string name="island_moved_to_other_device_text">Moved to %1$s</string>
     <string name="island_moved_to_other_device_reversed_text">Reconnect from notification</string>
     <string name="undo">Undo</string>
+    <string name="popup_enabled">Popup when the case opens</string>
+    <string name="notification_channel_popup">Case opened</string>
+    <string name="close">Close</string>
+    <string name="percent">%1$d%%</string>
+    <string name="battery_unknown">--</string>
+    <string name="popup_battery">%1$s %2$s</string>
 </resources>
