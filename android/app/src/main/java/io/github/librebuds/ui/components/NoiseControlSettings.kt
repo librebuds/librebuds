@@ -67,6 +67,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -222,8 +223,8 @@ fun NoiseControlSettings(
                 )
 
                 @Composable
-                fun ButtonRow(modifier: Modifier) {
-                    Row(modifier = modifier) {
+                fun ButtonRow(modifier: Modifier, includeSemantics: Boolean = true) {
+                    Row(modifier = modifier.then(if (includeSemantics) Modifier else Modifier.clearAndSetSemantics {})) {
                         options.forEachIndexed { index, option ->
                             if (index > 0) {
                                 VerticalDivider(
@@ -236,6 +237,8 @@ fun NoiseControlSettings(
                             }
                             NoiseControlButton(
                                 icon = ImageVector.vectorResource(option.iconRes),
+                                label = stringResource(option.labelRes),
+                                selected = selected == option.mode,
                                 onClick = { onModeSelected(option.mode) },
                                 textColor = if (selected == option.mode) textColorSelected else textColor,
                                 modifier = Modifier.weight(1f),
@@ -254,7 +257,9 @@ fun NoiseControlSettings(
                             .height(60.dp)
                             .background(backgroundColor, RoundedCornerShape(28.dp))
                     ) {
-                        ButtonRow(Modifier.fillMaxWidth())
+                        // Underneath the animated selector; fully redrawn on top below, so it carries no
+                        // accessibility semantics of its own (avoids duplicate TalkBack announcements).
+                        ButtonRow(Modifier.fillMaxWidth(), includeSemantics = false)
 
                         if (selectedIndex >= 0) {
                             Box(

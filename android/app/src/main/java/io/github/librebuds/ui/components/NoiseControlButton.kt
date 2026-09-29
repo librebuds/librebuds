@@ -33,7 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.librebuds.R
@@ -41,6 +47,8 @@ import io.github.librebuds.R
 @Composable
 fun NoiseControlButton(
     icon: ImageVector,
+    label: String,
+    selected: Boolean,
     onClick: () -> Unit,
     textColor: Color,
     modifier: Modifier = Modifier,
@@ -50,6 +58,11 @@ fun NoiseControlButton(
         modifier = modifier
             .fillMaxHeight()
             .then(if (usePadding) Modifier.padding(horizontal = 4.dp, vertical = 4.dp) else Modifier)
+            .semantics(mergeDescendants = true) {
+                contentDescription = label
+                role = Role.Button
+                this.selected = selected
+            }
             .clickable(
                 onClick = onClick,
                 indication = null,
@@ -72,6 +85,8 @@ fun NoiseControlButton(
 fun NoiseControlButtonPreview() {
     NoiseControlButton(
         icon = ImageVector.vectorResource(R.drawable.ic_mode_cancellation),
+        label = stringResource(R.string.noise_cancellation),
+        selected = true,
         onClick = {},
         textColor = Color.White,
     )
