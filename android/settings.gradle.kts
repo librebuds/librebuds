@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "librebuds"
 include(":protocol")
+include(":app")
