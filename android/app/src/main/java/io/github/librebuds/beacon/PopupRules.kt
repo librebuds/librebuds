@@ -2,6 +2,7 @@
 package io.github.librebuds.beacon
 
 import io.github.librebuds.protocol.beacon.Beacon
+import io.github.librebuds.protocol.profile.Profile
 import io.github.librebuds.protocol.profile.ProfileRegistry
 
 data class BeaconSighting(val address: String, val rssi: Int, val beacon: Beacon, val atMillis: Long)
@@ -27,8 +28,22 @@ class PopupRules(
     }
 }
 
-fun isKnown(beacon: Beacon, registry: ProfileRegistry, associatedModelIds: Set<String>): Boolean {
-    val modelId = beacon.modelId ?: return false
-    if (associatedModelIds.any { it.equals(modelId, ignoreCase = true) }) return true
-    return registry.match(modelId = modelId).id != ProfileRegistry.GENERIC.id
+/**
+ * The profile a case-open beacon belongs to, or null when it is not one of ours. Looks up the beacon's
+ * modelId, then its newModelId, in the registry; then the [associated] profile (the earbuds added in the
+ * app) when it lists either id. An associated profile without any modelId (its beacon id is not known
+ * yet) also claims a beacon whose ids the registry does not know. A beacon with neither id is unknown.
+ */
+fun popupProfile(beacon: Beacon, registry: ProfileRegistry, associated: Profile?): Profile? {
+    val ids = listOfNotNull(beacon.modelId, beacon.newModelId)
+    if (ids.isEmpty()) return null
+    for (id in ids) {
+        registry.match(modelId = id).takeIf { it.id != ProfileRegistry.GENERIC.id }?.let { return it }
+    }
+    if (associated == null) return null
+    if (ids.any { id -> associated.match.modelId.any { it.equals(id, ignoreCase = true) } }) return associated
+    return associated.takeIf { it.match.modelId.isEmpty() }
 }
+
+fun isKnown(beacon: Beacon, registry: ProfileRegistry, associated: Profile?): Boolean =
+    popupProfile(beacon, registry, associated) != null

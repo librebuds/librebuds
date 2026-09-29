@@ -2,6 +2,7 @@
 package io.github.librebuds.beacon
 
 import io.github.librebuds.protocol.beacon.FdeeBeacon
+import io.github.librebuds.protocol.profile.Profile
 import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.protocol.util.hexToBytes
 import org.junit.Assert.assertEquals
@@ -15,8 +16,8 @@ class BeaconBatchTest {
     private val known = "01 01 01 02 BA 03 00 01 55 0C E4".hexToBytes()
     private val unknownModel = "01 01 01 02 BA 03 00 09 99 0C E4".hexToBytes()
 
-    private fun judge(results: List<RawSighting>, lastShownAt: (String) -> Long? = { null }, ids: Set<String> = emptySet()) =
-        judgeBatch(results, now = 500_000L, rules = rules, registry = registry, associatedModelIds = ids, lastShownAt = lastShownAt)
+    private fun judge(results: List<RawSighting>, lastShownAt: (String) -> Long? = { null }, associated: Profile? = null) =
+        judgeBatch(results, now = 500_000L, rules = rules, registry = registry, associated = associated, lastShownAt = lastShownAt)
 
     @Test
     fun showsOncePerBatch() {
@@ -35,7 +36,7 @@ class BeaconBatchTest {
     fun unknownIgnoredUnlessAssociated() {
         val batch = listOf(RawSighting("11:11:11:11:11:11", -50, unknownModel))
         assertEquals(PopupDecision.IGNORE_UNKNOWN, judge(batch).single().decision)
-        assertEquals(PopupDecision.SHOW, judge(batch, ids = setOf("000999")).single().decision)
+        assertEquals(PopupDecision.SHOW, judge(batch, associated = ProfileRegistry.fromJson(listOf("""{"id":"assoc","name":"Assoc","match":{"modelId":["000999"]}}""")).profiles.single()).single().decision)
     }
 
     @Test

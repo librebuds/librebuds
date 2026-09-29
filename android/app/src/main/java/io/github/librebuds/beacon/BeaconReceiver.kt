@@ -46,14 +46,13 @@ class BeaconReceiver : BroadcastReceiver() {
             now = now,
             rules = rules,
             registry = app.registry,
-            associatedModelIds = associated?.match?.modelId?.toSet() ?: emptySet(),
+            associated = associated,
             lastShownAt = preferences::lastPopupAt,
         )
         for (verdict in verdicts) {
             if (verdict.decision != PopupDecision.SHOW) continue
             val beacon = verdict.sighting.beacon
-            val matched = app.registry.match(modelId = beacon.modelId)
-            val profile = if (matched.id == ProfileRegistry.GENERIC.id) associated ?: matched else matched
+            val profile = popupProfile(beacon, app.registry, associated) ?: continue
             PopupPresenter.show(app, popupModel(beacon, profile), artFor(profile.art, preferences.artVariant, PopupVideos.map()))
             preferences.markPopupShown(cooldownKey(beacon), verdict.sighting.atMillis)
         }

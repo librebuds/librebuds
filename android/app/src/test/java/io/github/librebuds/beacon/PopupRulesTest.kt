@@ -50,11 +50,46 @@ class PopupRulesTest {
         assertEquals(PopupDecision.SHOW, rules.decide(sighting(at = 100_000L), known = true, lastShownAt = 110_000L))
     }
 
+    private fun profile(json: String) = ProfileRegistry.fromJson(listOf(json)).profiles.single()
+    private val freebuds6 = profile("""{"id":"freebuds-6","name":"FreeBuds 6","match":{"modelId":["000155"]}}""")
+    private val associatedWithId = profile("""{"id":"assoc","name":"Assoc","match":{"modelId":["000155"]}}""")
+    private val associatedWithoutId = profile("""{"id":"freebuds-pro-4","name":"FreeBuds Pro 4","match":{"btName":["HUAWEI FreeBuds Pro 4"]}}""")
+    private val empty = ProfileRegistry(emptyList())
+
+    // Close range, modelId 000155, newModelId 00ABCD (type 18 "ABCD").
+    private val withNewId = FdeeBeacon.parse("01 01 01 03 00 01 55 12 41 42 43 44".hexToBytes())!!
+    private val onlyNewId = FdeeBeacon.parse("01 01 01 12 41 42 43 44".hexToBytes())!!
+    private val noIds = FdeeBeacon.parse("01 01 01 0C E4".hexToBytes())!!
+
     @Test
     fun knownWhenAssociatedOrProfileMatches() {
-        val registry = ProfileRegistry.fromJson(listOf("""{"id":"freebuds-6","name":"FreeBuds 6","match":{"modelId":["000155"]}}"""))
-        assertTrue(isKnown(popup, registry, associatedModelIds = emptySet()))
-        assertTrue(isKnown(popup, ProfileRegistry(emptyList()), associatedModelIds = setOf("000155")))
-        assertFalse(isKnown(popup, ProfileRegistry(emptyList()), associatedModelIds = emptySet()))
+        val registry = ProfileRegistry(listOf(freebuds6))
+        assertTrue(isKnown(popup, registry, associated = null))
+        assertTrue(isKnown(popup, empty, associated = associatedWithId))
+        assertFalse(isKnown(popup, empty, associated = null))
+        assertEquals("freebuds-6", popupProfile(popup, registry, associated = null)?.id)
+    }
+
+    @Test
+    fun newModelIdMatchesProfilesAndAssociation() {
+        val registry = ProfileRegistry(listOf(profile("""{"id":"new","name":"New","match":{"modelId":["00abcd"]}}""")))
+        // modelId 000155 is unknown here; the newModelId (case-insensitive) finds the profile.
+        assertEquals("new", popupProfile(withNewId, registry, associated = null)?.id)
+        assertEquals("new", popupProfile(onlyNewId, registry, associated = null)?.id)
+        val associated = profile("""{"id":"assoc","name":"Assoc","match":{"modelId":["00ABCD"]}}""")
+        assertEquals("assoc", popupProfile(onlyNewId, empty, associated)?.id)
+    }
+
+    @Test
+    fun associationWithoutModelIdClaimsUnknownBeacons() {
+        // The added earbuds' profile has no modelId yet: an unknown beacon is taken as theirs.
+        assertEquals("freebuds-pro-4", popupProfile(popup, empty, associatedWithoutId)?.id)
+        assertTrue(isKnown(onlyNewId, empty, associatedWithoutId))
+        // A beacon the registry knows keeps its own profile.
+        assertEquals("freebuds-6", popupProfile(popup, ProfileRegistry(listOf(freebuds6)), associatedWithoutId)?.id)
+        // An association that lists other ids does not claim it; nor does any association without beacon ids.
+        val other = profile("""{"id":"other","name":"Other","match":{"modelId":["000999"]}}""")
+        assertFalse(isKnown(popup, empty, other))
+        assertFalse(isKnown(noIds, empty, associatedWithoutId))
     }
 }

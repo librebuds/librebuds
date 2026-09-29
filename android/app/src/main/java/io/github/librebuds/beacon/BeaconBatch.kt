@@ -3,6 +3,7 @@ package io.github.librebuds.beacon
 
 import io.github.librebuds.protocol.beacon.Beacon
 import io.github.librebuds.protocol.beacon.FdeeBeacon
+import io.github.librebuds.protocol.profile.Profile
 import io.github.librebuds.protocol.profile.ProfileRegistry
 
 /** One scan result as the receiver gets it: address, signal and the raw 0xFDEE service data (if any). */
@@ -19,13 +20,14 @@ fun cooldownKey(beacon: Beacon): String = "${beacon.modelId ?: "-"}/${beacon.sub
 /**
  * Decides every parsable result of one scan batch at wall-clock [now]. A popup shown for a key earlier
  * in the batch puts the key's later sightings in cooldown; [lastShownAt] gives the stored times.
+ * [associated] is the profile of the earbuds added in the app, if any (see [popupProfile]).
  */
 fun judgeBatch(
     results: List<RawSighting>,
     now: Long,
     rules: PopupRules,
     registry: ProfileRegistry,
-    associatedModelIds: Set<String>,
+    associated: Profile?,
     lastShownAt: (String) -> Long?,
 ): List<BeaconVerdict> {
     val shownInBatch = mutableMapOf<String, Long>()
@@ -33,7 +35,7 @@ fun judgeBatch(
         val beacon = result.serviceData?.let(FdeeBeacon::parse) ?: return@mapNotNull null
         val sighting = BeaconSighting(result.address, result.rssi, beacon, now)
         val key = cooldownKey(beacon)
-        val known = isKnown(beacon, registry, associatedModelIds)
+        val known = isKnown(beacon, registry, associated)
         val decision = rules.decide(sighting, known, shownInBatch[key] ?: lastShownAt(key))
         if (decision == PopupDecision.SHOW) shownInBatch[key] = now
         BeaconVerdict(sighting, decision)
