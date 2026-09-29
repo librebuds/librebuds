@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.dynamicanimation)
     implementation(libs.haze)
     implementation(libs.haze.materials)
