@@ -36,4 +36,16 @@ class OnboardingStateTest {
         val items = OnboardingState.items(sdkInt = 37, granted = emptySet(), canDrawOverlays = true)
         assertTrue(items.single { it.key == "overlay" }.granted)
     }
+
+    @Test
+    fun opensSettingsOnlyWhenDialogCanNoLongerBeShown() {
+        // Requested before, denied, no rationale: Android will not show the dialog again.
+        assertTrue(OnboardingState.shouldOpenSettings(granted = false, wasRequested = true, shouldShowRationale = false))
+        // Never requested: shouldShowRationale is false too, but the dialog still appears.
+        assertFalse(OnboardingState.shouldOpenSettings(granted = false, wasRequested = false, shouldShowRationale = false))
+        // Denied once: the dialog can be shown again.
+        assertFalse(OnboardingState.shouldOpenSettings(granted = false, wasRequested = true, shouldShowRationale = true))
+        // Already granted: nothing to open.
+        assertFalse(OnboardingState.shouldOpenSettings(granted = true, wasRequested = true, shouldShowRationale = false))
+    }
 }

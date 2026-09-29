@@ -18,5 +18,12 @@ object OnboardingState {
         PermissionItem(OVERLAY, canDrawOverlays, required = false),
     )
 
+    /**
+     * True when Android will no longer show the permission dialog, so only the app's settings can grant it.
+     * Before the first request shouldShowRationale is false too, hence [wasRequested].
+     */
+    fun shouldOpenSettings(granted: Boolean, wasRequested: Boolean, shouldShowRationale: Boolean): Boolean =
+        !granted && wasRequested && !shouldShowRationale
+
     fun canContinue(items: List<PermissionItem>): Boolean = items.filter { it.required }.all { it.granted }
 }

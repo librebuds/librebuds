@@ -27,7 +27,7 @@ fun OnboardingScreen(
     preferences: AppPreferences,
     onDone: () -> Unit
 ) {
-    val permissions = rememberPermissionRequests()
+    val permissions = rememberPermissionRequests(preferences)
     val canContinue = OnboardingState.canContinue(permissions.items)
 
     StyledScaffold(title = stringResource(R.string.welcome)) {

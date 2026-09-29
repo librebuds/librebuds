@@ -17,6 +17,11 @@ class AppPreferences(context: Context) {
             .getOrDefault(DesignSystem.Apple)
         set(value) = prefs.edit { putString("design_system", value.name) }
 
+    /** Whether a runtime permission request was ever launched; survives restarts. */
+    fun wasRequested(permission: String): Boolean = prefs.getBoolean("requested_$permission", false)
+
+    fun markRequested(permission: String) = prefs.edit { putBoolean("requested_$permission", true) }
+
     var showOffMode: Boolean
         get() = prefs.getBoolean("show_off_mode", true)
         set(value) = prefs.edit { putBoolean("show_off_mode", value) }

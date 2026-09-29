@@ -40,7 +40,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +58,7 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.librebuds.R
+import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.ui.components.ListItemOrientation
 import io.github.librebuds.ui.components.StyledButton
 import io.github.librebuds.ui.components.StyledList
@@ -72,7 +72,7 @@ class PermissionRequests(val items: List<PermissionItem>, val request: (Permissi
 /** Tracks the onboarding permissions; the overlay grant is re-read whenever the app resumes. */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun rememberPermissionRequests(): PermissionRequests {
+fun rememberPermissionRequests(preferences: AppPreferences): PermissionRequests {
     val context = LocalContext.current
     var canDrawOverlays by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
 
@@ -81,8 +81,6 @@ fun rememberPermissionRequests(): PermissionRequests {
         listOf(OnboardingState.BLUETOOTH_CONNECT, OnboardingState.BLUETOOTH_SCAN)
     )
     val notificationState = rememberMultiplePermissionsState(listOf(OnboardingState.POST_NOTIFICATIONS))
-    // Permission keys already requested once; before the first request shouldShowRationale is false too.
-    var requested by rememberSaveable { mutableStateOf(listOf<String>()) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -103,13 +101,16 @@ fun rememberPermissionRequests(): PermissionRequests {
 
     fun requestOrOpenSettings(state: MultiplePermissionsState, key: String) {
         val permission = state.permissions.firstOrNull { it.permission == key }
-        val blocked = key in requested && permission != null &&
-            !permission.status.isGranted && !permission.status.shouldShowRationale
+        val blocked = permission != null && OnboardingState.shouldOpenSettings(
+            granted = permission.status.isGranted,
+            wasRequested = preferences.wasRequested(key),
+            shouldShowRationale = permission.status.shouldShowRationale,
+        )
         if (blocked) {
             // Android no longer shows the dialog; the user can only grant it in the app's settings.
             openAppDetailsSettings(context)
         } else {
-            requested = (requested + state.permissions.map { it.permission }).distinct()
+            state.permissions.forEach { preferences.markRequested(it.permission) }
             state.launchMultiplePermissionRequest()
         }
     }
