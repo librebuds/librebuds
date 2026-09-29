@@ -4,17 +4,16 @@ LibreBuds brings earbud features to phones and PCs from other vendors: battery l
 noise control, multipoint and per-model settings, plus a popup when you open the case.
 No root, no vendor app.
 
-Status: early development. The protocol library (`android/protocol`) works; the Android app
-and the Windows app are next.
+Status: early development. `android/protocol` is the protocol library; `android/app` is the Android app (currently on demo data; Bluetooth arrives in the next milestone).
 
 See [docs/devices.md](docs/devices.md) for per-model support and
 [docs/protocol](docs/protocol) for the wire formats.
 
-## Build and test
+## Build the app
 
 ```bash
 cd android
-./gradlew :protocol:test
+./gradlew :app:assembleDebug   # APK: app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ## License

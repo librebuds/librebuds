@@ -7,3 +7,8 @@ Third-party references:
   as a cross-reference for the beacon format.
 - Wire formats were learned through interoperability analysis (Directive 2009/24/EC,
   Article 6). No vendor code is included.
+- LibrePods (https://github.com/librepods-org/librepods, GPL-3.0, commit
+  929a5358c62ce1fc66fa63200d77eab872a07507): Android UI components, theme and
+  quick-settings patterns, imported by tools/import_librepods_ui.sh and modified.
+  No LibrePods media, icons or fonts are included.
+- Inter typeface (SIL Open Font License 1.1), loaded at runtime through Google Fonts.
