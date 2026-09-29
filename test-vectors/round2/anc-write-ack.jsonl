@@ -1,0 +1,1 @@
+{"id": "anc-write-ack-freebuds-pro-3-1", "model": "freebuds-pro-3", "synthetic": false, "source": "round 2 capture PRO3/T4.3.jsonl", "hex": "5A 00 06 00 2B 04 02 01 00 31 71", "expect": {"cmd": "2B/04", "tlv": {"2": "00"}}}

@@ -1,0 +1,1 @@
+{"id": "battery-push-freebuds-5-1", "model": "freebuds-5", "synthetic": false, "source": "round 2 capture FB5/T2.1.jsonl", "hex": "5A 00 14 00 01 27 01 01 64 02 03 64 64 59 03 03 00 00 00 04 02 14 0A 51 ED", "expect": {"cmd": "01/27", "tlv": {"1": "64", "2": "64 64 59", "3": "00 00 00", "4": "14 0A"}}}

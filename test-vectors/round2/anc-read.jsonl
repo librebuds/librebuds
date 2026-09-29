@@ -1,0 +1,6 @@
+{"id": "anc-read-freebuds-5-1", "model": "freebuds-5", "synthetic": false, "source": "round 2 capture FB5/T3.G-2B2A.jsonl", "hex": "5A 00 07 00 2B 2A 01 02 03 00 40 62", "expect": {"cmd": "2B/2A", "tlv": {"1": "03 00"}}}
+{"id": "anc-read-freebuds-6-1", "model": "freebuds-6", "synthetic": false, "source": "round 2 capture FB6/T3.G-2B2A.jsonl", "hex": "5A 00 07 00 2B 2A 01 02 00 00 15 31", "expect": {"cmd": "2B/2A", "tlv": {"1": "00 00"}}}
+{"id": "anc-read-freebuds-pro-3-1", "model": "freebuds-pro-3", "synthetic": false, "source": "round 2 capture PRO3/T3.G-2B2A.jsonl", "hex": "5A 00 07 00 2B 2A 01 02 00 00 15 31", "expect": {"cmd": "2B/2A", "tlv": {"1": "00 00"}}}
+{"id": "anc-read-freebuds-pro-3-2", "model": "freebuds-pro-3", "synthetic": false, "source": "round 2 capture PRO3/T4.3.jsonl", "hex": "5A 00 07 00 2B 2A 01 02 02 01 63 72", "expect": {"cmd": "2B/2A", "tlv": {"1": "02 01"}}}
+{"id": "anc-read-freebuds-pro-3-3", "model": "freebuds-pro-3", "synthetic": false, "source": "round 2 capture PRO3/T4.3.jsonl", "hex": "5A 00 07 00 2B 2A 01 02 01 02 06 42", "expect": {"cmd": "2B/2A", "tlv": {"1": "01 02"}}}
+{"id": "anc-read-freebuds-pro-3-4", "model": "freebuds-pro-3", "synthetic": false, "source": "round 2 capture PRO3/T4.3.jsonl", "hex": "5A 00 07 00 2B 2A 01 02 02 00 73 53", "expect": {"cmd": "2B/2A", "tlv": {"1": "02 00"}}}
