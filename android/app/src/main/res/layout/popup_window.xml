@@ -48,6 +48,15 @@
                 android:tint="@color/popup_text_secondary" />
         </LinearLayout>
 
+        <!-- "Connecting…" until the earbuds' control channel is up, then "Connected" (spec 6.1). -->
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/inter"
+            android:textColor="@color/popup_text_secondary"
+            android:textSize="14sp" />
+
         <FrameLayout
             android:id="@+id/popup_art"
             android:layout_width="match_parent"

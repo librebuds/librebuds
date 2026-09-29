@@ -139,6 +139,7 @@ class PopupWindow(
             if (mView.windowToken == null && mView.parent == null && !isClosing) {
                 this.model = model
                 mView.findViewById<TextView>(R.id.name).text = model.title
+                showStatus(model.connected)
                 showBatteries(model.batteries)
                 showArt(art)
 
@@ -178,7 +179,12 @@ class PopupWindow(
         this.model = model
         if (!isOpen) return
         mView.findViewById<TextView>(R.id.name).text = model.title
+        showStatus(model.connected)
         showBatteries(model.batteries)
+    }
+
+    private fun showStatus(connected: Boolean) {
+        mView.findViewById<TextView>(R.id.status).setText(if (connected) R.string.popup_connected else R.string.connecting)
     }
 
     /** Follows the live connection while open; the beacon values stay until the earbuds connect. */

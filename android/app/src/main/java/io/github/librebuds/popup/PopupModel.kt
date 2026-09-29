@@ -27,10 +27,11 @@ fun popupModel(beacon: Beacon, profile: Profile): PopupModel {
 
 /**
  * Once these earbuds connect, the exact battery from the control channel replaces the beacon values.
- * State of other connected earbuds (a different profile) leaves the popup unchanged.
+ * Any other state (connecting, disconnected again, or other earbuds) shows them as not connected and
+ * keeps the last battery values; state of other earbuds never changes the battery.
  */
 fun PopupModel.withState(state: BudsState): PopupModel {
-    if (!state.isConnected || state.profileId != profileId) return this
+    if (!state.isConnected || state.profileId != profileId) return copy(connected = false)
     val live = state.battery.toUiBatteries()
     return copy(batteries = live.ifEmpty { batteries }, connected = true)
 }

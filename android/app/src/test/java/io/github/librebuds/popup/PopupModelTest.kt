@@ -58,4 +58,18 @@ class PopupModelTest {
         assertEquals(model, model.withState(state))
         assertFalse(model.withState(state).connected)
     }
+
+    @Test
+    fun dropsBackWhenTheEarbudsDisconnect() {
+        val beacon = FdeeBeacon.parse("01 01 01 03 00 01 55 0C E4".hexToBytes())!!
+        val live = BudsState(link = LinkState.CONNECTED, battery = BatteryState(70, 70, 60, 40, false, false, false), profileId = "freebuds-6")
+        val connected = popupModel(beacon, profile).withState(live)
+        assertTrue(connected.connected)
+        // The controller keeps the profile on a drop; a new connect starts from the generic profile.
+        for (state in listOf(live.copy(link = LinkState.DISCONNECTED), live.copy(link = LinkState.TAKEN_OVER), BudsState(link = LinkState.CONNECTING))) {
+            val dropped = connected.withState(state)
+            assertFalse(dropped.connected)
+            assertEquals(connected.batteries, dropped.batteries)
+        }
+    }
 }
