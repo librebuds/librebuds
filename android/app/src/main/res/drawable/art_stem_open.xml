@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LibreBuds original artwork, "stem" earbuds, case open (final frame of avd_stem_open). Geometric drawing, see art/README.md. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Case opening, visible once the lid is up. -->
+    <path android:name="cavity" android:fillColor="?android:attr/colorForeground" android:fillAlpha="0.3"
+        android:pathData="M39,60H81A3,3 0,0 1 84,63V64H36V63A3,3 0,0 1 39,60Z" />
+    <!-- The earbuds show only above the rim of the case. -->
+    <group android:name="buds_window">
+        <clip-path android:pathData="M0,0H108V64H0Z" />
+        <group android:name="buds" android:translateY="-6">
+            <path android:fillColor="?android:attr/colorForeground"
+                android:pathData="M41,57A7,7 0,1 1 55,57A7,7 0,1 1 41,57ZM51,53A3,3 0,1 1 57,53A3,3 0,1 1 51,53ZM44.5,57H44.5A2.5,2.5 0,0 1 47,59.5V75.5A2.5,2.5 0,0 1 44.5,78H44.5A2.5,2.5 0,0 1 42,75.5V59.5A2.5,2.5 0,0 1 44.5,57ZM65,57A7,7 0,1 1 79,57A7,7 0,1 1 65,57ZM63,53A3,3 0,1 1 69,53A3,3 0,1 1 63,53ZM75.5,57H75.5A2.5,2.5 0,0 1 78,59.5V75.5A2.5,2.5 0,0 1 75.5,78H75.5A2.5,2.5 0,0 1 73,75.5V59.5A2.5,2.5 0,0 1 75.5,57Z" />
+        </group>
+    </group>
+    <!-- Case body with the status light cut out. -->
+    <path android:name="body" android:fillColor="?android:attr/colorForeground" android:fillType="evenOdd"
+        android:pathData="M32,66H88A2,2 0,0 1 90,68V82A10,10 0,0 1 80,92H40A10,10 0,0 1 30,82V68A2,2 0,0 1 32,66ZM58.4,82A1.6,1.6 0,1 1 61.6,82A1.6,1.6 0,1 1 58.4,82Z" />
+    <!-- Lid, hinged at the back-left corner of the rim. -->
+    <group android:name="lid" android:pivotX="30" android:pivotY="64" android:rotation="-70">
+        <path android:fillColor="?android:attr/colorForeground"
+            android:pathData="M40,48H80A10,10 0,0 1 90,58V62A2,2 0,0 1 88,64H32A2,2 0,0 1 30,62V58A10,10 0,0 1 40,48Z" />
+    </group>
+</vector>

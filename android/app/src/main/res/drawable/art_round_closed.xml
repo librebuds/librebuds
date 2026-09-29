@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LibreBuds original artwork, "round" earbuds, case closed (start frame of avd_round_open). Geometric drawing, see art/README.md. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Case opening, visible once the lid is up. -->
+    <path android:name="cavity" android:fillColor="?android:attr/colorForeground" android:fillAlpha="0.3"
+        android:pathData="M39,60H81A3,3 0,0 1 84,63V64H36V63A3,3 0,0 1 39,60Z" />
+    <!-- The earbuds show only above the rim of the case. -->
+    <group android:name="buds_window">
+        <clip-path android:pathData="M0,0H108V64H0Z" />
+        <group android:name="buds">
+            <path android:fillColor="?android:attr/colorForeground"
+                android:pathData="M38,59A9,9 0,1 1 56,59A9,9 0,1 1 38,59ZM50.5,53A3.5,3.5 0,1 1 57.5,53A3.5,3.5 0,1 1 50.5,53ZM64,59A9,9 0,1 1 82,59A9,9 0,1 1 64,59ZM62.5,53A3.5,3.5 0,1 1 69.5,53A3.5,3.5 0,1 1 62.5,53Z" />
+        </group>
+    </group>
+    <!-- Case body with the status light cut out. -->
+    <path android:name="body" android:fillColor="?android:attr/colorForeground" android:fillType="evenOdd"
+        android:pathData="M32,66H88A2,2 0,0 1 90,68V76A16,16 0,0 1 74,92H46A16,16 0,0 1 30,76V68A2,2 0,0 1 32,66ZM58.4,82A1.6,1.6 0,1 1 61.6,82A1.6,1.6 0,1 1 58.4,82Z" />
+    <!-- Lid, hinged at the back-left corner of the rim. -->
+    <group android:name="lid" android:pivotX="30" android:pivotY="64">
+        <path android:fillColor="?android:attr/colorForeground"
+            android:pathData="M46,48H74A16,16 0,0 1 90,64V62A2,2 0,0 1 88,64H32A2,2 0,0 1 30,62V64A16,16 0,0 1 46,48Z" />
+    </group>
+</vector>

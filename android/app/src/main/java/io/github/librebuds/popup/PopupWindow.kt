@@ -26,8 +26,10 @@ import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.graphics.drawable.Animatable
+import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -42,6 +44,8 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.VideoView
+import androidx.core.net.toUri
 import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.R
 import io.github.librebuds.ui.model.Battery
@@ -190,15 +194,48 @@ class PopupWindow(
 
     private fun showArt(art: PopupArt) {
         val slot = mView.findViewById<FrameLayout>(R.id.popup_art)
+        val clip = if (art.variant == ArtVariant.VIDEO) videoFor(art) else null
+        if (clip != null) showVideo(slot, clip, art.avdRes) else showAnimation(slot, art.avdRes)
+    }
+
+    /** The clip matching the current light or dark mode. */
+    private fun videoFor(art: PopupArt): Int? {
+        val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+        return if (night) art.videoDark else art.videoLight
+    }
+
+    private fun showAnimation(slot: FrameLayout, avdRes: Int) {
         slot.removeAllViews()
         val image = ImageView(context).apply {
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             scaleType = ImageView.ScaleType.FIT_CENTER
             imageTintList = context.getColorStateList(R.color.popup_text)
-            setImageResource(art.avdRes)
+            setImageResource(avdRes)
         }
         slot.addView(image, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
         (image.drawable as? Animatable)?.start()
+    }
+
+    /** Plays the clip once, muted and without taking audio focus, so the user's music keeps playing. */
+    private fun showVideo(slot: FrameLayout, videoRes: Int, fallbackAvdRes: Int) {
+        slot.removeAllViews()
+        val video = VideoView(context).apply {
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            setAudioFocusRequest(AudioManager.AUDIOFOCUS_NONE)
+            setOnPreparedListener { player ->
+                player.setVolume(0f, 0f)
+                player.isLooping = false
+            }
+            // Returning true also stops VideoView from showing its error dialog, which needs an activity.
+            setOnErrorListener { _, what, extra ->
+                Log.w("PopupWindow", "Popup clip failed ($what, $extra); showing the drawing")
+                showAnimation(slot, fallbackAvdRes)
+                true
+            }
+            setVideoURI("android.resource://${context.packageName}/$videoRes".toUri())
+        }
+        slot.addView(video, FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.MATCH_PARENT, Gravity.CENTER))
+        video.start()
     }
 
     private fun showBatteries(batteryList: List<Battery>) {
