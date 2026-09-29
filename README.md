@@ -13,6 +13,7 @@ See [docs/devices.md](docs/devices.md) for per-model support and
 
 ```bash
 cd android
+./gradlew :protocol:test       # protocol library unit tests
 ./gradlew :app:assembleDebug   # APK: app/build/outputs/apk/debug/app-debug.apk
 ```
 
