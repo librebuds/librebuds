@@ -52,6 +52,8 @@ fun MultipointScreen(viewModel: SettingsViewModel, onNavigateBack: () -> Unit) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     var selectedMac by remember { mutableStateOf<String?>(null) }
     val experimental = stringResource(R.string.experimental).takeIf { "multipoint" in ui.model.experimental }
+    // Without a session every action would fail: show why and offer none.
+    val connected = ui.state.isConnected
 
     StyledScaffold(
         title = stringResource(R.string.section_multipoint),
@@ -60,7 +62,7 @@ fun MultipointScreen(viewModel: SettingsViewModel, onNavigateBack: () -> Unit) {
     ) {
         PullToRefreshBox(
             isRefreshing = ui.refreshingHosts,
-            onRefresh = viewModel::refreshHosts,
+            onRefresh = { if (connected) viewModel.refreshHosts() },
             modifier = Modifier.fillMaxSize()
         ) {
             Column(
@@ -70,11 +72,20 @@ fun MultipointScreen(viewModel: SettingsViewModel, onNavigateBack: () -> Unit) {
                     .padding(screenContentPadding()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                if (!connected) {
+                    Text(
+                        text = stringResource(R.string.multipoint_not_connected),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
                 ui.model.multipointEnabled?.let { enabled ->
                     StyledList(description = experimental) {
                         StyledToggle(
                             label = stringResource(R.string.connect_two_devices),
                             checked = enabled,
+                            enabled = connected,
                             onCheckedChange = { viewModel.apply(SettingChange.MultipointEnabled(it)) }
                         )
                     }
@@ -92,7 +103,7 @@ fun MultipointScreen(viewModel: SettingsViewModel, onNavigateBack: () -> Unit) {
                             StyledListItem(
                                 name = host.name ?: host.mac,
                                 description = stringResource(host.statusRes()),
-                                onClick = { selectedMac = host.mac },
+                                onClick = if (connected) ({ selectedMac = host.mac }) else null,
                                 leadingContent = { PreferredMark(host.preferred) }
                             )
                         }
@@ -110,7 +121,7 @@ fun MultipointScreen(viewModel: SettingsViewModel, onNavigateBack: () -> Unit) {
         }
     }
 
-    val selected = ui.state.hosts.firstOrNull { it.mac == selectedMac }
+    val selected = ui.state.hosts.firstOrNull { it.mac == selectedMac }?.takeIf { connected }
     StyledBottomSheet(visible = selected != null, onDismiss = { selectedMac = null }, backdrop = rememberLayerBackdrop()) { _, _ ->
         val host = selected ?: return@StyledBottomSheet
         HostActions(
@@ -144,6 +155,15 @@ private fun HostActions(host: HostRow, busy: Boolean, onChange: (SettingChange) 
                 name = stringResource(if (host.connected) R.string.disconnect else R.string.connect),
                 enabled = !busy,
                 onClick = { onChange(SettingChange.HostCommand(action, host.mac)) }
+            )
+        }
+        if (host.connected) {
+            // The earbuds do not say which host is this phone; disconnecting it drops the app's link too.
+            Text(
+                text = stringResource(R.string.host_disconnect_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp)
             )
         }
     }

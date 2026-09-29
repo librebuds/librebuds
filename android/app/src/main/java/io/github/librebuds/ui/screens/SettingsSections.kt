@@ -68,27 +68,33 @@ fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, on
         }
     }
     if (model.hasSound) {
-        val shown = listOfNotNull(
-            "lowLatency".takeIf { model.lowLatency != null },
-            "soundQuality".takeIf { model.soundQuality != null },
-            "language".takeIf { model.language != null },
-        )
-        StyledList(title = stringResource(R.string.section_sound), description = note(*shown.toTypedArray())) {
+        // The sound controls come from different capabilities, so each one carries its own note.
+        val experimentalShort = stringResource(R.string.experimental_short)
+        val withExperimental = stringResource(R.string.with_experimental)
+        fun described(capability: String, value: String?): String? = when {
+            capability !in model.experimental -> value
+            value == null -> experimentalShort
+            else -> withExperimental.format(value)
+        }
+        StyledList(title = stringResource(R.string.section_sound)) {
             model.lowLatency?.let { enabled ->
                 StyledToggle(
                     label = stringResource(R.string.low_latency),
+                    description = described("lowLatency", null),
                     checked = enabled,
                     onCheckedChange = { onChange(SettingChange.LowLatencyChange(it)) }
                 )
             }
             model.soundQuality?.let { picker ->
-                PickerRow(stringResource(R.string.audio_priority), picker, open) { onChange(SettingChange.SoundQualityChange(it)) }
+                PickerRow(stringResource(R.string.audio_priority), picker, open, describe = { described("soundQuality", it) }) {
+                    onChange(SettingChange.SoundQualityChange(it))
+                }
             }
             // Read-only: language writes are out of scope.
             model.language?.let { language ->
                 StyledListItem(
                     name = stringResource(R.string.voice_language),
-                    description = language.current ?: stringResource(R.string.not_reported)
+                    description = described("language", language.current ?: stringResource(R.string.not_reported))
                 )
             }
         }
@@ -134,11 +140,12 @@ private fun StyledListScope.PickerRow(
     title: String,
     picker: Picker,
     open: (PickerRequest) -> Unit,
+    describe: (String?) -> String? = { it },
     onSelect: (Int) -> Unit,
 ) {
     StyledListItem(
         name = title,
-        description = picker.current?.let { optionLabel(picker, it) },
+        description = describe(picker.current?.let { optionLabel(picker, it) }),
         onClick = { open(PickerRequest(title, picker, onSelect)) }
     )
 }
@@ -170,10 +177,10 @@ private fun PickerSheet(request: PickerRequest?, onDismiss: () -> Unit) {
     }
 }
 
-/** The localized name of [code]'s semantic key, or the raw code when the profile or this app does not name it. */
+/** The localized name of [code]'s semantic key, or "Option <code>" when the profile or this app does not name it. */
 @Composable
 private fun optionLabel(picker: Picker, code: Int): String =
-    optionLabelRes(picker.group, picker.keyOf(code))?.let { stringResource(it) } ?: code.toString()
+    optionLabelRes(picker.group, picker.keyOf(code))?.let { stringResource(it) } ?: stringResource(R.string.option_code, code)
 
 @StringRes
 private fun Gesture.nameRes(): Int = when (this) {

@@ -123,4 +123,9 @@
     <string name="set_as_preferred">Set as preferred</string>
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
+    <string name="host_disconnect_note">If this is the phone you are holding, disconnecting it also ends this app\'s control of the earbuds.</string>
+    <string name="multipoint_not_connected">Connect the earbuds to change these settings.</string>
+    <string name="option_code">Option %1$d</string>
+    <string name="experimental_short">Experimental</string>
+    <string name="with_experimental">%1$s (experimental)</string>
 </resources>
