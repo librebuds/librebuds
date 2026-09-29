@@ -4,6 +4,7 @@ package io.github.librebuds.session
 import io.github.librebuds.bt.LinkFactory
 import io.github.librebuds.protocol.command.AncMode
 import io.github.librebuds.protocol.profile.ProfileRegistry
+import io.github.librebuds.state.LinkError
 import io.github.librebuds.state.LinkState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -122,6 +123,30 @@ class BudsControllerTest {
         links.single().endOfStream()
         runCurrent()
         assertEquals(LinkState.DISCONNECTED, c.state.value.link)
+    }
+
+    // Final review I2: earbuds that stop answering make the session give up on its own. That is not
+    // another device taking the link, so even with audio up the state is DISCONNECTED with a sticky
+    // NO_REPLY, which the next connect clears.
+    @Test
+    fun unresponsiveEarbudsWithAudioAreDisconnectedWithNoReply() = runTest {
+        val earbuds = FakeEarbuds()
+        val links = mutableListOf<FakeLink>()
+        val c = controller(earbuds, audio = true, links = links)
+        c.connect("AA", "x")
+        advanceUntilIdle()
+        earbuds.silent = true
+        repeat(2) { c.refresh() }
+        runCurrent()
+        assertEquals(LinkState.DISCONNECTED, c.state.value.link)
+        assertEquals(LinkError.NO_REPLY, c.state.value.lastError)
+        assertEquals(1, links.size)
+
+        earbuds.silent = false
+        c.connect("AA", "x")
+        advanceUntilIdle()
+        assertEquals(LinkState.CONNECTED, c.state.value.link)
+        assertEquals(null, c.state.value.lastError)
     }
 
     @Test

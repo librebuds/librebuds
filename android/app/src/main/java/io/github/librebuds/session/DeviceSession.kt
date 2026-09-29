@@ -23,12 +23,19 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class SessionClosedException : IOException("link closed")
 
+/** Completes [DeviceSession.closed] when the session closed itself after too many unanswered requests. */
+class SessionGaveUpException : IOException("no reply from the earbuds")
+
 class RequestTimeoutException(val id: CommandId) : IOException("no reply to $id")
 
 /**
  * Request/response over one link. One request is in flight at a time; replies are matched by
  * service/command, never by arrival order. Every decoded packet (replies included) is also
  * emitted on [packets] so unsolicited reports and replies update state the same way.
+ *
+ * [closed] completes with null for [close] and a clean end of stream, with
+ * [SessionGaveUpException] after [maxConsecutiveFailures] unanswered requests in a row, or with
+ * the reader's error otherwise.
  */
 class DeviceSession(
     private val link: Link,
@@ -123,7 +130,7 @@ class DeviceSession(
             }
         }
         consecutiveFailures++
-        if (consecutiveFailures >= maxConsecutiveFailures) close()
+        if (consecutiveFailures >= maxConsecutiveFailures) closeWith(SessionGaveUpException())
         Result.failure(RequestTimeoutException(reply))
     }
 
@@ -131,11 +138,14 @@ class DeviceSession(
         requestLock.withLock { write(packet.toFrame()) }
     }
 
-    fun close() {
-        // Complete closedSignal with null before closing the link: a requested close is always a
-        // clean end, and completing it first wins the race against the reader coroutine's own
-        // completion, which would otherwise report the reader's IOException from the closed socket.
-        closedSignal.complete(null)
+    fun close() = closeWith(null)
+
+    private fun closeWith(reason: Throwable?) {
+        // Complete closedSignal before closing the link: a requested close is a clean end (null), a
+        // give-up is a [SessionGaveUpException], and completing it first wins the race against the
+        // reader coroutine's own completion, which would otherwise report the reader's IOException
+        // from the closed socket.
+        closedSignal.complete(reason)
         waiter?.result?.completeExceptionally(SessionClosedException())
         runCatching { link.close() }
     }

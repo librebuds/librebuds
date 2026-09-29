@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.StateFlow
 
 enum class LinkState { DISCONNECTED, CONNECTING, CONNECTED, TAKEN_OVER }
 
+/** Why the last session ended on our side, kept until the next connect attempt. */
+enum class LinkError { NO_REPLY }
+
 data class DeviceSummary(val model: String? = null, val firmware: String? = null, val serial: String? = null)
 
 /** Everything the UI knows about the current earbuds. Null fields mean "not reported yet". */
@@ -21,6 +24,7 @@ data class BudsState(
     val anc: AncState? = null,
     val device: DeviceSummary = DeviceSummary(),
     val updatedAtMillis: Long? = null,
+    val lastError: LinkError? = null,
 ) {
     val isConnected: Boolean get() = link == LinkState.CONNECTED
 }

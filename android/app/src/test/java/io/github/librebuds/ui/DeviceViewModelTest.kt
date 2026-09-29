@@ -4,10 +4,12 @@ package io.github.librebuds.ui
 import io.github.librebuds.protocol.CommandId
 import io.github.librebuds.protocol.command.AncMode
 import io.github.librebuds.protocol.command.AncState
+import io.github.librebuds.protocol.command.BatteryState
 import io.github.librebuds.session.AncRejectedException
 import io.github.librebuds.session.RequestTimeoutException
 import io.github.librebuds.state.BudsRepository
 import io.github.librebuds.state.BudsState
+import io.github.librebuds.state.LinkError
 import io.github.librebuds.state.LinkState
 import io.github.librebuds.ui.model.NoiseControlMode
 import kotlinx.coroutines.CompletableDeferred
@@ -88,8 +90,9 @@ class DeviceViewModelTest {
         assertEquals(UiError.NO_REPLY, vm.ui.value.error)
     }
 
+    // Final review M3: a battery report or a newer timestamp does not make the error stale.
     @Test
-    fun errorClearsOnNextStateChange() = runTest(dispatcher) {
+    fun errorSurvivesBatteryAndTimestampUpdates() = runTest(dispatcher) {
         val repo = FakeRepository()
         val vm = DeviceViewModel(repo)
         vm.selectNoiseMode(NoiseControlMode.NOISE_CANCELLATION)
@@ -98,9 +101,43 @@ class DeviceViewModelTest {
         advanceUntilIdle()
         assertEquals(UiError.REJECTED, vm.ui.value.error)
 
-        repo.flow.value = repo.flow.value.copy(updatedAtMillis = 1)
+        repo.flow.value = repo.flow.value.copy(updatedAtMillis = 1, battery = BatteryState(80, 80, 70, 50, false, false, false))
+        advanceUntilIdle()
+        assertEquals(UiError.REJECTED, vm.ui.value.error)
+    }
+
+    @Test
+    fun errorClearsWhenNoiseModeOrLinkChanges() = runTest(dispatcher) {
+        val repo = FakeRepository()
+        val vm = DeviceViewModel(repo)
+        vm.selectNoiseMode(NoiseControlMode.NOISE_CANCELLATION)
+        advanceUntilIdle()
+        repo.calls[0].complete(Result.failure(AncRejectedException()))
+        advanceUntilIdle()
+        assertEquals(UiError.REJECTED, vm.ui.value.error)
+
+        repo.flow.value = repo.flow.value.copy(anc = AncState(modeCode = 2, level = 2))
         advanceUntilIdle()
         assertNull(vm.ui.value.error)
+
+        vm.selectNoiseMode(NoiseControlMode.NOISE_CANCELLATION)
+        advanceUntilIdle()
+        repo.calls[1].complete(Result.failure(AncRejectedException()))
+        advanceUntilIdle()
+        assertEquals(UiError.REJECTED, vm.ui.value.error)
+        repo.flow.value = repo.flow.value.copy(link = LinkState.DISCONNECTED)
+        advanceUntilIdle()
+        assertNull(vm.ui.value.error)
+    }
+
+    // Final review I2: a session that gave up leaves a sticky NO_REPLY in the state.
+    @Test
+    fun showsNoReplyFromStateAfterGiveUp() = runTest(dispatcher) {
+        val repo = FakeRepository()
+        repo.flow.value = repo.flow.value.copy(link = LinkState.DISCONNECTED, lastError = LinkError.NO_REPLY)
+        val vm = DeviceViewModel(repo)
+        advanceUntilIdle()
+        assertEquals(UiError.NO_REPLY, vm.ui.value.error)
     }
 
     @Test

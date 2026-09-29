@@ -80,6 +80,7 @@ class DeviceSessionTest {
         repeat(3) { session.request(Battery.request()) }
         advanceUntilIdle()
         assertTrue(session.closed.isCompleted)
+        assertTrue(session.closed.await() is SessionGaveUpException)
         assertTrue(link.closed)
     }
 

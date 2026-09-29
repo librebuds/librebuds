@@ -14,6 +14,7 @@ import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.state.BudsRepository
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.DeviceSummary
+import io.github.librebuds.state.LinkError
 import io.github.librebuds.state.LinkState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -94,7 +95,7 @@ class BudsController(
         session = current
         val collector = scope.launch(start = CoroutineStart.UNDISPATCHED) { current.packets.collect(::applyPacket) }
         collectorJob = collector
-        scope.launch { current.closed.await(); onClosed(current, address, collector) }
+        scope.launch { onClosed(current, address, collector, current.closed.await()) }
 
         val info = current.request(DeviceInfoCommand.request()).getOrNull()?.let(DeviceInfoCommand::parse)
         if (!isCurrent(current, myGeneration)) return@withLock
@@ -164,13 +165,19 @@ class BudsController(
     private fun isCurrent(current: DeviceSession, myGeneration: Int): Boolean =
         generation.get() == myGeneration && session === current && !current.closed.isCompleted
 
-    private fun onClosed(closed: DeviceSession, address: String, collector: Job) {
+    private fun onClosed(closed: DeviceSession, address: String, collector: Job, reason: Throwable?) {
         // Cancel this session's collector regardless of whether it is still the current one: a
         // newer connect() may already have replaced [session], but this collector belongs to
         // [closed] and nothing else will ever stop it.
         collector.cancel()
         if (session !== closed) return
         session = null
+        // A session that gave up on unanswered requests closed itself: the earbuds went silent, no
+        // other device took them. Only a drop from the remote side while audio is up is TAKEN_OVER.
+        if (reason is SessionGaveUpException) {
+            mutable.update { it.copy(link = LinkState.DISCONNECTED, lastError = LinkError.NO_REPLY) }
+            return
+        }
         val next = if (isAudioConnected(address)) LinkState.TAKEN_OVER else LinkState.DISCONNECTED
         mutable.update { it.copy(link = next) }
     }
