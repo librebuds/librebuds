@@ -56,4 +56,12 @@ class DeviceViewModel(private val repository: BudsRepository) : ViewModel() {
             result.onFailure { failure.value = Failure(it.toUiError(), repository.state.value) }
         }
     }
+
+    /** Reclaims the link after another client took it (spec 8). */
+    fun takeOver() {
+        failure.value = null
+        viewModelScope.launch {
+            repository.takeOver().onFailure { failure.value = Failure(it.toUiError(), repository.state.value) }
+        }
+    }
 }

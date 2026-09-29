@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import io.github.librebuds.companion.AssociationStore
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.ui.AppRoot
 import io.github.librebuds.ui.DeviceViewModel
@@ -21,6 +22,7 @@ class MainActivity : ComponentActivity() {
             viewModelFactory { initializer { DeviceViewModel(LibreBudsApp.from(this@MainActivity).repository) } }
         )[DeviceViewModel::class.java]
         val preferences = AppPreferences(this)
-        setContent { AppRoot(viewModel, preferences) }
+        val associationStore = AssociationStore(this)
+        setContent { AppRoot(viewModel, preferences, associationStore) }
     }
 }

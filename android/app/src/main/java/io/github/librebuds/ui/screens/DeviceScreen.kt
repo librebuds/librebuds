@@ -1,6 +1,8 @@
 // LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.librebuds.ui.screens
 
+import android.content.Context
+import android.text.format.DateUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,14 +24,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.librebuds.R
+import io.github.librebuds.state.LinkState
 import io.github.librebuds.ui.DeviceViewModel
 import io.github.librebuds.ui.components.AboutCard
 import io.github.librebuds.ui.components.BatteryView
+import io.github.librebuds.ui.components.MaterialButtonStyle
 import io.github.librebuds.ui.components.NoiseControlSettings
+import io.github.librebuds.ui.components.StyledButton
 import io.github.librebuds.ui.components.StyledIconButton
 import io.github.librebuds.ui.components.StyledScaffold
 import io.github.librebuds.ui.messageRes
@@ -50,6 +57,8 @@ internal fun screenContentPadding(): PaddingValues {
 fun DeviceScreen(
     viewModel: DeviceViewModel,
     showOffMode: Boolean,
+    hasDevice: Boolean,
+    onAddDevice: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
@@ -72,15 +81,22 @@ fun DeviceScreen(
                 .padding(screenContentPadding()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (!hasDevice) {
+                StyledButton(
+                    onClick = onAddDevice,
+                    backdrop = rememberLayerBackdrop(),
+                    materialButtonStyle = MaterialButtonStyle.Filled,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = stringResource(R.string.add_earbuds), style = MaterialTheme.typography.labelLarge)
+                }
+                return@Column
+            }
             if (!ui.state.isConnected) {
-                Text(
-                    text = stringResource(R.string.not_connected),
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(16.dp))
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                LinkBanner(
+                    takenOver = ui.state.link == LinkState.TAKEN_OVER,
+                    updatedAtMillis = ui.state.updatedAtMillis,
+                    onTakeOver = viewModel::takeOver
                 )
             }
             if (batteries.isNotEmpty()) {
@@ -104,4 +120,47 @@ fun DeviceScreen(
             AboutCard(ui.state.device.model, ui.state.device.firmware, ui.state.device.serial)
         }
     }
+}
+
+/** Shown while the earbuds are not connected; the last known values stay visible below it. */
+@Composable
+private fun LinkBanner(takenOver: Boolean, updatedAtMillis: Long?, onTakeOver: () -> Unit) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = stringResource(if (takenOver) R.string.controlled_by_other else R.string.not_connected),
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        updatedAtMillis?.let { millis ->
+            Text(
+                text = stringResource(R.string.last_updated, formatUpdatedAt(context, millis)),
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        if (takenOver) {
+            StyledButton(
+                onClick = onTakeOver,
+                backdrop = rememberLayerBackdrop(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                Text(text = stringResource(R.string.take_over), style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
+}
+
+/** Localized short time, with the date added when it was not today. */
+private fun formatUpdatedAt(context: Context, millis: Long): String {
+    val dateFlags = if (DateUtils.isToday(millis)) 0 else DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_ABBREV_MONTH
+    return DateUtils.formatDateTime(context, millis, DateUtils.FORMAT_SHOW_TIME or dateFlags)
 }

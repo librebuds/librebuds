@@ -8,7 +8,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import io.github.librebuds.companion.AssociationStore
+import io.github.librebuds.companion.Stored
 import io.github.librebuds.state.AppPreferences
+import io.github.librebuds.ui.screens.AddDeviceScreen
 import io.github.librebuds.ui.screens.DeviceScreen
 import io.github.librebuds.ui.screens.SettingsScreen
 import io.github.librebuds.ui.screens.onboarding.OnboardingScreen
@@ -18,13 +21,23 @@ import io.github.librebuds.ui.theme.LibreBudsTheme
 private const val ONBOARDING = "onboarding"
 private const val DEVICE = "device"
 private const val SETTINGS = "settings"
+private const val ADD_DEVICE = "add_device"
 
-/** Top-level navigation: onboarding once, then the device screen with settings on top. */
+/**
+ * Top-level navigation: onboarding once, then the device screen with settings and the earbud picker on top.
+ * [onAssociated] runs after the user associated new earbuds (the Bluetooth service hooks in here).
+ */
 @Composable
-fun AppRoot(viewModel: DeviceViewModel, preferences: AppPreferences) {
+fun AppRoot(
+    viewModel: DeviceViewModel,
+    preferences: AppPreferences,
+    associationStore: AssociationStore,
+    onAssociated: (Stored) -> Unit = {}
+) {
     var screen by rememberSaveable { mutableStateOf(if (preferences.onboardingDone) DEVICE else ONBOARDING) }
     var designSystem by remember { mutableStateOf(preferences.designSystem) }
     var showOffMode by remember { mutableStateOf(preferences.showOffMode) }
+    var stored by remember { mutableStateOf(associationStore.primary()) }
 
     LibreBudsTheme(m3eEnabled = designSystem == DesignSystem.Material) {
         when (screen) {
@@ -32,8 +45,20 @@ fun AppRoot(viewModel: DeviceViewModel, preferences: AppPreferences) {
             DEVICE -> DeviceScreen(
                 viewModel = viewModel,
                 showOffMode = showOffMode,
+                hasDevice = stored != null,
+                onAddDevice = { screen = ADD_DEVICE },
                 onOpenSettings = { screen = SETTINGS }
             )
+            ADD_DEVICE -> {
+                BackHandler { screen = DEVICE }
+                AddDeviceScreen(
+                    onAssociated = {
+                        stored = it
+                        onAssociated(it)
+                    },
+                    onNavigateBack = { screen = DEVICE }
+                )
+            }
             SETTINGS -> {
                 BackHandler { screen = DEVICE }
                 SettingsScreen(
