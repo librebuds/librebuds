@@ -114,14 +114,25 @@ class DeviceSessionTest {
         assertTrue(testScheduler.currentTime < 3000L)
     }
 
+    // Discriminates the reset-on-timeout behavior (DeviceSession.request() sets resetRequested
+    // after a timed-out attempt): the first attempt delivers a stale plausible header claiming a
+    // 261-byte frame ("5A 01 00 00" -> total = (0x01 shl 8 or 0x00) + 5 = 261), which the
+    // reassembler buffers waiting for the rest and never completes. Without the reset, the
+    // reassembler still has those 4 bytes buffered when the retry's complete, valid reply arrives;
+    // it gets appended after the stale header, the buffer stays short of the claimed 261 bytes, no
+    // event is ever emitted, and the request times out. With the reset, the retry starts from an
+    // empty buffer and the reply parses immediately. A plain half-frame (the previous version of
+    // this test) does not discriminate this: FrameReassembler resyncs a bad-CRC candidate one byte
+    // at a time regardless of resetRequested, so it would eventually find the valid frame either way.
     @Test
     fun timeoutDiscardsHalfFrame() = runTest {
         val fullFrame = ancState.hexToBytes()
+        val staleHeader = byteArrayOf(0x5A, 0x01, 0x00, 0x00)
         var writes = 0
         val link = FakeLink {
             writes++
             if (writes == 1) {
-                deliver(fullFrame.copyOfRange(0, fullFrame.size / 2))
+                deliver(staleHeader)
             } else {
                 deliver(fullFrame)
             }
