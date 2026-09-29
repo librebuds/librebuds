@@ -49,11 +49,15 @@ object BeaconScanner {
         val preferences = AppPreferences(context)
         preferences.scanMarker = null
         if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) return false
-        val scanner = scanner(context) ?: return false
+        val adapter = adapter(context) ?: return false
+        val scanner = adapter.bluetoothLeScanner ?: return false
         val filter = ScanFilter.Builder()
             .setServiceData(ParcelUuid.fromString(FdeeBeacon.SERVICE_UUID), byteArrayOf(), byteArrayOf())
             .build()
-        val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_POWER).build()
+        val settings = ScanSettings.Builder()
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+            .setCallbackType(scanCallbackType(offloadedFiltering = adapter.isOffloadedFilteringSupported))
+            .build()
         val intent = pendingIntent(context)
         return try {
             // Registering the same PendingIntent twice is not documented as idempotent; start clean.
@@ -68,6 +72,10 @@ object BeaconScanner {
         } catch (e: IllegalStateException) {
             // Bluetooth was turned off between the checks and the call.
             Log.w(TAG, "Beacon scan not started", e)
+            false
+        } catch (e: IllegalArgumentException) {
+            // The stack refused the scan settings (for example the callback type).
+            Log.w(TAG, "Beacon scan settings refused", e)
             false
         }
     }
@@ -113,9 +121,10 @@ object BeaconScanner {
         context, 0, resultIntent(context), PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_MUTABLE,
     ) != null
 
+    private fun adapter(context: Context): BluetoothAdapter? = context.getSystemService(BluetoothManager::class.java)?.adapter
+
     /** Null when there is no adapter or Bluetooth is off. */
-    private fun scanner(context: Context): BluetoothLeScanner? =
-        context.getSystemService(BluetoothManager::class.java)?.adapter?.bluetoothLeScanner
+    private fun scanner(context: Context): BluetoothLeScanner? = adapter(context)?.bluetoothLeScanner
 
     private fun resultIntent(context: Context) = Intent(context, BeaconReceiver::class.java).setAction(ACTION_RESULTS)
 
@@ -125,3 +134,15 @@ object BeaconScanner {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
     )
 }
+
+/**
+ * With hardware (offloaded) filtering, report a beacon once when it appears and once when it is lost
+ * instead of every advertisement, which keeps the app from waking on each packet while a case sits
+ * open. Without it, FIRST_MATCH/MATCH_LOST are not available and every match is delivered.
+ */
+fun scanCallbackType(offloadedFiltering: Boolean): Int =
+    if (offloadedFiltering) ScanSettings.CALLBACK_TYPE_FIRST_MATCH or ScanSettings.CALLBACK_TYPE_MATCH_LOST
+    else ScanSettings.CALLBACK_TYPE_ALL_MATCHES
+
+/** A MATCH_LOST delivery says the beacon went away; it never raises a popup. */
+fun isMatchLost(callbackType: Int): Boolean = callbackType == ScanSettings.CALLBACK_TYPE_MATCH_LOST

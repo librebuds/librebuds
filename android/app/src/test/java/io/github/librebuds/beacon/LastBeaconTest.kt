@@ -3,7 +3,9 @@ package io.github.librebuds.beacon
 
 import io.github.librebuds.protocol.util.hexToBytes
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LastBeaconTest {
@@ -53,5 +55,17 @@ class LastBeaconTest {
     fun lastBeaconOfNullWhenNothingParses() {
         val results = listOf(RawSighting("11:11:11:11:11:11", -50, null), RawSighting("22:22:22:22:22:22", -60, "03 00".hexToBytes()))
         assertNull(lastBeaconOf(results, now = 999L))
+    }
+
+    @Test
+    fun storesOnlyChangedDataOrEveryTenSeconds() {
+        assertTrue(shouldStoreLastBeacon(null, sample))
+        // Same data within 10 s: skipped; at 10 s: stored again.
+        assertFalse(shouldStoreLastBeacon(sample, sample.copy(atMillis = sample.atMillis + 9_999, rssi = -40)))
+        assertTrue(shouldStoreLastBeacon(sample, sample.copy(atMillis = sample.atMillis + 10_000)))
+        // Different data (another case, new battery values): stored right away.
+        assertTrue(shouldStoreLastBeacon(sample, sample.copy(serviceDataHex = "01 01 01 03 00 01 55", atMillis = sample.atMillis + 1)))
+        // Clock set back: stored.
+        assertTrue(shouldStoreLastBeacon(sample, sample.copy(atMillis = sample.atMillis - 1)))
     }
 }

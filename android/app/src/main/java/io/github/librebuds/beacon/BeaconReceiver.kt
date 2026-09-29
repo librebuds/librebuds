@@ -3,6 +3,7 @@ package io.github.librebuds.beacon
 
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -31,6 +32,8 @@ class BeaconReceiver : BroadcastReceiver() {
             Log.w(TAG, "Beacon scan failed: ${intent.getIntExtra(BluetoothLeScanner.EXTRA_ERROR_CODE, 0)}")
             return
         }
+        // With hardware filtering the scan also reports when the beacon goes away; that is not a case opening.
+        if (isMatchLost(intent.getIntExtra(BluetoothLeScanner.EXTRA_CALLBACK_TYPE, ScanSettings.CALLBACK_TYPE_ALL_MATCHES))) return
         val results = intent.getParcelableArrayListExtra(BluetoothLeScanner.EXTRA_LIST_SCAN_RESULT, ScanResult::class.java)
             ?: return
         val app = LibreBudsApp.from(context)
@@ -40,7 +43,7 @@ class BeaconReceiver : BroadcastReceiver() {
         // Wall clock, like the stored cooldown; the results' own timestamps are elapsed realtime.
         val now = System.currentTimeMillis()
         // Every parsed beacon, not just ones that show a popup: unknown or far-away devices still update it.
-        lastBeaconOf(rawResults, now)?.let { preferences.lastBeacon = it }
+        lastBeaconOf(rawResults, now)?.let { if (shouldStoreLastBeacon(preferences.lastBeacon, it)) preferences.lastBeacon = it }
         val verdicts = judgeBatch(
             results = rawResults,
             now = now,

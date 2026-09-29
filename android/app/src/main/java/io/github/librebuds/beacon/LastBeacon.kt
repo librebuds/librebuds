@@ -75,3 +75,13 @@ fun lastBeaconOf(results: List<RawSighting>, now: Long): LastBeacon? {
     }
     return null
 }
+
+/**
+ * Whether [next] should replace the stored [previous] "Last beacon": when the service data changed, or
+ * at most once per [minIntervalMillis] for the same data, so a case sitting open does not write the
+ * preferences on every scan batch. A time before the stored one (clock set back) also stores.
+ */
+fun shouldStoreLastBeacon(previous: LastBeacon?, next: LastBeacon, minIntervalMillis: Long = 10_000): Boolean {
+    if (previous == null || previous.serviceDataHex != next.serviceDataHex) return true
+    return next.atMillis - previous.atMillis !in 0 until minIntervalMillis
+}
