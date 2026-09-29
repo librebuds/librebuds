@@ -15,6 +15,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.bt.AclTracker
 import io.github.librebuds.bt.AudioConnections
 import io.github.librebuds.bt.refreshAudioConnections
@@ -55,6 +56,8 @@ class MainActivity : ComponentActivity() {
     /** A visible activity may start the foreground service, which covers missed presence events. */
     override fun onStart() {
         super.onStart()
+        // Covers a scan permission granted in the system settings and a force stop, which dropped the scan.
+        BeaconScanner.ensureStarted(this)
         val stored = associationStore.primary() ?: return
         if (AclTracker.isConnected(stored.address)) {
             BudsService.start(this, stored.address, stored.name)

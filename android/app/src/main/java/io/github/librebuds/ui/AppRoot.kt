@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.companion.AssociationStore
+import io.github.librebuds.popup.PopupPresenter
 import io.github.librebuds.companion.Stored
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.ui.screens.AddDeviceScreen
@@ -89,7 +90,12 @@ fun AppRoot(
                     onPopupEnabledChange = {
                         popupEnabled = it
                         preferences.popupEnabled = it
-                        if (it) BeaconScanner.start(context) else BeaconScanner.stop(context)
+                        if (it) {
+                            BeaconScanner.start(context)
+                        } else {
+                            BeaconScanner.stop(context)
+                            PopupPresenter.dismiss()
+                        }
                     },
                     demoMode = demoMode,
                     onDemoModeChange = {

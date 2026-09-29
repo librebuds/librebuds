@@ -21,7 +21,8 @@ class PopupRules(
         // SPEC-GAP: proximity formula (reference RSSI minus a margin) awaits test round 3.
         val threshold = (beacon.referenceRssi ?: defaultReference) - margin
         if (sighting.rssi < threshold) return PopupDecision.IGNORE_FAR
-        if (lastShownAt != null && sighting.atMillis - lastShownAt < cooldownMillis) return PopupDecision.IGNORE_COOLDOWN
+        // A time after now means the wall clock was set back: the cooldown no longer applies.
+        if (lastShownAt != null && sighting.atMillis - lastShownAt in 0 until cooldownMillis) return PopupDecision.IGNORE_COOLDOWN
         return PopupDecision.SHOW
     }
 }

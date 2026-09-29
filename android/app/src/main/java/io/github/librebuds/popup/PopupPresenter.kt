@@ -61,6 +61,12 @@ object PopupPresenter {
         }
     }
 
+    /** Closes the popup if one is on screen, for example when the user turned the popup off. */
+    fun dismiss() {
+        window?.close()
+        window = null
+    }
+
     /** Replaces any popup still on screen (another pair of earbuds, say) with a new one. */
     private fun showOverlay(context: Context, model: PopupModel, art: PopupArt): Boolean {
         window?.close()

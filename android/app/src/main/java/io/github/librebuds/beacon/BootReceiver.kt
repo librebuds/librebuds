@@ -4,12 +4,14 @@ package io.github.librebuds.beacon
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import io.github.librebuds.state.AppPreferences
 
-/** The system drops PendingIntent scans on reboot and app update; registers the beacon scan again. */
+/**
+ * The system drops PendingIntent scans on reboot and app update; registers the beacon scan again.
+ * The app start that delivers this broadcast usually did so already, and then this is a no-op.
+ */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
-        if (AppPreferences(context).popupEnabled) BeaconScanner.start(context)
+        BeaconScanner.ensureStarted(context)
     }
 }

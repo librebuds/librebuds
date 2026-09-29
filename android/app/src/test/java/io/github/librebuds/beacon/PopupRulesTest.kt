@@ -45,6 +45,12 @@ class PopupRulesTest {
     }
 
     @Test
+    fun cooldownExpiresWhenClockMovedBack() {
+        // The last popup is stamped "in the future": the wall clock was set back since then.
+        assertEquals(PopupDecision.SHOW, rules.decide(sighting(at = 100_000L), known = true, lastShownAt = 110_000L))
+    }
+
+    @Test
     fun knownWhenAssociatedOrProfileMatches() {
         val registry = ProfileRegistry.fromJson(listOf("""{"id":"freebuds-6","name":"FreeBuds 6","match":{"modelId":["000155"]}}"""))
         assertTrue(isKnown(popup, registry, associatedModelIds = emptySet()))

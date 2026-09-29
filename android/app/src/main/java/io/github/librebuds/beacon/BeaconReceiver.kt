@@ -36,20 +36,22 @@ class BeaconReceiver : BroadcastReceiver() {
         val app = LibreBudsApp.from(context)
         val preferences = AppPreferences(context)
         val associated = associatedProfile(context, app.registry)
-        val associatedModelIds = associated?.match?.modelId?.toSet() ?: emptySet()
-        for (result in results) {
-            val data = result.scanRecord?.getServiceData(FDEE) ?: continue
-            val beacon = FdeeBeacon.parse(data) ?: continue
-            // Wall clock, like the stored cooldown; the result's own timestamp is elapsed realtime.
-            val sighting = BeaconSighting(result.device.address, result.rssi, beacon, System.currentTimeMillis())
-            val known = isKnown(beacon, app.registry, associatedModelIds)
-            // Read per result: one batch often holds several sightings of the same case.
-            val decision = rules.decide(sighting, known, preferences.lastPopupAt(sighting.address))
-            if (decision != PopupDecision.SHOW) continue
+        val verdicts = judgeBatch(
+            results = results.map { RawSighting(it.device.address, it.rssi, it.scanRecord?.getServiceData(FDEE)) },
+            // Wall clock, like the stored cooldown; the results' own timestamps are elapsed realtime.
+            now = System.currentTimeMillis(),
+            rules = rules,
+            registry = app.registry,
+            associatedModelIds = associated?.match?.modelId?.toSet() ?: emptySet(),
+            lastShownAt = preferences::lastPopupAt,
+        )
+        for (verdict in verdicts) {
+            if (verdict.decision != PopupDecision.SHOW) continue
+            val beacon = verdict.sighting.beacon
             val matched = app.registry.match(modelId = beacon.modelId)
             val profile = if (matched.id == ProfileRegistry.GENERIC.id) associated ?: matched else matched
             PopupPresenter.show(app, popupModel(beacon, profile), artFor(profile.art, ArtVariant.VECTOR, emptyMap()))
-            preferences.markPopupShown(sighting.address, sighting.atMillis)
+            preferences.markPopupShown(cooldownKey(beacon), verdict.sighting.atMillis)
         }
     }
 

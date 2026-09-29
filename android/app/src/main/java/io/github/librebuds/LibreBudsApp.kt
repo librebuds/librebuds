@@ -63,8 +63,9 @@ class LibreBudsApp : Application() {
         repository = if (BuildConfig.DEBUG && preferences.demoMode) DemoBudsRepository() else controller
         WidgetUpdater(this, repository, appScope).start()
         keepAudioConnectionsFresh()
-        // Returns false without BLUETOOTH_SCAN or with Bluetooth off; the popup then stays off.
-        if (preferences.popupEnabled) BeaconScanner.start(this)
+        // A no-op when already registered in this boot; false without BLUETOOTH_SCAN or with Bluetooth off.
+        BeaconScanner.ensureStarted(this)
+        BeaconScanner.watchBluetooth(this)
     }
 
     /**

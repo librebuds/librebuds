@@ -58,6 +58,7 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.librebuds.R
+import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.ui.components.ListItemOrientation
 import io.github.librebuds.ui.components.StyledButton
@@ -79,7 +80,10 @@ fun rememberPermissionRequests(preferences: AppPreferences): PermissionRequests 
     // Connect and scan share the "Nearby devices" group, so Android asks for them together.
     val bluetoothState = rememberMultiplePermissionsState(
         listOf(OnboardingState.BLUETOOTH_CONNECT, OnboardingState.BLUETOOTH_SCAN)
-    )
+    ) { result ->
+        // The beacon scan could not start without this permission; start it now, not at the next app start.
+        if (result[OnboardingState.BLUETOOTH_SCAN] == true && preferences.popupEnabled) BeaconScanner.start(context)
+    }
     val notificationState = rememberMultiplePermissionsState(listOf(OnboardingState.POST_NOTIFICATIONS))
 
     val lifecycleOwner = LocalLifecycleOwner.current

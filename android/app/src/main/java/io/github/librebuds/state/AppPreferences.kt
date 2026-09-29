@@ -3,6 +3,8 @@ package io.github.librebuds.state
 
 import android.content.Context
 import androidx.core.content.edit
+import io.github.librebuds.beacon.PopupTimes
+import io.github.librebuds.beacon.ScanMarker
 import io.github.librebuds.ui.theme.DesignSystem
 
 class AppPreferences(context: Context) {
@@ -40,9 +42,16 @@ class AppPreferences(context: Context) {
         get() = prefs.getBoolean("popup_enabled", true)
         set(value) = prefs.edit { putBoolean("popup_enabled", value) }
 
-    /** Wall-clock time the popup was last shown for [address], for the per-device cooldown. */
-    fun lastPopupAt(address: String): Long? =
-        prefs.getLong("popup_at_$address", -1L).takeIf { it >= 0 }
+    /** Wall-clock time the popup was last shown for a cooldown [key] (see `cooldownKey`). */
+    fun lastPopupAt(key: String): Long? = PopupTimes.decode(prefs.getString("popup_times", null))[key]
 
-    fun markPopupShown(address: String, at: Long) = prefs.edit { putLong("popup_at_$address", at) }
+    /** Records a shown popup; the stored map keeps only the last hour, so it stays small. */
+    fun markPopupShown(key: String, at: Long) = prefs.edit {
+        putString("popup_times", PopupTimes.encode(PopupTimes.record(PopupTimes.decode(prefs.getString("popup_times", null)), key, at)))
+    }
+
+    /** The beacon scan registration currently believed active; null when none (or stopped). */
+    var scanMarker: ScanMarker?
+        get() = ScanMarker.decode(prefs.getString("scan_marker", null))
+        set(value) = prefs.edit { if (value == null) remove("scan_marker") else putString("scan_marker", value.encode()) }
 }
