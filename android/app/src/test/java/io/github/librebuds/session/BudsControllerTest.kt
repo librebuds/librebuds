@@ -6,7 +6,10 @@ import io.github.librebuds.protocol.command.AncMode
 import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.state.LinkState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -106,6 +109,7 @@ class BudsControllerTest {
         c.connect("AA", "x")
         links.single().endOfStream()
         runCurrent()
+        advanceTimeBy(60_000)
         assertEquals(LinkState.TAKEN_OVER, c.state.value.link)
         assertEquals(1, links.size)
     }
@@ -137,5 +141,79 @@ class BudsControllerTest {
     fun setAncWithoutConnectionFails() = runTest {
         val c = controller(FakeEarbuds())
         assertTrue(c.setAnc(AncMode.OFF).exceptionOrNull() is NotConnectedException)
+    }
+
+    // Regression tests for fix round 1 (task-3-findings.md). Each mirrors a reviewer probe that
+    // was run against 6a8fb77 to confirm the bug empirically before these assertions were written.
+
+    // Finding 1: the packets collector for a session never completes on its own (it collects a
+    // SharedFlow that has no terminal state), so it must be cancelled explicitly whenever its
+    // session ends. Reconnect 5 times (each ended by a link drop while audio stays connected, so
+    // every reconnect goes through takeOver()) and assert nothing is left running in the
+    // background scope. Pre-fix, the reviewer's probe measured 5 active children for 5 drops.
+    @Test
+    fun leakedCollectorsAreCancelled() = runTest {
+        val links = mutableListOf<FakeLink>()
+        val earbuds = FakeEarbuds()
+        val c = controller(earbuds, audio = true, links = links)
+        repeat(5) {
+            if (it == 0) c.connect("AA", "x") else c.takeOver()
+            links.last().endOfStream()
+            runCurrent()
+        }
+        val activeChildren = backgroundScope.coroutineContext[Job]!!.children.count { it.isActive }
+        assertEquals(0, activeChildren)
+    }
+
+    // Finding 2: a link that drops during connect() (here: every write is immediately followed by
+    // endOfStream(), so the very first request never gets a reply) must not leave the state
+    // CONNECTED. DeviceSession.close()/the reader's own EOF path completes `closed` synchronously,
+    // before connect() resumes from the failed request, so connect() must re-check
+    // `!current.closed.isCompleted` there and bail rather than publish CONNECTED over whatever
+    // onClosed() already set.
+    @Test
+    fun dropDuringConnectEndsDisconnected() = runTest {
+        val c = BudsController(LinkFactory { FakeLink { endOfStream() } }, registry, backgroundScope)
+        c.connect("AA", "x")
+        runCurrent()
+        advanceTimeBy(60_000)
+        runCurrent()
+        assertEquals(LinkState.DISCONNECTED, c.state.value.link)
+        assertTrue(c.setAnc(AncMode.OFF).exceptionOrNull() is NotConnectedException)
+    }
+
+    // Finding 3: DeviceSession.send() does not wrap write failures in a Result, so a write to an
+    // already-closed link throws out of setAnc() instead of failing it. Close the link directly
+    // (bypassing the session, the way a lower Bluetooth layer would) and confirm setAnc() returns
+    // Result.failure instead of throwing.
+    @Test
+    fun setAncOnDeadLinkFails() = runTest {
+        val links = mutableListOf<FakeLink>()
+        val c = controller(FakeEarbuds(), links = links)
+        c.connect("AA", "x")
+        advanceUntilIdle()
+        links.single().close()
+        val result = c.setAnc(AncMode.AWARENESS)
+        assertTrue(result.exceptionOrNull() is SessionClosedException)
+    }
+
+    // Finding 4: disconnect() must win over a connect() that is already in flight. The earbuds
+    // stay silent (no replies) so connect() is parked inside its first request() when disconnect()
+    // runs; connect() must notice the generation bump when it resumes and leave the DISCONNECTED
+    // state disconnect() set, instead of overwriting it with CONNECTED once its request eventually
+    // fails.
+    @Test
+    fun disconnectDuringConnectWins() = runTest {
+        val earbuds = FakeEarbuds(silent = true)
+        val links = mutableListOf<FakeLink>()
+        val c = controller(earbuds, links = links)
+        val job = backgroundScope.launch { c.connect("AA", "x") }
+        runCurrent()
+        c.disconnect()
+        earbuds.silent = false
+        advanceTimeBy(60_000)
+        runCurrent()
+        assertEquals(LinkState.DISCONNECTED, c.state.value.link)
+        assertTrue(job.isCompleted)
     }
 }

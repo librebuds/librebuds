@@ -18,6 +18,7 @@ import io.github.librebuds.state.LinkState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,12 +27,23 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicInteger
 
 class AncRejectedException : IllegalStateException("The earbuds did not apply the noise-control mode")
 
 class NotConnectedException : IllegalStateException("Earbuds not connected")
 
-/** Bluetooth-backed repository: one session at a time, state updated from replies and reports. */
+/**
+ * Bluetooth-backed repository: one session at a time, state updated from replies and reports.
+ *
+ * [scope] may dispatch across more than one thread (e.g. `Dispatchers.IO`), so the mutable
+ * [session], [profile] and [collectorJob] fields are `@Volatile` for cross-thread visibility, and
+ * [generation] is an [AtomicInteger] for the same reason. [connectLock] serializes [connect] calls
+ * against each other, but [disconnect] deliberately does not take it, so it can win over an
+ * in-progress [connect]: every suspension point inside [connect] re-checks [isCurrent] (generation,
+ * session identity, and whether the session already closed) before publishing state, and bails
+ * without touching state otherwise, leaving whatever [disconnect] or [onClosed] already set.
+ */
 class BudsController(
     private val linkFactory: LinkFactory,
     private val registry: ProfileRegistry,
@@ -43,13 +55,27 @@ class BudsController(
 ) : BudsRepository {
     private val mutable = MutableStateFlow(BudsState())
     private val connectLock = Mutex()
+
+    // Bumped by every connect() attempt and by disconnect(), so a connect() that resumes after a
+    // disconnect() (or a newer connect()) recognizes it is stale and stops touching state.
+    private val generation = AtomicInteger(0)
+
+    @Volatile
     private var session: DeviceSession? = null
+
+    @Volatile
     private var profile: Profile = ProfileRegistry.GENERIC
+
+    // The packets collector for the current session; SharedFlow.collect() never completes on its
+    // own, so this must be cancelled explicitly whenever the session it was collecting for ends.
+    @Volatile
+    private var collectorJob: Job? = null
 
     override val state: StateFlow<BudsState> = mutable.asStateFlow()
 
     suspend fun connect(address: String, name: String?) = connectLock.withLock {
         if (session != null && mutable.value.address == address && mutable.value.isConnected) return@withLock
+        val myGeneration = generation.incrementAndGet()
         closeSession()
         mutable.value = BudsState(link = LinkState.CONNECTING, address = address, name = name)
         val link = try {
@@ -57,15 +83,21 @@ class BudsController(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            mutable.update { it.copy(link = LinkState.DISCONNECTED) }
+            if (generation.get() == myGeneration) mutable.update { it.copy(link = LinkState.DISCONNECTED) }
+            return@withLock
+        }
+        if (generation.get() != myGeneration) {
+            runCatching { link.close() }
             return@withLock
         }
         val current = DeviceSession(link, scope, onFrame = { direction, bytes -> frameLog?.record(direction, bytes) })
         session = current
-        scope.launch(start = CoroutineStart.UNDISPATCHED) { current.packets.collect(::applyPacket) }
-        scope.launch { current.closed.await(); onClosed(current, address) }
+        val collector = scope.launch(start = CoroutineStart.UNDISPATCHED) { current.packets.collect(::applyPacket) }
+        collectorJob = collector
+        scope.launch { current.closed.await(); onClosed(current, address, collector) }
 
         val info = current.request(DeviceInfoCommand.request()).getOrNull()?.let(DeviceInfoCommand::parse)
+        if (!isCurrent(current, myGeneration)) return@withLock
         profile = registry.match(sku = info?.sku, btName = name)
         mutable.update {
             it.copy(
@@ -76,18 +108,33 @@ class BudsController(
                 updatedAtMillis = clock(),
             )
         }
-        current.request(Battery.request()).onSuccess(::applyPacket)
-        if (profile.supports("anc")) current.request(Anc.readRequest()).onSuccess(::applyPacket)
+
+        val batteryResult = current.request(Battery.request())
+        if (!isCurrent(current, myGeneration)) return@withLock
+        batteryResult.onSuccess(::applyPacket)
+
+        if (profile.supports("anc")) {
+            val ancResult = current.request(Anc.readRequest())
+            if (!isCurrent(current, myGeneration)) return@withLock
+            ancResult.onSuccess(::applyPacket)
+        }
     }
 
     fun disconnect() {
+        generation.incrementAndGet()
         closeSession()
         mutable.update { it.copy(link = LinkState.DISCONNECTED) }
     }
 
     override suspend fun setAnc(mode: AncMode): Result<AncState> {
         val current = session ?: return Result.failure(NotConnectedException())
-        current.send(Anc.writeRequest(mode, levelFor(mode, mutable.value.anc, profile)))
+        try {
+            current.send(Anc.writeRequest(mode, levelFor(mode, mutable.value.anc, profile)))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return Result.failure(SessionClosedException())
+        }
         delay(settleMillis)
         val reply = current.request(Anc.readRequest()).getOrElse { return Result.failure(it) }
         applyPacket(reply)
@@ -113,7 +160,15 @@ class BudsController(
         Anc.parseState(packet)?.let { anc -> mutable.update { it.copy(anc = anc, updatedAtMillis = clock()) } }
     }
 
-    private fun onClosed(closed: DeviceSession, address: String) {
+    /** True while [current] is still the session [connect] should be allowed to publish state for. */
+    private fun isCurrent(current: DeviceSession, myGeneration: Int): Boolean =
+        generation.get() == myGeneration && session === current && !current.closed.isCompleted
+
+    private fun onClosed(closed: DeviceSession, address: String, collector: Job) {
+        // Cancel this session's collector regardless of whether it is still the current one: a
+        // newer connect() may already have replaced [session], but this collector belongs to
+        // [closed] and nothing else will ever stop it.
+        collector.cancel()
         if (session !== closed) return
         session = null
         val next = if (isAudioConnected(address)) LinkState.TAKEN_OVER else LinkState.DISCONNECTED
@@ -123,6 +178,8 @@ class BudsController(
     private fun closeSession() {
         val old = session
         session = null
+        collectorJob?.cancel()
+        collectorJob = null
         old?.close()
     }
 }
