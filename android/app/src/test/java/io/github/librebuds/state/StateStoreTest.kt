@@ -7,6 +7,7 @@ import io.github.librebuds.protocol.command.HostRow
 import io.github.librebuds.service.shouldLaunchConnect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -85,6 +86,23 @@ class StateStoreTest {
         assertNull(PersistedState.decode("{not json"))
         assertNull(PersistedState.decode("[]"))
         assertNull(PersistedState.decode("""{"version":1,"link":"SOMETHING_NEW","profileId":"generic"}"""))
+    }
+
+    // Task 6 review #4: complete, otherwise valid documents, so only the one odd field decides.
+    @Test
+    fun unknownLinkValueInAFullDocumentIsAFreshStart() {
+        val valid = PersistedState.from(full).encode()
+        assertNotNull(PersistedState.decode(valid))
+        val unknownLink = valid.replace("\"link\":\"DISCONNECTED\"", "\"link\":\"SOMETHING_NEW\"")
+        assertNotEquals(valid, unknownLink)
+        assertNull(PersistedState.decode(unknownLink))
+    }
+
+    @Test
+    fun extraUnknownKeyInAFullDocumentIsAFreshStart() {
+        val valid = PersistedState.from(full).encode()
+        val extra = valid.replaceFirst("{", "{\"somethingNew\":1,")
+        assertNull(PersistedState.decode(extra))
     }
 
     @Test

@@ -95,7 +95,7 @@ class StateStore(context: Context) {
 
     fun load(): PersistedState? = PersistedState.decode(prefs.getString(KEY, null))
 
-    fun save(state: BudsState) = prefs.edit { putString(KEY, PersistedState.from(state).encode()) }
+    fun save(state: PersistedState) = prefs.edit { putString(KEY, state.encode()) }
 
     private companion object {
         const val KEY = "state"

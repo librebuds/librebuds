@@ -18,6 +18,7 @@ import io.github.librebuds.state.BudsRepository
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.DemoBudsRepository
 import io.github.librebuds.state.LinkState
+import io.github.librebuds.state.PersistedState
 import io.github.librebuds.state.StateStore
 import io.github.librebuds.widget.WidgetUpdater
 import kotlinx.coroutines.FlowPreview
@@ -81,11 +82,16 @@ class LibreBudsApp : Application() {
     /**
      * Saves the controller's state (never the demo data) once it has been stable for a second,
      * so the next process starts from the last known values and a take-over outlives a restart.
+     * Only changes to the stored part count: settings or host updates do not restart the wait.
      */
     @OptIn(FlowPreview::class)
     private fun persistState(store: StateStore) {
         appScope.launch {
-            controller.state.drop(1).debounce(SAVE_DEBOUNCE_MILLIS).collect(store::save)
+            controller.state.drop(1)
+                .map(PersistedState::from)
+                .distinctUntilChanged()
+                .debounce(SAVE_DEBOUNCE_MILLIS)
+                .collect(store::save)
         }
     }
 
