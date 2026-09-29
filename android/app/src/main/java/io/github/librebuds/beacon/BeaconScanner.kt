@@ -32,6 +32,12 @@ object BeaconScanner {
     private const val TAG = "BeaconScanner"
     private const val ACTION_RESULTS = "io.github.librebuds.action.BEACON_RESULTS"
 
+    /**
+     * Opt-in experiment, debug builds only: FIRST_MATCH | MATCH_LOST scanning (see [scanCallbackType]).
+     * Off until a device test shows the case starts advertising only once the lid opens.
+     */
+    private const val FIRST_MATCH_EXPERIMENT = false
+
     /** Starts the scan when enabled and not already registered in this boot by this app version. */
     fun ensureStarted(context: Context): Boolean {
         val preferences = AppPreferences(context)
@@ -57,7 +63,7 @@ object BeaconScanner {
         val offloaded = adapter.isOffloadedFilteringSupported
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
-            .setCallbackType(scanCallbackType(offloadedFiltering = offloaded))
+            .setCallbackType(scanCallbackType(offloadedFiltering = offloaded, firstMatchExperiment = BuildConfig.DEBUG && FIRST_MATCH_EXPERIMENT))
             .build()
         val intent = pendingIntent(context)
         return try {
@@ -67,7 +73,7 @@ object BeaconScanner {
             if (status != 0) Log.w(TAG, "Beacon scan not started: $status")
             if (status == 0) {
                 preferences.scanMarker = currentMarker(context)
-                Log.i(TAG, "Beacon scan started (offloaded filtering: $offloaded)")
+                Log.i(TAG, "Beacon scan started (offloaded filtering: $offloaded, first-match experiment: ${BuildConfig.DEBUG && FIRST_MATCH_EXPERIMENT})")
             }
             status == 0
         } catch (e: SecurityException) {
@@ -140,12 +146,13 @@ object BeaconScanner {
 }
 
 /**
- * With hardware (offloaded) filtering, report a beacon once when it appears and once when it is lost
- * instead of every advertisement, which keeps the app from waking on each packet while a case sits
- * open. Without it, FIRST_MATCH/MATCH_LOST are not available and every match is delivered.
+ * Every match by default: the popup must see the lid-open change in the beacon data, and a case may
+ * already advertise 0xFDEE before the lid opens, which FIRST_MATCH (one report per device) would never
+ * redeliver. Only the [firstMatchExperiment] (debug builds, off by default) uses FIRST_MATCH | MATCH_LOST,
+ * and only with hardware (offloaded) filtering, where those callback types exist.
  */
-fun scanCallbackType(offloadedFiltering: Boolean): Int =
-    if (offloadedFiltering) ScanSettings.CALLBACK_TYPE_FIRST_MATCH or ScanSettings.CALLBACK_TYPE_MATCH_LOST
+fun scanCallbackType(offloadedFiltering: Boolean, firstMatchExperiment: Boolean): Int =
+    if (firstMatchExperiment && offloadedFiltering) ScanSettings.CALLBACK_TYPE_FIRST_MATCH or ScanSettings.CALLBACK_TYPE_MATCH_LOST
     else ScanSettings.CALLBACK_TYPE_ALL_MATCHES
 
 /** A MATCH_LOST delivery says the beacon went away; it never raises a popup. */

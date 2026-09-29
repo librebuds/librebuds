@@ -9,16 +9,19 @@ import org.junit.Test
 
 class ScanCallbackTypeTest {
     @Test
-    fun firstMatchAndLostWithOffloadedFiltering() {
-        assertEquals(
-            ScanSettings.CALLBACK_TYPE_FIRST_MATCH or ScanSettings.CALLBACK_TYPE_MATCH_LOST,
-            scanCallbackType(offloadedFiltering = true),
-        )
+    fun allMatchesByDefault() {
+        // The lid-open change must be delivered even if the case advertised before it opened.
+        assertEquals(ScanSettings.CALLBACK_TYPE_ALL_MATCHES, scanCallbackType(offloadedFiltering = true, firstMatchExperiment = false))
+        assertEquals(ScanSettings.CALLBACK_TYPE_ALL_MATCHES, scanCallbackType(offloadedFiltering = false, firstMatchExperiment = false))
     }
 
     @Test
-    fun allMatchesWithoutOffloadedFiltering() {
-        assertEquals(ScanSettings.CALLBACK_TYPE_ALL_MATCHES, scanCallbackType(offloadedFiltering = false))
+    fun firstMatchOnlyForTheExperimentWithOffloadedFiltering() {
+        assertEquals(
+            ScanSettings.CALLBACK_TYPE_FIRST_MATCH or ScanSettings.CALLBACK_TYPE_MATCH_LOST,
+            scanCallbackType(offloadedFiltering = true, firstMatchExperiment = true),
+        )
+        assertEquals(ScanSettings.CALLBACK_TYPE_ALL_MATCHES, scanCallbackType(offloadedFiltering = false, firstMatchExperiment = true))
     }
 
     @Test
