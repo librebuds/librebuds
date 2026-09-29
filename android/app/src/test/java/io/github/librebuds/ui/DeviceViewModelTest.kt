@@ -10,6 +10,7 @@ import io.github.librebuds.ui.model.NoiseControlMode
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -17,6 +18,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -35,7 +37,7 @@ class DeviceViewModelTest {
         override suspend fun setAnc(mode: AncMode): Result<AncState> {
             val deferred = CompletableDeferred<Result<AncState>>()
             calls.add(deferred)
-            val result = deferred.await()
+            val result = withContext(NonCancellable) { deferred.await() }
             result.onSuccess { flow.value = flow.value.copy(anc = it) }
             return result
         }
