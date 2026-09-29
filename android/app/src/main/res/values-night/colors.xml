@@ -7,6 +7,8 @@
     <color name="widget_on_accent">@android:color/system_accent1_800</color>
     <!-- Case-open popup card. -->
     <color name="popup_background">@android:color/system_neutral1_900</color>
+    <!-- Fixed, not dynamic: matches the video clip background so the card has no seam (variant B). -->
+    <color name="popup_video_background">#FF1C1C1E</color>
     <color name="popup_text">@android:color/system_neutral1_50</color>
     <color name="popup_text_secondary">@android:color/system_neutral2_200</color>
 </resources>

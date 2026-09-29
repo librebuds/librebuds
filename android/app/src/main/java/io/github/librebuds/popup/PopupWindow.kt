@@ -214,7 +214,17 @@ class PopupWindow(
         return if (night) art.videoDark else art.videoLight
     }
 
+    /**
+     * While a clip plays the card takes the clip's own background colour (fixed light/dark values) so
+     * there is no seam around the video; the drawing keeps the dynamic system colours.
+     */
+    private fun matchCardToVideo(playing: Boolean) {
+        mView.findViewById<View>(R.id.popup_card).backgroundTintList =
+            if (playing) context.getColorStateList(R.color.popup_video_background) else null
+    }
+
     private fun showAnimation(slot: FrameLayout, avdRes: Int) {
+        matchCardToVideo(false)
         slot.removeAllViews()
         val image = ImageView(context).apply {
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
@@ -228,6 +238,7 @@ class PopupWindow(
 
     /** Plays the clip once, muted and without taking audio focus, so the user's music keeps playing. */
     private fun showVideo(slot: FrameLayout, videoRes: Int, fallbackAvdRes: Int) {
+        matchCardToVideo(true)
         slot.removeAllViews()
         val video = VideoView(context).apply {
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
