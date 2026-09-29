@@ -161,6 +161,18 @@ class BudsControllerSettingsTest {
         assertEquals(listOf(0, 1), c.state.value.hosts.map { it.index })
     }
 
+    // M5: a malformed MAC fails the change instead of throwing out of apply(), and sends nothing.
+    @Test
+    fun malformedMacFailsWithoutSending() = runTest {
+        val links = mutableListOf<FakeLink>()
+        val c = controller(FakeEarbuds(sku = "BTFT0030", hosts = twoHosts()), links)
+        c.connect("AA", "x")
+        val sent = links.single().sentIds().size
+        assertTrue(c.apply(SettingChange.HostCommand(HostAction.CONNECT, "ZZ")).exceptionOrNull() is IllegalArgumentException)
+        assertTrue(c.apply(SettingChange.PreferredHost("11:22:33")).exceptionOrNull() is IllegalArgumentException)
+        assertEquals(sent, links.single().sentIds().size)
+    }
+
     @Test
     fun disconnectHostCommandVerified() = runTest {
         val earbuds = FakeEarbuds(sku = "BTFT0030", hosts = twoHosts())

@@ -79,6 +79,7 @@ object Multipoint {
         )
     }
 
+    /** Throws [IllegalArgumentException] for a malformed [mac], as does [execute]. */
     fun setPreferred(mac: String): Packet = Packet(PREFERRED, listOf(Tlv(1, mac.macBytes())))
 
     fun execute(action: HostAction, mac: String): Packet = Packet(EXECUTE, listOf(Tlv(action.code, mac.macBytes())))
@@ -97,7 +98,12 @@ object Multipoint {
 
     private fun ByteArray.toMacText(): String = joinToString(":") { "%02X".format(it.toInt() and 0xFF) }
 
-    private fun String.macBytes(): ByteArray = split(":").map { it.toInt(16).toByte() }.toByteArray()
+    /** Throws [IllegalArgumentException] unless this is six colon-separated hex bytes. */
+    private fun String.macBytes(): ByteArray {
+        val parts = split(":")
+        require(parts.size == 6 && parts.all { it.length == 2 }) { "Not a MAC address: $this" }
+        return parts.map { it.toInt(16).toByte() }.toByteArray()
+    }
 }
 
 /**

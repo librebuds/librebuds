@@ -264,7 +264,8 @@ class BudsController(
     /**
      * Fails fast with [UnsupportedOperationException] when the profile lacks the setting,
      * [SettingUnavailableException] when its read went unanswered at connect, and
-     * [IllegalArgumentException] for a [SettingChange.GestureChange] that would write nothing.
+     * [IllegalArgumentException] for a [SettingChange.GestureChange] that would write nothing or a
+     * host change whose MAC is malformed.
      * Auto-connect host commands are reported as success without verification when the device
      * does not include the auto-connect flag (TLV 8) in its host rows.
      */
@@ -300,7 +301,7 @@ class BudsController(
             is SettingChange.MultipointEnabled ->
                 writeAndConfirm(current, Multipoint.writeToggle(change.enabled), Multipoint.readToggle()) { Multipoint.parseToggle(it) == change.enabled }
             is SettingChange.PreferredHost ->
-                writeAndCheckHosts(current, Multipoint.setPreferred(change.mac), attempts = 1) { hosts ->
+                writeAndCheckHosts(current, hostPacket { Multipoint.setPreferred(change.mac) } ?: return malformedMac(), attempts = 1) { hosts ->
                     hosts.any { it.mac.equals(change.mac, ignoreCase = true) && it.preferred }
                 }
             is SettingChange.HostCommand -> {
@@ -309,7 +310,8 @@ class BudsController(
                     HostAction.CONNECT, HostAction.DISCONNECT -> HOST_POLL_ATTEMPTS
                     HostAction.ENABLE_AUTO_CONNECT, HostAction.DISABLE_AUTO_CONNECT -> 1
                 }
-                writeAndCheckHosts(current, Multipoint.execute(change.action, change.mac), attempts) { hosts ->
+                val packet = hostPacket { Multipoint.execute(change.action, change.mac) } ?: return malformedMac()
+                writeAndCheckHosts(current, packet, attempts) { hosts ->
                     val host = hosts.firstOrNull { it.mac.equals(change.mac, ignoreCase = true) } ?: return@writeAndCheckHosts false
                     when (change.action) {
                         HostAction.CONNECT -> host.connected
@@ -341,6 +343,15 @@ class BudsController(
         mutable.update { it.copy(hosts = partial, updatedAtMillis = clock()) }
         return Result.success(partial)
     }
+
+    /** The host command's packet, or null when its MAC cannot be encoded. */
+    private fun hostPacket(build: () -> Packet): Packet? = try {
+        build()
+    } catch (e: IllegalArgumentException) {
+        null
+    }
+
+    private fun malformedMac(): Result<Unit> = Result.failure(IllegalArgumentException("Malformed MAC address"))
 
     /** The capability key the change belongs to (`gestures.<subKey>` for gestures), or null when the profile lacks it. */
     private fun settingKey(change: SettingChange): String? {

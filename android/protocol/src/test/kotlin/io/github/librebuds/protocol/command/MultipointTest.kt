@@ -9,6 +9,7 @@ import io.github.librebuds.protocol.util.toHex
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -101,5 +102,12 @@ class MultipointTest {
         assertNull(collector.add(Multipoint.parseRow(row(index = 0, count = -1))!!))
         assertEquals(emptyList<HostRow>(), collector.partial())
         assertEquals(listOf(0), collector.add(Multipoint.parseRow(row(index = 0, count = 1))!!)!!.map { it.index })
+    }
+
+    @Test
+    fun malformedMacIsRejected() {
+        assertThrows(IllegalArgumentException::class.java) { Multipoint.execute(HostAction.CONNECT, "ZZ:22:33:44:55:66") }
+        assertThrows(IllegalArgumentException::class.java) { Multipoint.execute(HostAction.CONNECT, "11:22:33:44:55") }
+        assertThrows(IllegalArgumentException::class.java) { Multipoint.setPreferred("112233445566") }
     }
 }
