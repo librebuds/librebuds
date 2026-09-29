@@ -15,8 +15,6 @@ import io.github.librebuds.protocol.command.AncMode
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.ui.model.NoiseControlMode
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -33,11 +31,14 @@ class NoiseControlWidget : AppWidgetProvider() {
             return
         }
         val mode = AncMode.of(intent.getIntExtra(EXTRA_MODE, -1)) ?: return
-        val repository = LibreBudsApp.from(context).repository
+        val app = LibreBudsApp.from(context)
+        val repository = app.repository
         val pending = goAsync()
-        CoroutineScope(Dispatchers.Default).launch {
+        // The controller is confined to the main thread, like the app scope it runs on.
+        app.appScope.launch {
             try {
-                // Broadcast receivers get about ten seconds; the result arrives through the state flow.
+                // Covers a full setAnc: 1.5 s settle plus a read with 3 attempts of 3 s each. The
+                // widget itself follows the state flow, so a late result still reaches it.
                 val result = withTimeoutOrNull(SET_TIMEOUT_MILLIS) { repository.setAnc(mode) }
                 result?.onFailure { Log.w(TAG, "Setting noise mode $mode failed", it) }
             } finally {
@@ -50,7 +51,7 @@ class NoiseControlWidget : AppWidgetProvider() {
         const val ACTION_SET_NOISE_MODE = "io.github.librebuds.action.SET_NOISE_MODE"
         const val EXTRA_MODE = "mode"
         private const val TAG = "NoiseControlWidget"
-        private const val SET_TIMEOUT_MILLIS = 8_000L
+        private const val SET_TIMEOUT_MILLIS = 11_000L
 
         private class Button(val mode: NoiseControlMode, val container: Int, val icon: Int, val label: Int)
 

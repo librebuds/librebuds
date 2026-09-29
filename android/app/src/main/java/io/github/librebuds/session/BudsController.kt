@@ -37,13 +37,14 @@ class NotConnectedException : IllegalStateException("Earbuds not connected")
 /**
  * Bluetooth-backed repository: one session at a time, state updated from replies and reports.
  *
- * [scope] may dispatch across more than one thread (e.g. `Dispatchers.IO`), so the mutable
- * [session], [profile] and [collectorJob] fields are `@Volatile` for cross-thread visibility, and
- * [generation] is an [AtomicInteger] for the same reason. [connectLock] serializes [connect] calls
- * against each other, but [disconnect] deliberately does not take it, so it can win over an
- * in-progress [connect]: every suspension point inside [connect] re-checks [isCurrent] (generation,
- * session identity, and whether the session already closed) before publishing state, and bails
- * without touching state otherwise, leaving whatever [disconnect] or [onClosed] already set.
+ * The controller is confined to the main thread: [scope] is the app's main scope, and callers
+ * ([connect], [setAnc], [refresh], [takeOver], [disconnect]) run there too (service, widget
+ * and view models all use main-thread scopes). The `@Volatile` fields and the [AtomicInteger]
+ * [generation] are a cheap safety margin, not a license to call in from other threads.
+ * [connectLock] serializes [connect] calls against each other, but [disconnect] deliberately
+ * does not take it, so it can win over an in-progress [connect]: every suspension point inside
+ * [connect] re-checks [isCurrent] (generation, session identity, and whether the session already
+ * closed) before publishing state, and bails without touching state otherwise, leaving whatever [disconnect] or [onClosed] already set.
  */
 class BudsController(
     private val linkFactory: LinkFactory,
