@@ -11,15 +11,23 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.IBinder
+import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.MainActivity
 import io.github.librebuds.R
+import io.github.librebuds.overlay.IslandHost
+import io.github.librebuds.overlay.IslandWindow
+import io.github.librebuds.overlay.islandBatteryLevel
+import io.github.librebuds.overlay.islandShouldShow
+import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.LinkState
 import io.github.librebuds.state.batterySummary
+import io.github.librebuds.ui.model.Battery
+import io.github.librebuds.ui.model.toUiBatteries
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -33,6 +41,7 @@ import kotlinx.coroutines.launch
 class BudsService : Service() {
     private val scope = MainScope()
     private var collector: Job? = null
+    private var island: IslandWindow? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -69,6 +78,8 @@ class BudsService : Service() {
 
     override fun onDestroy() {
         running = false
+        island?.forceClose()
+        island = null
         scope.cancel()
         super.onDestroy()
     }
@@ -101,10 +112,37 @@ class BudsService : Service() {
                     stopService()
                     return@collect
                 }
+                if (islandShouldShow(previous, state.link, AppPreferences(this@BudsService).showIsland, Settings.canDrawOverlays(this@BudsService))) {
+                    showIsland(state)
+                }
+                island?.update(state.battery.toUiBatteries())
                 previous = state.link
                 // Without POST_NOTIFICATIONS the update is dropped; the service keeps running.
                 manager.notify(NOTIFICATION_ID, notification(state))
             }
+        }
+    }
+
+    /** Shows the connection island; runs on the main thread, where the state collector runs. */
+    private fun showIsland(state: BudsState) {
+        if (islandHost.islandOpen) return
+        val window = IslandWindow(this)
+        island = window
+        window.show(state.name ?: getString(R.string.app_name), islandBatteryLevel(state.battery), islandHost)
+    }
+
+    private val islandHost = object : IslandHost {
+        override var islandOpen = false
+
+        override fun batteries(): List<Battery> = LibreBudsApp.from(this@BudsService).controller.state.value.battery.toUiBatteries()
+
+        override fun takeOver() {
+            val app = LibreBudsApp.from(this@BudsService)
+            app.appScope.launch { app.controller.takeOver() }
+        }
+
+        override fun openApp() {
+            startActivity(Intent(this@BudsService, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP))
         }
     }
 

@@ -59,4 +59,10 @@
     <string name="demo_mode">Demo mode (restart app)</string>
     <string name="export_diagnostics">Export diagnostics</string>
     <string name="diagnostics_subject">LibreBuds diagnostics</string>
+    <string name="island_connected_text">Connected</string>
+    <string name="island_taking_over_text">Connected</string>
+    <string name="island_moved_to_remote_text">Moved to another device</string>
+    <string name="island_moved_to_other_device_text">Moved to %1$s</string>
+    <string name="island_moved_to_other_device_reversed_text">Reconnect from notification</string>
+    <string name="undo">Undo</string>
 </resources>
