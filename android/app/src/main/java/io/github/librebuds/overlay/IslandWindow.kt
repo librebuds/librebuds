@@ -336,7 +336,11 @@ class IslandWindow(private val context: Context) {
         try {
             windowManager.addView(containerView, params)
         } catch (e: Exception) {
+            // Nothing was shown: free the slot so a later show() is not ignored, and skip the
+            // animation setup below, which assumes an attached view.
             e.printStackTrace()
+            host.islandOpen = false
+            return
         }
 
         islandView.post {

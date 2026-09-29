@@ -21,11 +21,14 @@ class CompanionLink(context: Context) {
     private val store = AssociationStore(context)
     private val manager: CompanionDeviceManager? = context.getSystemService(CompanionDeviceManager::class.java)
 
-    /** Shows the system confirmation for [address]; [onDone] receives the stored association, or null on failure. */
-    fun associate(activity: Activity, address: String, onDone: (Stored?) -> Unit) {
+    /**
+     * Shows the system confirmation for [address]; [onDone] receives the stored association, or null
+     * on failure. [name] is the paired device's name, stored when the system reports no display name.
+     */
+    fun associate(activity: Activity, address: String, name: String?, onDone: (Stored?) -> Unit) {
         val cdm = manager ?: return onDone(null)
         cdm.myAssociations.firstOrNull { it.deviceMacAddress?.toString().equals(address, ignoreCase = true) }?.let {
-            onDone(persist(it, address))
+            onDone(persist(it, address, name))
             return
         }
         val request = AssociationRequest.Builder()
@@ -43,7 +46,7 @@ class CompanionLink(context: Context) {
             }
 
             override fun onAssociationCreated(associationInfo: AssociationInfo) {
-                onDone(persist(associationInfo, address))
+                onDone(persist(associationInfo, address, name))
             }
 
             override fun onFailure(error: CharSequence?) {
@@ -73,8 +76,8 @@ class CompanionLink(context: Context) {
         }
     }
 
-    private fun persist(info: AssociationInfo, address: String): Stored {
-        val stored = Stored(address, info.displayName?.toString(), info.id)
+    private fun persist(info: AssociationInfo, address: String, name: String?): Stored {
+        val stored = Stored(address, info.displayName?.toString() ?: name, info.id)
         store.save(stored)
         observe(stored)
         return stored

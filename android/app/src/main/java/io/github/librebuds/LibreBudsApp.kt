@@ -10,6 +10,7 @@ import io.github.librebuds.bt.isAudioConnected
 import io.github.librebuds.bt.refreshAudioConnections
 import io.github.librebuds.diag.FrameLog
 import io.github.librebuds.profile.ProfileAssets
+import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.session.BudsController
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.BudsRepository
@@ -31,6 +32,10 @@ class LibreBudsApp : Application() {
     lateinit var controller: BudsController
         private set
 
+    /** Device profiles bundled as assets; loaded once for the controller and the earbud picker. */
+    lateinit var registry: ProfileRegistry
+        private set
+
     /** Recent raw frames for the diagnostics export. */
     lateinit var frameLog: FrameLog
         private set
@@ -44,10 +49,11 @@ class LibreBudsApp : Application() {
     override fun onCreate() {
         super.onCreate()
         frameLog = FrameLog()
+        registry = ProfileAssets.load(this)
         val adapter = getSystemService(BluetoothManager::class.java)?.adapter
         controller = BudsController(
             linkFactory = adapter?.let(::RfcommLinkFactory) ?: LinkFactory { throw IOException("No Bluetooth adapter") },
-            registry = ProfileAssets.load(this),
+            registry = registry,
             scope = appScope,
             isAudioConnected = ::isAudioConnected,
             frameLog = frameLog,

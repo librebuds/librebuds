@@ -28,12 +28,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.R
 import io.github.librebuds.companion.BondedDevice
 import io.github.librebuds.companion.CompanionLink
 import io.github.librebuds.companion.Stored
 import io.github.librebuds.companion.candidates
-import io.github.librebuds.profile.ProfileAssets
 import io.github.librebuds.ui.components.MaterialButtonStyle
 import io.github.librebuds.ui.components.StyledButton
 import io.github.librebuds.ui.components.StyledList
@@ -59,7 +59,7 @@ fun AddDeviceScreen(
 ) {
     val context = LocalContext.current
     val activity = LocalActivity.current
-    val registry = remember { ProfileAssets.load(context) }
+    val registry = remember { LibreBudsApp.from(context).registry }
     val link = remember { CompanionLink(context) }
     var bonded by remember { mutableStateOf(bondedDevices(context)) }
     var busy by remember { mutableStateOf(false) }
@@ -117,7 +117,7 @@ fun AddDeviceScreen(
                                     return@StyledListItem
                                 }
                                 busy = true
-                                link.associate(activity, candidate.address) { stored ->
+                                link.associate(activity, candidate.address, candidate.bondedName) { stored ->
                                     busy = false
                                     if (stored != null) {
                                         onAssociated(stored)

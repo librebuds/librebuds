@@ -23,5 +23,7 @@ class CandidatesTest {
         assertEquals(listOf("HUAWEI FreeBuds 6", "33:33:33:33:33:33", "Car kit"), result.map { it.name })
         assertEquals(listOf(true, false, false), result.map { it.known })
         assertEquals("freebuds-6", result.first().profileId)
+        // Only a real Bluetooth name is offered for storing, never the address fallback.
+        assertEquals(listOf("HUAWEI FreeBuds 6", null, "Car kit"), result.map { it.bondedName })
     }
 }
