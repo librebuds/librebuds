@@ -37,4 +37,6 @@
     <string name="show_off_mode">Show Off in noise control</string>
     <string name="app_version">Version %1$s</string>
     <string name="license_gpl">License: GPL-3.0</string>
+    <string name="widget_battery_description">Battery levels of your earbuds and case</string>
+    <string name="widget_noise_control_description">Switch the noise-control mode</string>
 </resources>

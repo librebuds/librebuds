@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<font-family xmlns:app="http://schemas.android.com/apk/res-auto"
-    app:fontProviderAuthority="com.google.android.gms.fonts"
-    app:fontProviderPackage="com.google.android.gms"
-    app:fontProviderQuery="Inter"
-    app:fontProviderCerts="@array/com_google_android_gms_fonts_certs" />
+<!-- Framework (android:) attributes so home-screen widgets, inflated by the launcher, can resolve it too. -->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:fontProviderAuthority="com.google.android.gms.fonts"
+    android:fontProviderPackage="com.google.android.gms"
+    android:fontProviderQuery="Inter"
+    android:fontProviderCerts="@array/com_google_android_gms_fonts_certs"
+    tools:ignore="PrivateResource" />
