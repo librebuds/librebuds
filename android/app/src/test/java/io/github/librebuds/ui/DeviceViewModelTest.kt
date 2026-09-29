@@ -1,8 +1,11 @@
 // LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.librebuds.ui
 
+import io.github.librebuds.protocol.CommandId
 import io.github.librebuds.protocol.command.AncMode
 import io.github.librebuds.protocol.command.AncState
+import io.github.librebuds.session.AncRejectedException
+import io.github.librebuds.session.RequestTimeoutException
 import io.github.librebuds.state.BudsRepository
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.LinkState
@@ -21,7 +24,6 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -68,11 +70,37 @@ class DeviceViewModelTest {
         val vm = DeviceViewModel(repo)
         vm.selectNoiseMode(NoiseControlMode.NOISE_CANCELLATION)
         advanceUntilIdle()
-        repo.calls[0].complete(Result.failure(IllegalStateException("rejected")))
+        repo.calls[0].complete(Result.failure(AncRejectedException()))
         advanceUntilIdle()
         assertEquals(NoiseControlMode.OFF, vm.ui.value.selectedNoiseMode)
         assertNull(vm.ui.value.pendingNoiseMode)
-        assertNotNull(vm.ui.value.error)
+        assertEquals(UiError.REJECTED, vm.ui.value.error)
+    }
+
+    @Test
+    fun mapsRequestTimeoutToNoReply() = runTest(dispatcher) {
+        val repo = FakeRepository()
+        val vm = DeviceViewModel(repo)
+        vm.selectNoiseMode(NoiseControlMode.NOISE_CANCELLATION)
+        advanceUntilIdle()
+        repo.calls[0].complete(Result.failure(RequestTimeoutException(CommandId(0x2B, 0x2A))))
+        advanceUntilIdle()
+        assertEquals(UiError.NO_REPLY, vm.ui.value.error)
+    }
+
+    @Test
+    fun errorClearsOnNextStateChange() = runTest(dispatcher) {
+        val repo = FakeRepository()
+        val vm = DeviceViewModel(repo)
+        vm.selectNoiseMode(NoiseControlMode.NOISE_CANCELLATION)
+        advanceUntilIdle()
+        repo.calls[0].complete(Result.failure(AncRejectedException()))
+        advanceUntilIdle()
+        assertEquals(UiError.REJECTED, vm.ui.value.error)
+
+        repo.flow.value = repo.flow.value.copy(updatedAtMillis = 1)
+        advanceUntilIdle()
+        assertNull(vm.ui.value.error)
     }
 
     @Test

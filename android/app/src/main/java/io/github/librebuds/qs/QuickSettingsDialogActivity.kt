@@ -36,6 +36,7 @@ import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.ui.DeviceViewModel
 import io.github.librebuds.ui.components.BatteryView
 import io.github.librebuds.ui.components.ControlCenterNoiseControlSegmentedButton
+import io.github.librebuds.ui.messageRes
 import io.github.librebuds.ui.model.NoiseControlMode
 import io.github.librebuds.ui.model.toUiBatteries
 import io.github.librebuds.ui.theme.DesignSystem
@@ -108,7 +109,7 @@ private fun QuickSettingsPanel(viewModel: DeviceViewModel, modes: List<NoiseCont
                 )
             }
             ui.error?.let { error ->
-                Text(text = error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                Text(text = stringResource(error.messageRes()), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

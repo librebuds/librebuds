@@ -39,4 +39,8 @@
     <string name="license_gpl">License: GPL-3.0</string>
     <string name="widget_battery_description">Battery levels of your earbuds and case</string>
     <string name="widget_noise_control_description">Switch the noise-control mode</string>
+    <string name="error_rejected">The earbuds did not apply the setting</string>
+    <string name="error_not_connected">Earbuds not connected</string>
+    <string name="error_no_reply">No reply from the earbuds</string>
+    <string name="error_unknown">Something went wrong</string>
 </resources>

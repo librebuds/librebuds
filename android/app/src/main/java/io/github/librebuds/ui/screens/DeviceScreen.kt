@@ -32,6 +32,7 @@ import io.github.librebuds.ui.components.BatteryView
 import io.github.librebuds.ui.components.NoiseControlSettings
 import io.github.librebuds.ui.components.StyledIconButton
 import io.github.librebuds.ui.components.StyledScaffold
+import io.github.librebuds.ui.messageRes
 import io.github.librebuds.ui.model.toUiBatteries
 import io.github.librebuds.ui.theme.DesignSystem
 import io.github.librebuds.ui.theme.LocalDesignSystem
@@ -94,7 +95,7 @@ fun DeviceScreen(
             }
             ui.error?.let { error ->
                 Text(
-                    text = error,
+                    text = stringResource(error.messageRes()),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(horizontal = 16.dp)

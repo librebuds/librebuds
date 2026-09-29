@@ -3,6 +3,10 @@ package io.github.librebuds.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.librebuds.session.AncRejectedException
+import io.github.librebuds.session.NotConnectedException
+import io.github.librebuds.session.RequestTimeoutException
+import io.github.librebuds.session.SessionClosedException
 import io.github.librebuds.state.BudsRepository
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.ui.model.NoiseControlMode
@@ -18,28 +22,38 @@ data class DeviceUi(
     val state: BudsState,
     val selectedNoiseMode: NoiseControlMode?,
     val pendingNoiseMode: NoiseControlMode?,
-    val error: String?,
+    val error: UiError?,
 )
+
+/** An error tied to the state it was reported against, so it clears once the state moves past it. */
+private data class Failure(val kind: UiError, val at: BudsState)
+
+private fun Throwable.toUiError(): UiError = when (this) {
+    is AncRejectedException -> UiError.REJECTED
+    is NotConnectedException -> UiError.NOT_CONNECTED
+    is RequestTimeoutException, is SessionClosedException -> UiError.NO_REPLY
+    else -> UiError.UNKNOWN
+}
 
 /** Screen state. A noise-mode tap shows immediately; the repository result confirms or reverts it. */
 class DeviceViewModel(private val repository: BudsRepository) : ViewModel() {
     private val pending = MutableStateFlow<NoiseControlMode?>(null)
-    private val error = MutableStateFlow<String?>(null)
+    private val failure = MutableStateFlow<Failure?>(null)
     private var job: Job? = null
 
-    val ui: StateFlow<DeviceUi> = combine(repository.state, pending, error) { state, pendingMode, err ->
-        DeviceUi(state, pendingMode ?: NoiseControlMode.of(state.anc), pendingMode, err)
+    val ui: StateFlow<DeviceUi> = combine(repository.state, pending, failure) { state, pendingMode, fail ->
+        DeviceUi(state, pendingMode ?: NoiseControlMode.of(state.anc), pendingMode, fail?.takeIf { it.at == state }?.kind)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DeviceUi(repository.state.value, NoiseControlMode.of(repository.state.value.anc), null, null))
 
     fun selectNoiseMode(mode: NoiseControlMode) {
         job?.cancel()
         pending.value = mode
-        error.value = null
+        failure.value = null
         job = viewModelScope.launch {
             val result = repository.setAnc(mode.anc)
             if (pending.value != mode) return@launch
             pending.value = null
-            result.onFailure { error.value = it.message ?: "The earbuds rejected the setting" }
+            result.onFailure { failure.value = Failure(it.toUiError(), repository.state.value) }
         }
     }
 }
