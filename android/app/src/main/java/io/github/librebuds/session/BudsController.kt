@@ -202,7 +202,7 @@ class BudsController(
     /** Gestures listed under the profile's `gestures` capability, each with whether to read its in-call action too. */
     private fun profileGestures(): List<ProfileGesture> {
         val listed = profile.capabilities["gestures"] ?: return emptyList()
-        return GESTURE_KEYS.mapNotNull { (key, gesture) ->
+        return GESTURE_SUB_KEYS.mapNotNull { (key, gesture) ->
             val entry = listed[key] ?: return@mapNotNull null
             val inCall = ((entry as? JsonObject)?.get("inCall") as? JsonPrimitive)?.booleanOrNull == true
             ProfileGesture(key, gesture, inCall)
@@ -475,14 +475,17 @@ class BudsController(
         const val OPTIONAL_READ_MILLIS = 1200L
         const val HOST_POLL_ATTEMPTS = 3
         const val HOST_POLL_MILLIS = 2000L
-
-        /** Sub-keys of the profile's `gestures` capability. */
-        val GESTURE_KEYS = listOf(
-            "doubleTap" to Gesture.DOUBLE_TAP,
-            "tripleTap" to Gesture.TRIPLE_TAP,
-            "longPress" to Gesture.LONG_PRESS,
-            "noiseCycle" to Gesture.NOISE_CYCLE,
-            "swipe" to Gesture.SWIPE,
-        )
     }
 }
+
+/**
+ * Sub-keys of the profile's `gestures` capability, in display order. The single list both the
+ * controller (what to read) and the settings screen (what to show) go by.
+ */
+internal val GESTURE_SUB_KEYS: List<Pair<String, Gesture>> = listOf(
+    "doubleTap" to Gesture.DOUBLE_TAP,
+    "tripleTap" to Gesture.TRIPLE_TAP,
+    "longPress" to Gesture.LONG_PRESS,
+    "noiseCycle" to Gesture.NOISE_CYCLE,
+    "swipe" to Gesture.SWIPE,
+)

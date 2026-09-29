@@ -6,20 +6,12 @@ import io.github.librebuds.R
 import io.github.librebuds.protocol.command.Gesture
 import io.github.librebuds.protocol.command.HostAction
 import io.github.librebuds.protocol.profile.Profile
+import io.github.librebuds.session.GESTURE_SUB_KEYS
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.SettingChange
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
-
-/** Profile sub-keys of the `gestures` capability in display order; the controller reads the same keys. */
-val GESTURE_SUB_KEYS: List<Pair<String, Gesture>> = listOf(
-    "doubleTap" to Gesture.DOUBLE_TAP,
-    "tripleTap" to Gesture.TRIPLE_TAP,
-    "longPress" to Gesture.LONG_PRESS,
-    "noiseCycle" to Gesture.NOISE_CYCLE,
-    "swipe" to Gesture.SWIPE,
-)
 
 /** Which string family an option's semantic key belongs to. */
 enum class OptionGroup { GESTURE, NOISE_CYCLE, EQUALIZER, SOUND_QUALITY }
@@ -67,11 +59,11 @@ fun settingsModel(profile: Profile, state: BudsState): SettingsModel {
         wear = settings.wearDetection?.takeIf { shown("wear") },
         gestures = gestureControls(profile, state),
         equalizer = settings.equalizer?.takeIf { shown("equalizer") }?.let { eq ->
-            Picker(eq.active, options(profile.capabilities["equalizer"]?.table("presets"), eq.available), OptionGroup.EQUALIZER)
+            picker(eq.active, options(profile.capabilities["equalizer"]?.table("presets"), eq.available), OptionGroup.EQUALIZER)
         },
         lowLatency = settings.lowLatency?.takeIf { shown("lowLatency") },
         soundQuality = settings.soundQuality?.takeIf { shown("soundQuality") }?.let {
-            Picker(it, options(profile.capabilities["soundQuality"]?.table("options"), emptyList()), OptionGroup.SOUND_QUALITY)
+            picker(it, options(profile.capabilities["soundQuality"]?.table("options"), emptyList()), OptionGroup.SOUND_QUALITY)
         },
         language = settings.language?.takeIf { shown("language") }?.let { LanguageRow(it.current) },
         multipointEnabled = state.multipointEnabled?.takeIf { shown("multipoint") },
@@ -91,14 +83,18 @@ private fun gestureControls(profile: Profile, state: BudsState): List<GestureCon
         GestureControl(
             subKey = subKey,
             gesture = gesture,
-            left = setting.left?.let { Picker(it, options, group) },
-            right = setting.right?.takeIf { gesture != Gesture.SWIPE }?.let { Picker(it, options, group) },
+            left = setting.left?.let { picker(it, options, group) },
+            right = setting.right?.takeIf { gesture != Gesture.SWIPE }?.let { picker(it, options, group) },
             inCall = setting.inCall?.takeIf { withInCall }?.let {
-                Picker(it, options(entry.table("inCallOptions"), emptyList()), OptionGroup.GESTURE)
+                picker(it, options(entry.table("inCallOptions"), emptyList()), OptionGroup.GESTURE)
             },
-        )
+        ).takeIf { it.left != null || it.right != null || it.inCall != null }
     }
 }
+
+/** A picker with nothing to choose from is not shown at all. */
+private fun picker(current: Int?, options: List<SettingOption>, group: OptionGroup): Picker? =
+    Picker(current, options, group).takeIf { options.isNotEmpty() }
 
 private fun JsonObject.table(name: String): JsonObject? = this[name] as? JsonObject
 

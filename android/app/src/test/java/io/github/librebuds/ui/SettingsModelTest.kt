@@ -117,6 +117,28 @@ class SettingsModelTest {
     }
 
     @Test
+    fun pickerWithoutOptionsIsHidden() {
+        // No profile table and no device list: nothing to choose from, so no row at all.
+        val p = profile(
+            """{"id": "e", "name": "E", "capabilities": {"gestures": {"tripleTap": {}, "longPress": {"inCall": true}}, "equalizer": {}, "soundQuality": {}}}""",
+        )
+        val settings = DeviceSettings(
+            gestures = mapOf(
+                Gesture.TRIPLE_TAP to GestureSetting(1, 1, null, supported = emptyList()),
+                Gesture.LONG_PRESS to GestureSetting(1, 1, 0, supported = listOf(-1, 1)),
+            ),
+            equalizer = EqualizerState(active = 1, available = emptyList()),
+            soundQuality = 0,
+        )
+        val model = settingsModel(p, BudsState(settings = settings))
+        assertEquals(listOf("longPress"), model.gestures.map { it.subKey })
+        // Long press has options for its sides but none for the in-call action.
+        assertNull(model.gestures.single().inCall)
+        assertNull(model.equalizer)
+        assertNull(model.soundQuality)
+    }
+
+    @Test
     fun knownKeysHaveStringsAndUnknownKeysFallBack() {
         assertEquals(R.string.gesture_pause, optionLabelRes(OptionGroup.GESTURE, "pause"))
         assertEquals(R.string.noise_cycle_off_on_awareness, optionLabelRes(OptionGroup.NOISE_CYCLE, "off_on_awareness"))
