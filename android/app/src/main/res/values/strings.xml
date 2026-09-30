@@ -70,6 +70,12 @@
     <string name="island_moved_to_other_device_reversed_text">Reconnect from notification</string>
     <string name="undo">Undo</string>
     <string name="popup_enabled">Popup when the case opens</string>
+    <string name="popup_style">Popup style</string>
+    <string name="popup_style_island">Island at the top</string>
+    <string name="popup_style_card">Card with animation</string>
+    <string name="island_left_short">L</string>
+    <string name="island_right_short">R</string>
+    <string name="island_charging">charging</string>
     <string name="notification_channel_popup">Case opened</string>
     <string name="close">Close</string>
     <string name="percent">%1$d%%</string>

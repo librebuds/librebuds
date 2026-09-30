@@ -31,6 +31,10 @@ import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.DynamicDrawableSpan
+import android.text.style.ImageSpan
 import android.util.Log.e
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -61,6 +65,7 @@ enum class IslandType {
     TAKING_OVER,
     MOVED_TO_REMOTE,
     MOVED_TO_OTHER_DEVICE,
+    CASE_OPEN,
 }
 
 class IslandWindow(private val context: Context) {
@@ -96,13 +101,44 @@ class IslandWindow(private val context: Context) {
     private val flingAnimator = ValueAnimator()
 
     private var host: IslandHost? = null
+    private var type = IslandType.CONNECTED
+    private var autoCloseMillis = 4500L
 
     val isVisible: Boolean
         get() = containerView.parent != null && containerView.visibility == View.VISIBLE
 
     /** Refreshes the battery ring with the latest levels while the island is shown. */
     fun update(batteries: List<Battery>) {
-        if (isVisible) updateBatteryDisplay(batteries)
+        if (!isVisible) return
+        updateBatteryDisplay(batteries)
+        if (type == IslandType.CASE_OPEN) showBatteryLine(batteries)
+    }
+
+    /** The case-open subtitle: left, right and case levels, a charging icon after each one charging. */
+    private fun showBatteryLine(batteryList: List<Battery>) {
+        val line = SpannableStringBuilder()
+        val batteryText = islandView.findViewById<TextView>(R.id.island_battery_text)
+        for (part in islandBatteryParts(batteryList)) {
+            if (line.isNotEmpty()) line.append(" · ")
+            val label = when (part.component) {
+                BatteryComponent.LEFT -> R.string.island_left_short
+                BatteryComponent.RIGHT -> R.string.island_right_short
+                else -> R.string.case_short
+            }
+            line.append(context.getString(R.string.popup_battery, context.getString(label), context.getString(R.string.percent, part.level)))
+            if (part.charging) {
+                val size = batteryText.textSize.toInt()
+                val icon = context.getDrawable(R.drawable.ic_charging)!!.mutate().apply {
+                    setTint(batteryText.currentTextColor)
+                    setBounds(0, 0, size, size)
+                }
+                // The word stays in the text, so a screen reader says "charging" where the icon is drawn.
+                val start = line.length
+                line.append(context.getString(R.string.island_charging))
+                line.setSpan(ImageSpan(icon, DynamicDrawableSpan.ALIGN_CENTER), start, line.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+        islandView.findViewById<TextView>(R.id.island_connected_text).text = line
     }
 
     @SuppressLint("SetTextI18n")
@@ -137,10 +173,12 @@ class IslandWindow(private val context: Context) {
     }
 
     @SuppressLint("ClickableViewAccessibility", "SetTextI18n")
-    fun show(name: String, batteryPercentage: Int, host: IslandHost, type: IslandType = IslandType.CONNECTED, reversed: Boolean = false, otherDeviceName: String? = null) {
+    fun show(name: String, batteryPercentage: Int, host: IslandHost, type: IslandType = IslandType.CONNECTED, reversed: Boolean = false, otherDeviceName: String? = null, autoCloseMillis: Long = 4500L) {
         if (host.islandOpen) return
         else host.islandOpen = true
         this.host = host
+        this.type = type
+        this.autoCloseMillis = autoCloseMillis
 
         val displayMetrics = Resources.getSystem().displayMetrics
         val width = (displayMetrics.widthPixels * 0.95).toInt()
@@ -331,6 +369,7 @@ class IslandWindow(private val context: Context) {
                     islandView.findViewById<TextView>(R.id.island_connected_text).text = context.getString(R.string.island_moved_to_other_device_text, otherDeviceName)
                 }
             }
+            IslandType.CASE_OPEN -> showBatteryLine(batteryList)
         }
 
         try {
@@ -428,7 +467,7 @@ class IslandWindow(private val context: Context) {
         autoCloseHandler?.removeCallbacks(autoCloseRunnable ?: return)
         autoCloseHandler = Handler(Looper.getMainLooper())
         autoCloseRunnable = Runnable { close() }
-        autoCloseHandler?.postDelayed(autoCloseRunnable!!, 4500)
+        autoCloseHandler?.postDelayed(autoCloseRunnable!!, autoCloseMillis)
     }
 
     private fun springBackWithInertia(velocity: Float) {

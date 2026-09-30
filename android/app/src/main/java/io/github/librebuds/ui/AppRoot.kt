@@ -56,6 +56,7 @@ fun AppRoot(
     var popupEnabled by remember { mutableStateOf(preferences.popupEnabled) }
     val context = LocalContext.current
     var demoMode by remember { mutableStateOf(preferences.demoMode) }
+    var popupStyle by remember { mutableStateOf(preferences.popupStyle) }
     var artVariant by remember { mutableStateOf(preferences.artVariant) }
     var stored by remember { mutableStateOf(associationStore.primary()) }
 
@@ -114,6 +115,11 @@ fun AppRoot(
                             BeaconScanner.stop(context)
                             PopupPresenter.dismiss(context)
                         }
+                    },
+                    popupStyle = popupStyle,
+                    onPopupStyleChange = {
+                        popupStyle = it
+                        preferences.popupStyle = it
                     },
                     overlay = overlay,
                     onOpenAppInfo = { openAppDetailsSettings(context) },

@@ -13,6 +13,7 @@ import io.github.librebuds.BuildConfig
 import io.github.librebuds.R
 import io.github.librebuds.beacon.LastBeacon
 import io.github.librebuds.popup.ArtVariant
+import io.github.librebuds.popup.PopupStyle
 import io.github.librebuds.ui.components.ListItemOrientation
 import io.github.librebuds.ui.components.StyledList
 import io.github.librebuds.ui.components.StyledListItem
@@ -34,6 +35,8 @@ fun SettingsScreen(
     onShowIslandChange: (Boolean) -> Unit,
     popupEnabled: Boolean,
     onPopupEnabledChange: (Boolean) -> Unit,
+    popupStyle: PopupStyle,
+    onPopupStyleChange: (PopupStyle) -> Unit,
     overlay: OverlayAccess,
     onOpenAppInfo: () -> Unit,
     demoMode: Boolean,
@@ -77,6 +80,15 @@ fun SettingsScreen(
                     checked = popupEnabled,
                     onCheckedChange = onPopupEnabledChange
                 )
+                // Two styles only, so a tap switches to the other one; the row shows the current choice.
+                StyledListItem(
+                    name = stringResource(R.string.popup_style),
+                    description = stringResource(
+                        if (popupStyle == PopupStyle.ISLAND) R.string.popup_style_island else R.string.popup_style_card
+                    ),
+                    enabled = popupEnabled,
+                    onClick = { onPopupStyleChange(if (popupStyle == PopupStyle.ISLAND) PopupStyle.CARD else PopupStyle.ISLAND) }
+                )
                 // Onboarding may have been skipped or blocked; the grant stays reachable here.
                 if (!overlay.granted) {
                     StyledListItem(
@@ -96,6 +108,8 @@ fun SettingsScreen(
                     StyledToggle(
                         label = stringResource(R.string.popup_art_variant),
                         checked = artVariant == ArtVariant.VIDEO,
+                        // The artwork belongs to the card; the island has none.
+                        enabled = popupStyle == PopupStyle.CARD,
                         onCheckedChange = { onArtVariantChange(if (it) ArtVariant.VIDEO else ArtVariant.VECTOR) }
                     )
                     StyledListItem(

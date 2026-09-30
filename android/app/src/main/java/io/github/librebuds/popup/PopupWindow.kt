@@ -63,7 +63,7 @@ import kotlinx.coroutines.launch
 class PopupWindow(
     context: Context,
     private val onCloseCallback: () -> Unit = {}
-) {
+) : CasePopup {
     // A receiver's context is a restricted wrapper; the application context outlives it.
     private val context: Context = context.applicationContext
     private val mView: View
@@ -73,11 +73,11 @@ class PopupWindow(
     private var stateCollector: Job? = null
     private var model: PopupModel? = null
 
-    val isOpen: Boolean
+    override val isOpen: Boolean
         get() = mView.parent != null && !isClosing
 
     /** The profile of the earbuds this popup shows, once opened. */
-    val profileId: String?
+    override val profileId: String?
         get() = model?.profileId
 
     @Suppress("DEPRECATION")
@@ -166,7 +166,7 @@ class PopupWindow(
                 collectState()
 
                 autoCloseRunnable = Runnable { close() }
-                autoCloseHandler.postDelayed(autoCloseRunnable!!, AUTO_CLOSE_MILLIS)
+                autoCloseHandler.postDelayed(autoCloseRunnable!!, POPUP_AUTO_CLOSE_MILLIS)
                 return true
             }
             return false
@@ -274,7 +274,7 @@ class PopupWindow(
         text.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, if (charging) R.drawable.ic_charging else 0, 0)
     }
 
-    fun close() {
+    override fun close() {
         try {
             if (isClosing || mView.parent == null) return
             isClosing = true
@@ -314,9 +314,5 @@ class PopupWindow(
         } catch (e: Exception) {
             Log.e("PopupWindow", "Error removing view: ${e.message}")
         }
-    }
-
-    private companion object {
-        const val AUTO_CLOSE_MILLIS = 12_000L
     }
 }

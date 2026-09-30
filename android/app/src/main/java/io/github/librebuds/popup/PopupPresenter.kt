@@ -23,24 +23,57 @@ import io.github.librebuds.ui.model.Battery
 import io.github.librebuds.ui.model.BatteryComponent
 import io.github.librebuds.ui.model.BatteryStatus
 
+/** How the case-open overlay looks: the LibrePods island at the top, or the card with artwork at the bottom. */
+enum class PopupStyle { ISLAND, CARD }
+
 /** How a case-open popup reaches the user. */
 sealed interface PopupAction {
-    data object Overlay : PopupAction
+    /** The island at the top of the screen ([PopupStyle.ISLAND]). */
+    data object Island : PopupAction
+    /** The card with artwork at the bottom of the screen ([PopupStyle.CARD]). */
+    data object Card : PopupAction
     data object Notification : PopupAction
     data object Nothing : PopupAction
 }
 
 /**
- * The overlay when allowed, else a notification; nothing when the popup is off or neither is allowed.
- * On a [locked] screen the overlay would not be seen (it stays behind the keyguard), so only the
- * notification is used.
+ * The overlay in the chosen [style] when allowed, else a notification; nothing when the popup is off
+ * or neither is allowed. On a [locked] screen the overlay would not be seen (it stays behind the
+ * keyguard), so only the notification is used.
  */
-fun popupAction(enabled: Boolean, canDrawOverlays: Boolean, notificationsAllowed: Boolean, locked: Boolean): PopupAction = when {
+fun popupAction(
+    enabled: Boolean,
+    style: PopupStyle,
+    canDrawOverlays: Boolean,
+    notificationsAllowed: Boolean,
+    locked: Boolean,
+): PopupAction = when {
     !enabled -> PopupAction.Nothing
-    canDrawOverlays && !locked -> PopupAction.Overlay
+    canDrawOverlays && !locked -> if (style == PopupStyle.ISLAND) PopupAction.Island else PopupAction.Card
     notificationsAllowed -> PopupAction.Notification
     else -> PopupAction.Nothing
 }
+
+/** A case-open popup on screen, whichever [PopupStyle] draws it. */
+interface CasePopup {
+    /** False as soon as it starts closing. */
+    val isOpen: Boolean
+
+    /** The profile of the earbuds it shows, once opened. */
+    val profileId: String?
+
+    fun close()
+}
+
+/**
+ * Whether [popup] keeps the connection island for [profileId] away: only one overlay is on screen at a
+ * time, and an open popup for these earbuds already reports the connection. The style does not matter.
+ */
+fun popupBlocksIsland(popup: CasePopup?, profileId: String): Boolean =
+    popup != null && popup.isOpen && popup.profileId == profileId
+
+/** How long a case-open popup stays on screen without interaction, in either style. */
+const val POPUP_AUTO_CLOSE_MILLIS = 12_000L
 
 /** Shows the case-open popup, or its notification fallback. Main thread only. */
 object PopupPresenter {
@@ -49,41 +82,54 @@ object PopupPresenter {
     private const val NOTIFICATION_ID = 2
     private const val NOTIFICATION_TIMEOUT_MILLIS = 60_000L
 
-    // PopupWindow keeps only the application context, so holding it here leaks no activity.
+    // Both popups keep only the application context, so holding one here leaks no activity.
     @SuppressLint("StaticFieldLeak")
-    private var window: PopupWindow? = null
+    private var current: CasePopup? = null
 
+    /** Shows the popup in the style chosen in Settings; [art] is only used by the card. */
     fun show(context: Context, model: PopupModel, art: PopupArt) {
+        val preferences = AppPreferences(context)
         val action = popupAction(
-            enabled = AppPreferences(context).popupEnabled,
+            enabled = preferences.popupEnabled,
+            style = preferences.popupStyle,
             canDrawOverlays = Settings.canDrawOverlays(context),
             notificationsAllowed = notificationsAllowed(context),
             locked = context.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked == true,
         )
         when (action) {
-            PopupAction.Overlay -> if (!showOverlay(context, model, art) && notificationsAllowed(context)) notify(context, model)
+            PopupAction.Island -> if (!showIsland(context, model) && notificationsAllowed(context)) notify(context, model)
+            PopupAction.Card -> if (!showCard(context, model, art) && notificationsAllowed(context)) notify(context, model)
             PopupAction.Notification -> notify(context, model)
             PopupAction.Nothing -> Unit
         }
     }
 
     /** Whether a case-open popup for [profileId] is on screen (the connection island then stays away). */
-    fun isShowing(profileId: String): Boolean = window?.let { it.isOpen && it.profileId == profileId } == true
+    fun isShowing(profileId: String): Boolean = popupBlocksIsland(current, profileId)
 
     /** Closes the popup and its notification fallback, for example when the user turned the popup off. */
     fun dismiss(context: Context) {
-        window?.close()
-        window = null
+        current?.close()
+        current = null
         context.getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
     }
 
-    /** Replaces any popup still on screen (another pair of earbuds, say) with a new one. */
-    private fun showOverlay(context: Context, model: PopupModel, art: PopupArt): Boolean {
-        window?.close()
+    /** Replaces any popup still on screen (another pair of earbuds, say) with the card. */
+    private fun showCard(context: Context, model: PopupModel, art: PopupArt): Boolean {
+        current?.close()
         lateinit var created: PopupWindow
-        created = PopupWindow(context) { if (window === created) window = null }
-        window = created
+        created = PopupWindow(context) { if (current === created) current = null }
+        current = created
         return created.open(model, art)
+    }
+
+    /** Replaces any popup still on screen with the island. */
+    private fun showIsland(context: Context, model: PopupModel): Boolean {
+        current?.close()
+        lateinit var created: PopupIsland
+        created = PopupIsland(context) { if (current === created) current = null }
+        current = created
+        return created.open(model)
     }
 
     private fun notificationsAllowed(context: Context): Boolean =

@@ -3,6 +3,9 @@ package io.github.librebuds.overlay
 
 import io.github.librebuds.protocol.command.BatteryState
 import io.github.librebuds.state.LinkState
+import io.github.librebuds.ui.model.Battery
+import io.github.librebuds.ui.model.BatteryComponent
+import io.github.librebuds.ui.model.BatteryStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -78,5 +81,32 @@ class IslandRulesTest {
     fun batteryLevelIsZeroWhenUnknown() {
         assertEquals(0, islandBatteryLevel(battery(null, null)))
         assertEquals(0, islandBatteryLevel(null))
+    }
+
+    @Test
+    fun batteryPartsAreLeftRightCaseWithCharging() {
+        val batteries = listOf(
+            Battery(BatteryComponent.CASE, 48, BatteryStatus.NOT_CHARGING),
+            Battery(BatteryComponent.RIGHT, 80, BatteryStatus.NOT_CHARGING),
+            Battery(BatteryComponent.LEFT, 100, BatteryStatus.CHARGING),
+        )
+        assertEquals(
+            listOf(
+                IslandBatteryPart(BatteryComponent.LEFT, 100, charging = true),
+                IslandBatteryPart(BatteryComponent.RIGHT, 80, charging = false),
+                IslandBatteryPart(BatteryComponent.CASE, 48, charging = false),
+            ),
+            islandBatteryParts(batteries),
+        )
+    }
+
+    @Test
+    fun batteryPartsLeaveOutUnreportedComponents() {
+        val batteries = listOf(
+            Battery(BatteryComponent.LEFT, 60, BatteryStatus.DISCONNECTED),
+            Battery(BatteryComponent.CASE, 30, BatteryStatus.CHARGING),
+        )
+        assertEquals(listOf(IslandBatteryPart(BatteryComponent.CASE, 30, charging = true)), islandBatteryParts(batteries))
+        assertEquals(emptyList<IslandBatteryPart>(), islandBatteryParts(emptyList()))
     }
 }
