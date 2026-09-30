@@ -28,18 +28,19 @@ class FrameLog(private val capacity: Int = 2000, private val clock: () -> Long =
     fun toJsonl(): String = entries.joinToString("\n") { line(it, it.bytes.toHex(), redacted = false) }
 
     /**
-     * The frames with the serial number and full addresses removed ([FrameRedactor]); a changed line
+     * The frames with serial numbers, full addresses and host names removed ([FrameRedactor]); a changed line
      * gets `"redacted":true`, and an entry that could not be parsed is exported as `"unparsed"` with
      * its length instead of its bytes.
      */
-    @Synchronized
     fun toExportJsonl(): String {
+        // Redaction walks the whole log; only the copy is taken under the lock, so frames keep being recorded meanwhile.
+        val snapshot = synchronized(this) { entries.toList() }
         val results = HashMap<Entry, FrameRedactor.Result>()
         for (direction in FrameDirection.entries) {
-            val stream = entries.filter { it.direction == direction }
+            val stream = snapshot.filter { it.direction == direction }
             stream.zip(FrameRedactor.redact(stream.map { it.bytes })).forEach { (entry, result) -> results[entry] = result }
         }
-        return entries.joinToString("\n") { entry ->
+        return snapshot.joinToString("\n") { entry ->
             val result = results.getValue(entry)
             val bytes = result.bytes
             if (bytes == null) {

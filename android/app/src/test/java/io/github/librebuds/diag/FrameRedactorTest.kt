@@ -23,10 +23,20 @@ class FrameRedactorTest {
     // 11:22:33:44:55:66 on the wire, least-significant byte first.
     private val macWire = "66 55 44 33 22 11".hexToBytes()
     private val serial = "TESTSERIAL000001"
+    private val budSerials = "BUDSERIALLEFT01,BUDSERIALRIGHT1"
 
     private val deviceInfoReply = Packet(
         DeviceInfoCommand.GET,
-        listOf(Tlv(7, "FW 1.0.0.100".toByteArray()), Tlv(9, serial.toByteArray()), Tlv(27, macWire)),
+        listOf(
+            Tlv(3, "HW-PLATFORM".toByteArray()),
+            Tlv(7, "FW 1.0.0.100".toByteArray()),
+            Tlv(9, serial.toByteArray()),
+            Tlv(10, "SKU-A".toByteArray()),
+            Tlv(15, "SKU-B".toByteArray()),
+            Tlv(24, budSerials.toByteArray()),
+            Tlv(2, "UNKNOWN-FIELD".toByteArray()),
+            Tlv(27, macWire),
+        ),
     ).toFrame()
 
     private fun hostRow(name: String) = Packet(
@@ -43,25 +53,35 @@ class FrameRedactorTest {
     private fun single(frame: ByteArray): FrameRedactor.Result = FrameRedactor.redact(listOf(frame)).single()
 
     @Test
-    fun deviceInfoReplyLosesTheSerialAndMostOfTheMac() {
+    fun deviceInfoReplyKeepsOnlyAllowlistedFields() {
         val result = single(deviceInfoReply)
         assertTrue(result.redacted)
         val bytes = requireNotNull(result.bytes)
         assertEquals(deviceInfoReply.size, bytes.size)
-        assertFalse(String(bytes, Charsets.ISO_8859_1).contains("TESTSERIAL"))
+        val text = String(bytes, Charsets.ISO_8859_1)
+        assertFalse(text.contains("TESTSERIAL"))
+        assertFalse(text.contains("BUDSERIAL"))
+        assertFalse(text.contains("UNKNOWN"))
         val info = DeviceInfoCommand.parse(decode(bytes))!!
         assertEquals("X".repeat(serial.length), info.serial)
+        assertEquals("X".repeat(budSerials.length), info.text(24))
+        assertEquals("X".repeat("UNKNOWN-FIELD".length), info.text(2))
         assertEquals("00:00:00:00:55:66", info.macAddress)
+        assertEquals("HW-PLATFORM", info.platform)
         assertEquals("FW 1.0.0.100", info.firmware)
+        assertEquals("SKU-A", info.text(10))
+        assertEquals("SKU-B", info.text(15))
     }
 
     @Test
-    fun hostRowAddressIsMasked() {
-        val result = single(hostRow("Pixel"))
+    fun hostRowAddressAndNameAreMasked() {
+        val result = single(hostRow("Jan's Pixel"))
         assertTrue(result.redacted)
         val row = Multipoint.parseRow(decode(result.bytes!!))!!
         assertEquals("00:00:00:00:55:66", row.mac)
-        assertEquals("Pixel", row.name)
+        assertEquals("X".repeat("Jan's Pixel".length), row.name)
+        assertEquals(0, row.index)
+        assertTrue(row.connected)
     }
 
     @Test
@@ -75,11 +95,21 @@ class FrameRedactorTest {
     }
 
     @Test
-    fun changePushRecordsWithAnAddressAreMasked() {
-        val push = Packet(Multipoint.CHANGED, listOf(Tlv.of(1, 1), Tlv(2, macWire))).toFrame()
+    fun changePushRecordsWithAnAddressOrNameAreMasked() {
+        val push = Packet(Multipoint.CHANGED, listOf(Tlv.of(1, 1), Tlv(2, macWire), Tlv(3, "Ann".toByteArray()), Tlv.of(4, 0, 9))).toFrame()
         val tlvs = decode(single(push).bytes!!).tlvs
         assertArrayEquals(byteArrayOf(1), tlvs[0].value)
         assertArrayEquals("66 55 00 00 00 00".hexToBytes(), tlvs[1].value)
+        assertEquals("XXX", String(tlvs[2].value))
+        assertArrayEquals(byteArrayOf(0, 9), tlvs[3].value)
+    }
+
+    @Test
+    fun framesOverTheReassemblerLimitAreNotParsed() {
+        // A CRC-valid frame the app itself would drop as too long is not exported either.
+        val big = Packet(CommandId(0x2B, 0x2A), List(17) { Tlv(1, ByteArray(250)) }).toFrame()
+        assertTrue(big.size > FrameReassembler.DEFAULT_MAX_FRAME)
+        assertNull(single(big).bytes)
     }
 
     @Test

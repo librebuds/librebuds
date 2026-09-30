@@ -116,9 +116,11 @@ class MainActivity : ComponentActivity() {
      */
     private fun exportDiagnostics() {
         val app = LibreBudsApp.from(this)
-        val text = DiagnosticsExport.build(diagnosticsHeader(app), app.eventLog, app.frameLog)
+        val header = diagnosticsHeader(app)
         lifecycleScope.launch {
             val uri = withContext(Dispatchers.IO) {
+                // Redacting a full frame log takes a while; keep it off the main thread.
+                val text = DiagnosticsExport.build(header, app.eventLog, app.frameLog)
                 val dir = File(cacheDir, DIAGNOSTICS_DIR).apply { mkdirs() }
                 val file = File(dir, "librebuds-diagnostics.jsonl").apply { writeText(text) }
                 FileProvider.getUriForFile(this@MainActivity, "$packageName.diagnostics", file)

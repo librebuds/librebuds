@@ -6,23 +6,28 @@ import io.github.librebuds.protocol.Packet
 import io.github.librebuds.protocol.command.DeviceInfoCommand
 import io.github.librebuds.protocol.command.Multipoint
 import io.github.librebuds.protocol.frame.Crc16
+import io.github.librebuds.protocol.frame.FrameReassembler
 import io.github.librebuds.protocol.frame.LinkFrame
 
 /**
- * Removes the earbuds' serial number and full Bluetooth addresses from logged frames, for the
- * diagnostics export only (the in-memory [FrameLog] stays raw).
+ * Removes the earbuds' serial numbers, full Bluetooth addresses and host device names from logged
+ * frames, for the diagnostics export only (the in-memory [FrameLog] stays raw).
  *
  * The entries of one direction are read as one byte stream, because an RX entry is a raw RFCOMM
  * read that may hold several frames or part of one. Every CRC-valid link frame found in the stream
  * is parsed (fragments are joined into their message first) and, for the commands below, patched
- * in place: the serial (01/07 TLV 9) becomes 'X' of the same length, and each address (01/07
- * TLV 27, 2B/31 TLV 4, 2B/32 TLV 1, the address TLV of 2B/33, 2B/36 records) keeps only the two
- * bytes [EventLog.maskMacs] keeps, the rest becoming 00. Addresses travel least-significant byte
+ * in place. Hidden values become 'X' bytes of the same length: every 01/07 field except the
+ * allowlisted versions and model codes (3, 7, 10, 15) and the address (27), so the serial (9)
+ * and the earbud serials (24) never leave; the 2B/31 host name (9); and 2B/36 records other than
+ * 1- or 2-byte codes, since that push is not documented. Each address (01/07 TLV 27, 2B/31 TLV 4,
+ * 2B/32 TLV 1, the address TLV of 2B/33, 6-byte 2B/36 records) keeps only the two bytes
+ * [EventLog.maskMacs] keeps, the rest becoming 00. Addresses travel least-significant byte
  * first, so those are the first two bytes on the wire: 66 55 44 33 22 11 (11:22:33:44:55:66)
  * becomes 66 55 00 00 00 00, shown as 00:00:00:00:55:66. A value of any other length under an
  * address rule is zeroed completely. Lengths never change, so a patched frame gets a fresh
  * CRC and the stream is cut back into the original entries. An entry with any byte outside a
- * parsed frame (junk, a partial frame at the log's edges, an incomplete fragment series) is not
+ * parsed frame (junk, a partial frame at the log's edges, an incomplete fragment series, a frame
+ * over the reassembler's size limit) is not
  * exported at all: its bytes could hold anything.
  */
 object FrameRedactor {
@@ -43,7 +48,7 @@ object FrameRedactor {
 
     /** Redacts the [entries] of one direction, in the order they were logged; one result per entry. */
     fun redact(entries: List<ByteArray>): List<Result> {
-        val stream = entries.fold(ByteArray(0)) { acc, entry -> acc + entry }
+        val stream = concat(entries.map { Triple(it, 0, it.size) })
         val out = stream.copyOf()
         val parsed = BooleanArray(stream.size)
 
@@ -101,7 +106,7 @@ object FrameRedactor {
         while (i + 3 <= stream.size) {
             if ((stream[i].toInt() and 0xFF) == LinkFrame.MAGIC) {
                 val size = ((stream[i + 1].toInt() and 0xFF) shl 8 or (stream[i + 2].toInt() and 0xFF)) + 5
-                if (size >= MIN_FRAME && i + size <= stream.size && Crc16.xmodem(stream, i, i + size) == 0) {
+                if (size >= MIN_FRAME && size <= FrameReassembler.DEFAULT_MAX_FRAME && i + size <= stream.size && Crc16.xmodem(stream, i, i + size) == 0) {
                     found += Frame(i, size)
                     i += size
                     continue
@@ -114,7 +119,7 @@ object FrameRedactor {
 
     /** Joins a complete fragment series, redacts the message and writes it back fragment by fragment. */
     private fun redactFragments(stream: ByteArray, out: ByteArray, group: List<Frame>, parsed: BooleanArray) {
-        val message = group.fold(ByteArray(0)) { acc, frame -> acc + stream.copyOfRange(frame.start + 5, frame.end - 2) }
+        val message = concat(group.map { Triple(stream, it.start + 5, it.end - 2) })
         val redacted = redactPayload(message) ?: return
         var at = 0
         for (frame in group) {
@@ -128,6 +133,17 @@ object FrameRedactor {
             at += size
             parsed.fill(true, frame.start, frame.end)
         }
+    }
+
+    /** Joins the (array, from, until) slices into one array, sized once. */
+    private fun concat(slices: List<Triple<ByteArray, Int, Int>>): ByteArray {
+        val out = ByteArray(slices.sumOf { it.third - it.second })
+        var at = 0
+        for ((bytes, from, until) in slices) {
+            bytes.copyInto(out, destinationOffset = at, startIndex = from, endIndex = until)
+            at += until - from
+        }
+        return out
     }
 
     /**
@@ -144,7 +160,7 @@ object FrameRedactor {
             val start = i + 2
             val end = minOf(start + (out[i + 1].toInt() and 0xFF), out.size)
             when (rule(packet.id, type, end - start)) {
-                Rule.SERIAL -> out.fill('X'.code.toByte(), start, end)
+                Rule.HIDE -> out.fill('X'.code.toByte(), start, end)
                 Rule.MAC -> out.fill(0, if (end - start == MAC_SIZE) start + MAC_KEPT else start, end)
                 Rule.KEEP -> Unit
             }
@@ -153,21 +169,32 @@ object FrameRedactor {
         return out
     }
 
-    private enum class Rule { KEEP, SERIAL, MAC }
+    private enum class Rule { KEEP, HIDE, MAC }
+
+    /** 01/07 fields exported as they are: platform/hardware (3), firmware (7) and the model codes (10, 15). */
+    private val DEVICE_INFO_KEPT = setOf(3, 7, 10, 15)
 
     private fun rule(id: CommandId, type: Int, size: Int): Rule = when (id) {
         DeviceInfoCommand.GET -> when (type) {
-            9 -> Rule.SERIAL
+            in DEVICE_INFO_KEPT -> Rule.KEEP
             27 -> Rule.MAC
+            else -> Rule.HIDE
+        }
+        Multipoint.ENUMERATE -> when (type) {
+            4 -> Rule.MAC
+            9 -> Rule.HIDE
             else -> Rule.KEEP
         }
-        Multipoint.ENUMERATE -> if (type == 4) Rule.MAC else Rule.KEEP
         Multipoint.PREFERRED -> if (type == 1) Rule.MAC else Rule.KEEP
         // The TLV type is the action code and the value the address.
         Multipoint.EXECUTE -> if (size == MAC_SIZE) Rule.MAC else Rule.KEEP
-        // The push layout is not documented: any record long enough to hold an address is masked
-        // (a longer one entirely).
-        Multipoint.CHANGED -> if (size >= MAC_SIZE) Rule.MAC else Rule.KEEP
+        // The push layout is not documented: 1- and 2-byte codes stay, a 6-byte record is taken as
+        // an address, and anything else (a name, say) is hidden.
+        Multipoint.CHANGED -> when {
+            size <= 2 -> Rule.KEEP
+            size == MAC_SIZE -> Rule.MAC
+            else -> Rule.HIDE
+        }
         else -> Rule.KEEP
     }
 }
