@@ -18,6 +18,8 @@ import io.github.librebuds.ui.components.StyledList
 import io.github.librebuds.ui.components.StyledListItem
 import io.github.librebuds.ui.components.StyledScaffold
 import io.github.librebuds.ui.components.StyledToggle
+import io.github.librebuds.ui.screens.onboarding.OverlayAccess
+import io.github.librebuds.ui.screens.onboarding.PermissionHintRow
 import io.github.librebuds.ui.theme.DesignSystem
 import java.text.DateFormat
 import java.util.Date
@@ -32,6 +34,8 @@ fun SettingsScreen(
     onShowIslandChange: (Boolean) -> Unit,
     popupEnabled: Boolean,
     onPopupEnabledChange: (Boolean) -> Unit,
+    overlay: OverlayAccess,
+    onOpenAppInfo: () -> Unit,
     demoMode: Boolean,
     onDemoModeChange: (Boolean) -> Unit,
     artVariant: ArtVariant,
@@ -73,6 +77,16 @@ fun SettingsScreen(
                     checked = popupEnabled,
                     onCheckedChange = onPopupEnabledChange
                 )
+                // Onboarding may have been skipped or blocked; the grant stays reachable here.
+                if (!overlay.granted) {
+                    StyledListItem(
+                        name = stringResource(R.string.permission_overlay),
+                        description = stringResource(R.string.overlay_missing_reason),
+                        orientation = ListItemOrientation.Vertical,
+                        onClick = overlay.request
+                    )
+                    PermissionHintRow(overlay.hint, onOpenAppInfo)
+                }
                 if (BuildConfig.DEBUG) {
                     StyledToggle(
                         label = stringResource(R.string.demo_mode),

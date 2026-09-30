@@ -43,7 +43,12 @@ fun OnboardingScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
-            PermissionsPage(items = permissions.items, onRequest = permissions.request)
+            PermissionsPage(
+                items = permissions.items,
+                hints = permissions.hints,
+                onRequest = permissions.request,
+                onOpenAppInfo = permissions.openAppInfo
+            )
             StyledButton(
                 onClick = {
                     preferences.onboardingDone = true

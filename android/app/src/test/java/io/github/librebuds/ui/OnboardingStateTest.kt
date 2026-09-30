@@ -2,6 +2,7 @@
 package io.github.librebuds.ui
 
 import io.github.librebuds.ui.screens.onboarding.OnboardingState
+import io.github.librebuds.ui.screens.onboarding.PermissionHint
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -47,5 +48,35 @@ class OnboardingStateTest {
         assertFalse(OnboardingState.shouldOpenSettings(granted = false, wasRequested = true, shouldShowRationale = true))
         // Already granted: nothing to open.
         assertFalse(OnboardingState.shouldOpenSettings(granted = true, wasRequested = true, shouldShowRationale = false))
+    }
+
+    @Test
+    fun overlayHintOnlyAfterTheUserWasSentToTheSettings() {
+        // Never sent to the overlay page: nothing to explain yet.
+        assertEquals(PermissionHint.NONE, OnboardingState.hintFor("overlay", granted = false, wasRequested = false))
+        // Back from the overlay page without the grant: restricted settings may have blocked it.
+        assertEquals(PermissionHint.RESTRICTED_SETTINGS, OnboardingState.hintFor("overlay", granted = false, wasRequested = true))
+        // Granted after all: the hint goes away.
+        assertEquals(PermissionHint.NONE, OnboardingState.hintFor("overlay", granted = true, wasRequested = true))
+    }
+
+    @Test
+    fun overlayHintIgnoresRationale() {
+        // The overlay has no dialog, so shouldShowRationale must not hide the hint.
+        assertEquals(
+            PermissionHint.RESTRICTED_SETTINGS,
+            OnboardingState.hintFor("overlay", granted = false, wasRequested = true, shouldShowRationale = true),
+        )
+    }
+
+    @Test
+    fun runtimePermissionHintFollowsOpenSettingsRule() {
+        // Denied without a dialog on the first request: only App info can grant it now.
+        assertEquals(PermissionHint.APP_INFO, OnboardingState.hintFor(notify, granted = false, wasRequested = true, shouldShowRationale = false))
+        // Never requested: the dialog still appears.
+        assertEquals(PermissionHint.NONE, OnboardingState.hintFor(scan, granted = false, wasRequested = false, shouldShowRationale = false))
+        // Denied once, the dialog can come back.
+        assertEquals(PermissionHint.NONE, OnboardingState.hintFor(connect, granted = false, wasRequested = true, shouldShowRationale = true))
+        assertEquals(PermissionHint.NONE, OnboardingState.hintFor(connect, granted = true, wasRequested = true, shouldShowRationale = false))
     }
 }

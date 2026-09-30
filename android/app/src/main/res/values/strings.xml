@@ -33,6 +33,10 @@
     <string name="permission_notifications_reason">Show battery status</string>
     <string name="permission_overlay">Display over other apps</string>
     <string name="permission_overlay_reason">Show a popup when your earbuds connect</string>
+    <string name="permission_restricted_hint">Android may block this for apps installed from a file. Open App info, tap the ⋮ menu, choose Allow restricted settings, then try again.</string>
+    <string name="permission_app_info_hint">Android no longer shows this request. Open App info and allow it under Permissions. If it is blocked there, tap the ⋮ menu, choose Allow restricted settings, then try again.</string>
+    <string name="open_app_info">Open app info</string>
+    <string name="overlay_missing_reason">Needed for the island and the popup window; without it the popup shows as a notification</string>
     <string name="material_you_style">Material You style</string>
     <string name="show_off_mode">Show Off in noise control</string>
     <string name="app_version">Version %1$s</string>

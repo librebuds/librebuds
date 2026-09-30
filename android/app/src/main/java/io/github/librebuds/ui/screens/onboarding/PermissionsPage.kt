@@ -18,10 +18,7 @@
 */
 package io.github.librebuds.ui.screens.onboarding
 
-import android.content.Context
-import android.content.Intent
 import android.os.Build
-import android.provider.Settings
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -36,21 +33,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.isGranted
@@ -67,15 +56,20 @@ import io.github.librebuds.ui.components.StyledListItem
 import io.github.librebuds.ui.components.StyledListScope
 import io.github.librebuds.ui.icons.MaterialIcons
 
-/** Current permission items plus a way to ask for one of them. */
-class PermissionRequests(val items: List<PermissionItem>, val request: (PermissionItem) -> Unit)
+/** Current permission items, a hint per item key, and ways to ask for one or open App info. */
+class PermissionRequests(
+    val items: List<PermissionItem>,
+    val hints: Map<String, PermissionHint>,
+    val request: (PermissionItem) -> Unit,
+    val openAppInfo: () -> Unit,
+)
 
 /** Tracks the onboarding permissions; the overlay grant is re-read whenever the app resumes. */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun rememberPermissionRequests(preferences: AppPreferences): PermissionRequests {
     val context = LocalContext.current
-    var canDrawOverlays by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
+    val overlay = rememberOverlayAccess(preferences)
 
     // Connect and scan share the "Nearby devices" group, so Android asks for them together.
     val bluetoothState = rememberMultiplePermissionsState(
@@ -86,22 +80,17 @@ fun rememberPermissionRequests(preferences: AppPreferences): PermissionRequests 
     }
     val notificationState = rememberMultiplePermissionsState(listOf(OnboardingState.POST_NOTIFICATIONS))
 
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                canDrawOverlays = Settings.canDrawOverlays(context)
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
-    val granted = (bluetoothState.permissions + notificationState.permissions)
-        .filter { it.status.isGranted }
-        .map { it.permission }
-        .toSet()
-    val items = OnboardingState.items(Build.VERSION.SDK_INT, granted, canDrawOverlays)
+    val runtime = bluetoothState.permissions + notificationState.permissions
+    val granted = runtime.filter { it.status.isGranted }.map { it.permission }.toSet()
+    val items = OnboardingState.items(Build.VERSION.SDK_INT, granted, overlay.granted)
+    val hints = runtime.associate {
+        it.permission to OnboardingState.hintFor(
+            key = it.permission,
+            granted = it.status.isGranted,
+            wasRequested = preferences.wasRequested(it.permission),
+            shouldShowRationale = it.status.shouldShowRationale,
+        )
+    } + (OnboardingState.OVERLAY to overlay.hint)
 
     fun requestOrOpenSettings(state: MultiplePermissionsState, key: String) {
         val permission = state.permissions.firstOrNull { it.permission == key }
@@ -119,29 +108,18 @@ fun rememberPermissionRequests(preferences: AppPreferences): PermissionRequests 
         }
     }
 
-    return PermissionRequests(items) { item ->
-        when (item.key) {
-            OnboardingState.BLUETOOTH_CONNECT, OnboardingState.BLUETOOTH_SCAN -> requestOrOpenSettings(bluetoothState, item.key)
-            OnboardingState.POST_NOTIFICATIONS -> requestOrOpenSettings(notificationState, item.key)
-            OnboardingState.OVERLAY -> openOverlaySettings(context)
-        }
-    }
-}
-
-private fun openAppDetailsSettings(context: Context) {
-    val intent = Intent(
-        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-        "package:${context.packageName}".toUri()
-    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    context.startActivity(intent)
-}
-
-private fun openOverlaySettings(context: Context) {
-    val intent = Intent(
-        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-        "package:${context.packageName}".toUri()
-    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    context.startActivity(intent)
+    return PermissionRequests(
+        items = items,
+        hints = hints,
+        request = { item ->
+            when (item.key) {
+                OnboardingState.BLUETOOTH_CONNECT, OnboardingState.BLUETOOTH_SCAN -> requestOrOpenSettings(bluetoothState, item.key)
+                OnboardingState.POST_NOTIFICATIONS -> requestOrOpenSettings(notificationState, item.key)
+                OnboardingState.OVERLAY -> overlay.request()
+            }
+        },
+        openAppInfo = { openAppDetailsSettings(context) },
+    )
 }
 
 private class PermissionText(val title: Int, val reason: Int, val icon: ImageVector)
@@ -156,16 +134,41 @@ private fun textFor(key: String): PermissionText = when (key) {
 @Composable
 fun PermissionsPage(
     items: List<PermissionItem>,
-    onRequest: (PermissionItem) -> Unit
+    hints: Map<String, PermissionHint>,
+    onRequest: (PermissionItem) -> Unit,
+    onOpenAppInfo: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         StyledList(title = stringResource(R.string.required_permissions)) {
-            items.filter { it.required }.forEach { PermissionRow(it, onRequest) }
+            items.filter { it.required }.forEach {
+                PermissionRow(it, onRequest)
+                PermissionHintRow(hints[it.key] ?: PermissionHint.NONE, onOpenAppInfo)
+            }
         }
         StyledList(title = stringResource(R.string.optional_permissions)) {
-            items.filterNot { it.required }.forEach { PermissionRow(it, onRequest) }
+            items.filterNot { it.required }.forEach {
+                PermissionRow(it, onRequest)
+                PermissionHintRow(hints[it.key] ?: PermissionHint.NONE, onOpenAppInfo)
+            }
         }
     }
+}
+
+/** Explains a grant that did not go through and offers App info; nothing for [PermissionHint.NONE]. */
+@Composable
+fun StyledListScope.PermissionHintRow(hint: PermissionHint, onOpenAppInfo: () -> Unit) {
+    val text = when (hint) {
+        PermissionHint.NONE -> return
+        PermissionHint.RESTRICTED_SETTINGS -> R.string.permission_restricted_hint
+        PermissionHint.APP_INFO -> R.string.permission_app_info_hint
+    }
+    StyledListItem(
+        name = stringResource(R.string.open_app_info),
+        description = stringResource(text),
+        // Vertical: the paragraph needs the row's full width.
+        orientation = ListItemOrientation.Vertical,
+        onClick = onOpenAppInfo
+    )
 }
 
 @Composable

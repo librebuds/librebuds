@@ -24,6 +24,8 @@ import io.github.librebuds.ui.screens.DeviceScreen
 import io.github.librebuds.ui.screens.MultipointScreen
 import io.github.librebuds.ui.screens.SettingsScreen
 import io.github.librebuds.ui.screens.onboarding.OnboardingScreen
+import io.github.librebuds.ui.screens.onboarding.openAppDetailsSettings
+import io.github.librebuds.ui.screens.onboarding.rememberOverlayAccess
 import io.github.librebuds.ui.theme.DesignSystem
 import io.github.librebuds.ui.theme.LibreBudsTheme
 
@@ -85,6 +87,7 @@ fun AppRoot(
             }
             SETTINGS -> {
                 BackHandler { screen = DEVICE }
+                val overlay = rememberOverlayAccess(preferences)
                 SettingsScreen(
                     designSystem = designSystem,
                     onDesignSystemChange = {
@@ -112,6 +115,8 @@ fun AppRoot(
                             PopupPresenter.dismiss(context)
                         }
                     },
+                    overlay = overlay,
+                    onOpenAppInfo = { openAppDetailsSettings(context) },
                     demoMode = demoMode,
                     onDemoModeChange = {
                         demoMode = it

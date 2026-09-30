@@ -36,6 +36,9 @@ cd android
 ./gradlew :app:assembleDebug   # APK: app/build/outputs/apk/debug/app-debug.apk
 ```
 
+If you install the APK from a file, Android may block "Display over other apps" as a restricted
+setting: open App info for LibreBuds, tap the ⋮ menu, choose Allow restricted settings, then grant it again.
+
 ## License
 
 GPL-3.0, see [LICENSE](LICENSE) and [NOTICE](NOTICE).
