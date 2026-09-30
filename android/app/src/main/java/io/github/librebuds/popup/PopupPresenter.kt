@@ -74,11 +74,12 @@ fun popupBlocksIsland(popup: CasePopup?, profileId: String): Boolean =
     popup != null && popup.isOpen && popup.profileId == profileId
 
 /**
- * Whether the connection island has to go before the popup shows: only an overlay popup (either
- * style) would overlap it; a notification or no popup leaves it alone.
+ * Whether the connection island has to go once the popup is up: only an overlay popup (either
+ * style) that was actually [shown] would overlap it. A notification, no popup, or an overlay that
+ * could not be added (the notification fallback) leaves it alone.
  */
-fun popupClosesIsland(islandOpen: Boolean, action: PopupAction): Boolean =
-    islandOpen && (action == PopupAction.Island || action == PopupAction.Card)
+fun popupClosesIsland(islandOpen: Boolean, action: PopupAction, shown: Boolean): Boolean =
+    islandOpen && shown && (action == PopupAction.Island || action == PopupAction.Card)
 
 /** How long a case-open popup stays on screen without interaction, in either style. */
 const val POPUP_AUTO_CLOSE_MILLIS = 12_000L
@@ -104,13 +105,15 @@ object PopupPresenter {
             notificationsAllowed = notificationsAllowed(context),
             locked = context.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked == true,
         )
-        if (popupClosesIsland(ConnectionIslandSlot.isOpen(), action)) ConnectionIslandSlot.close()
-        when (action) {
-            PopupAction.Island -> if (!showIsland(context, model) && notificationsAllowed(context)) notify(context, model)
-            PopupAction.Card -> if (!showCard(context, model, art) && notificationsAllowed(context)) notify(context, model)
-            PopupAction.Notification -> notify(context, model)
-            PopupAction.Nothing -> Unit
+        val shown = when (action) {
+            PopupAction.Island -> showIsland(context, model)
+            PopupAction.Card -> showCard(context, model, art)
+            PopupAction.Notification, PopupAction.Nothing -> false
         }
+        // Closed at once in the same main-thread turn the popup was added, so no frame shows both.
+        if (popupClosesIsland(ConnectionIslandSlot.isOpen(), action, shown)) ConnectionIslandSlot.close()
+        val overlayFailed = !shown && (action == PopupAction.Island || action == PopupAction.Card)
+        if (action == PopupAction.Notification || overlayFailed && notificationsAllowed(context)) notify(context, model)
     }
 
     /** Whether a case-open popup for [profileId] is on screen (the connection island then stays away). */

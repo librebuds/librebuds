@@ -90,17 +90,25 @@ class PopupPresenterTest {
     }
 
     @Test
-    fun overlayPopupOfEitherStyleClosesAnOpenConnectionIsland() {
+    fun shownOverlayPopupOfEitherStyleClosesAnOpenConnectionIsland() {
         for (style in PopupStyle.entries) {
-            assertTrue("$style", popupClosesIsland(islandOpen = true, action = action(style = style)))
-            assertFalse("$style", popupClosesIsland(islandOpen = false, action = action(style = style)))
+            assertTrue("$style", popupClosesIsland(islandOpen = true, action = action(style = style), shown = true))
+            assertFalse("$style", popupClosesIsland(islandOpen = false, action = action(style = style), shown = true))
+        }
+    }
+
+    @Test
+    fun overlayThatFailedToShowLeavesTheConnectionIsland() {
+        // addView failed: the popup falls back to the notification and the island stays.
+        for (style in PopupStyle.entries) {
+            assertFalse("$style", popupClosesIsland(islandOpen = true, action = action(style = style), shown = false))
         }
     }
 
     @Test
     fun notificationOrNoPopupLeavesTheConnectionIsland() {
-        assertFalse(popupClosesIsland(islandOpen = true, action = PopupAction.Notification))
-        assertFalse(popupClosesIsland(islandOpen = true, action = PopupAction.Nothing))
+        assertFalse(popupClosesIsland(islandOpen = true, action = PopupAction.Notification, shown = false))
+        assertFalse(popupClosesIsland(islandOpen = true, action = PopupAction.Nothing, shown = false))
     }
 
     @Test
@@ -110,7 +118,7 @@ class PopupPresenterTest {
         ConnectionIslandSlot.register(isOpen = { open }, close = { closed++; open = false })
         try {
             assertTrue(ConnectionIslandSlot.isOpen())
-            if (popupClosesIsland(ConnectionIslandSlot.isOpen(), PopupAction.Island)) ConnectionIslandSlot.close()
+            if (popupClosesIsland(ConnectionIslandSlot.isOpen(), PopupAction.Island, shown = true)) ConnectionIslandSlot.close()
             assertEquals(1, closed)
             assertFalse(ConnectionIslandSlot.isOpen())
         } finally {
