@@ -18,6 +18,7 @@ import androidx.core.app.ServiceCompat
 import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.MainActivity
 import io.github.librebuds.R
+import io.github.librebuds.diag.EventLog
 import io.github.librebuds.overlay.IslandHost
 import io.github.librebuds.overlay.IslandWindow
 import io.github.librebuds.overlay.islandBatteryLevel
@@ -75,10 +76,13 @@ class BudsService : Service() {
                 }
                 val name = intent.getStringExtra(EXTRA_NAME)
                 // Launch before the collector starts, so its first state already sees the active connect.
-                if (shouldLaunchConnect(app.controller.state.value, address)) launchConnect(address, name)
+                val launch = shouldLaunchConnect(app.controller.state.value, address)
+                event(this, "start ${EventLog.maskMac(address)}: link ${app.controller.state.value.link}, ${if (launch) "connecting" else "no new connect"}")
+                if (launch) launchConnect(address, name)
                 watchState()
             }
             else -> {
+                event(this, "stop requested (${intent?.action ?: "no action"})")
                 app.controller.disconnect()
                 stopService()
             }
@@ -102,11 +106,13 @@ class BudsService : Service() {
         true
     } catch (e: ForegroundServiceStartNotAllowedException) {
         Log.w(TAG, "Not allowed to start the connection service now", e)
+        event(this, "foreground refused: ${e.javaClass.simpleName}")
         stopSelfResult(lastStartId)
         false
     } catch (e: SecurityException) {
         // The connectedDevice type needs a granted Bluetooth permission at this moment.
         Log.w(TAG, "Missing permission for the connection service", e)
+        event(this, "foreground refused: missing permission")
         stopSelfResult(lastStartId)
         false
     }
@@ -121,6 +127,7 @@ class BudsService : Service() {
             var previous: LinkState? = null
             controller.state.collect { state ->
                 if (stopTracker.onState(state.link, connectActive = connectJob?.isActive == true)) {
+                    event(this@BudsService, "stopping: link ${state.link}")
                     stopService()
                     return@collect
                 }
@@ -149,7 +156,10 @@ class BudsService : Service() {
         // A stop deferred while this connect ran applies once it finished (the state may not change again).
         scope.launch {
             job.join()
-            if (connectJob === job && stopTracker.onConnectFinished(app.controller.state.value.link)) stopService()
+            if (connectJob === job && stopTracker.onConnectFinished(app.controller.state.value.link)) {
+                event(this@BudsService, "stopping after connect: link ${app.controller.state.value.link}")
+                stopService()
+            }
         }
     }
 
@@ -220,6 +230,8 @@ class BudsService : Service() {
         @Volatile
         private var running = false
 
+        private fun event(context: Context, msg: String) = LibreBudsApp.from(context).eventLog.record(TAG, msg)
+
         /** Starts or refreshes the connection to [address]; logs instead of crashing when the system refuses. */
         fun start(context: Context, address: String, name: String?) {
             val intent = Intent(context, BudsService::class.java)
@@ -230,10 +242,13 @@ class BudsService : Service() {
                 context.startForegroundService(intent)
             } catch (e: ForegroundServiceStartNotAllowedException) {
                 Log.w(TAG, "Not allowed to start the connection service", e)
+                event(context, "service start refused: ${e.javaClass.simpleName}")
             } catch (e: IllegalStateException) {
                 Log.w(TAG, "Cannot start the connection service", e)
+                event(context, "service start failed: ${e.javaClass.simpleName}")
             } catch (e: SecurityException) {
                 Log.w(TAG, "Cannot start the connection service", e)
+                event(context, "service start failed: ${e.javaClass.simpleName}")
             }
         }
 
@@ -243,6 +258,7 @@ class BudsService : Service() {
          */
         fun stop(context: Context) {
             if (!running) {
+                event(context, "stop while not running: clearing take-over")
                 LibreBudsApp.from(context).controller.clearTakeOver()
                 return
             }
@@ -251,6 +267,7 @@ class BudsService : Service() {
             } catch (e: IllegalStateException) {
                 // Background start refused: disconnecting directly makes the running service stop itself.
                 Log.w(TAG, "Cannot deliver stop to the connection service", e)
+                event(context, "stop not delivered, disconnecting directly")
                 LibreBudsApp.from(context).controller.disconnect()
             }
         }

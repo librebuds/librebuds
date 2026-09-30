@@ -12,6 +12,7 @@ import android.content.Context
 import android.content.IntentSender
 import android.os.Build
 import android.util.Log
+import io.github.librebuds.LibreBudsApp
 
 /**
  * Associates earbuds with the app through the system companion device dialog and asks the system
@@ -19,6 +20,7 @@ import android.util.Log
  */
 class CompanionLink(context: Context) {
     private val store = AssociationStore(context)
+    private val events = LibreBudsApp.from(context).eventLog
     private val manager: CompanionDeviceManager? = context.getSystemService(CompanionDeviceManager::class.java)
 
     /**
@@ -41,6 +43,7 @@ class CompanionLink(context: Context) {
                     activity.startIntentSenderForResult(intentSender, REQUEST_CODE, null, 0, 0, 0)
                 } catch (e: IntentSender.SendIntentException) {
                     Log.w(TAG, "Cannot show the association dialog", e)
+                    events.record(TAG, "association dialog not shown: ${e.javaClass.simpleName}")
                     onDone(null)
                 }
             }
@@ -51,6 +54,7 @@ class CompanionLink(context: Context) {
 
             override fun onFailure(error: CharSequence?) {
                 Log.w(TAG, "Association failed: $error")
+                events.record(TAG, "association failed: $error")
                 onDone(null)
             }
         })
@@ -70,9 +74,11 @@ class CompanionLink(context: Context) {
             }
         } catch (e: DeviceNotAssociatedException) {
             Log.w(TAG, "Cannot observe device presence", e)
+            events.record(TAG, "presence not observed: ${e.javaClass.simpleName}")
         } catch (e: SecurityException) {
             // Presence observation is an optimisation; the association itself stays valid without it.
             Log.w(TAG, "Cannot observe device presence", e)
+            events.record(TAG, "presence not observed: ${e.javaClass.simpleName}")
         }
     }
 

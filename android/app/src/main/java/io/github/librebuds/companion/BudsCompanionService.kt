@@ -6,6 +6,7 @@ import android.companion.CompanionDeviceService
 import android.companion.DevicePresenceEvent
 import android.os.Build
 import androidx.annotation.RequiresApi
+import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.service.BudsService
 
 /**
@@ -33,6 +34,10 @@ class BudsCompanionService : CompanionDeviceService() {
     private fun handle(presence: Presence?, associationId: Int) {
         val stored = AssociationStore(this).primary()
         val action = presenceAction(presence, associationId, stored)
+        LibreBudsApp.from(this).eventLog.record(
+            TAG,
+            "presence ${presence ?: "other"} for association $associationId (stored ${stored?.associationId ?: "none"}): $action",
+        )
         // Presence is also what tells a later link drop apart: TAKEN_OVER while the earbuds are here.
         if (stored != null && action != PresenceAction.IGNORE) trackPresence(presence, stored.address)
         when (action) {
@@ -40,5 +45,9 @@ class BudsCompanionService : CompanionDeviceService() {
             PresenceAction.STOP -> BudsService.stop(this)
             PresenceAction.IGNORE -> Unit
         }
+    }
+
+    private companion object {
+        const val TAG = "BudsCompanionService"
     }
 }

@@ -3,6 +3,7 @@ package io.github.librebuds.session
 
 import io.github.librebuds.bt.Link
 import io.github.librebuds.bt.LinkFactory
+import io.github.librebuds.diag.EventLog
 import io.github.librebuds.diag.FrameLog
 import io.github.librebuds.protocol.Packet
 import io.github.librebuds.protocol.command.Anc
@@ -79,6 +80,7 @@ class BudsController(
     private val settleMillis: Long = 1500,
     private val hostListMillis: Long = 3000,
     val frameLog: FrameLog? = null,
+    private val eventLog: EventLog? = null,
     initial: BudsState = BudsState(),
 ) : BudsRepository {
     private val mutable = MutableStateFlow(initial)
@@ -124,12 +126,15 @@ class BudsController(
             anc = previous?.anc,
             updatedAtMillis = previous?.updatedAtMillis,
         )
+        event("connect ${EventLog.maskMac(address)} (generation $myGeneration)")
         val link = openLink(address, myGeneration)
         if (link == null) {
             // With audio still up after the retry, the earbuds are there but another device holds
             // the control channel.
             val next = if (isAudioConnected(address)) LinkState.TAKEN_OVER else LinkState.DISCONNECTED
-            if (generation.get() == myGeneration) mutable.update { it.copy(link = next) }
+            val current = generation.get() == myGeneration
+            event("connect gave up: no link, ${if (current) "state $next" else "superseded"}")
+            if (current) mutable.update { it.copy(link = next) }
             return@withLock
         }
         if (generation.get() != myGeneration) {
@@ -145,6 +150,7 @@ class BudsController(
         val info = current.request(DeviceInfoCommand.request()).getOrNull()?.let(DeviceInfoCommand::parse)
         if (!isCurrent(current, myGeneration)) return@withLock
         profile = registry.match(sku = info?.sku, btName = name)
+        event("connected, profile ${profile.id}, device info ${if (info == null) "missing" else "read"}")
         mutable.update {
             it.copy(
                 link = LinkState.CONNECTED,
@@ -182,7 +188,9 @@ class BudsController(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                if (attempt > 0 || !isAudioConnected(address)) return null
+                val audio = isAudioConnected(address)
+                event("open failed (attempt ${attempt + 1}, audio ${if (audio) "up" else "down"}): ${e.javaClass.simpleName}: ${e.message}")
+                if (attempt > 0 || !audio) return null
             }
             delay(OPEN_RETRY_MILLIS)
             if (generation.get() != myGeneration) return null
@@ -246,6 +254,7 @@ class BudsController(
     }
 
     fun disconnect() {
+        event("disconnect requested (link ${mutable.value.link})")
         generation.incrementAndGet()
         closeSession()
         mutable.update { it.copy(link = LinkState.DISCONNECTED) }
@@ -510,11 +519,17 @@ class BudsController(
         // A session that gave up on unanswered requests closed itself: the earbuds went silent, no
         // other device took them. Only a drop from the remote side while audio is up is TAKEN_OVER.
         if (reason is SessionGaveUpException) {
+            event("session gave up: no reply, state DISCONNECTED")
             mutable.update { it.copy(link = LinkState.DISCONNECTED, lastError = LinkError.NO_REPLY) }
             return
         }
         val next = if (isAudioConnected(address)) LinkState.TAKEN_OVER else LinkState.DISCONNECTED
+        event("session closed (${reason?.let { "${it.javaClass.simpleName}: ${it.message}" } ?: "clean"}), state $next")
         mutable.update { it.copy(link = next) }
+    }
+
+    private fun event(msg: String) {
+        eventLog?.record(TAG, msg)
     }
 
     private fun closeSession() {
@@ -529,6 +544,8 @@ class BudsController(
     }
 
     private companion object {
+        const val TAG = "BudsController"
+
         /** Timeout for unverified setting reads and read-backs: one try, not counted toward give-up. */
         const val OPTIONAL_READ_MILLIS = 1200L
         const val HOST_POLL_ATTEMPTS = 3

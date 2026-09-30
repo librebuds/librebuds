@@ -10,6 +10,7 @@ import io.github.librebuds.bt.LinkFactory
 import io.github.librebuds.bt.RfcommLinkFactory
 import io.github.librebuds.bt.isAudioConnected
 import io.github.librebuds.bt.refreshAudioConnections
+import io.github.librebuds.diag.EventLog
 import io.github.librebuds.diag.FrameLog
 import io.github.librebuds.profile.ProfileAssets
 import io.github.librebuds.protocol.profile.ProfileRegistry
@@ -48,6 +49,9 @@ class LibreBudsApp : Application() {
     lateinit var frameLog: FrameLog
         private set
 
+    /** Recent connection events for the diagnostics export; ready before onCreate, so receivers can always record. */
+    val eventLog = EventLog()
+
     /**
      * Lives as long as the process and is confined to the main thread; hosts the controller, the
      * widget updater and connect attempts, which must outlive the service that started them.
@@ -67,6 +71,7 @@ class LibreBudsApp : Application() {
             scope = appScope,
             isAudioConnected = ::isAudioConnected,
             frameLog = frameLog,
+            eventLog = eventLog,
             // Whether audio to the earbuds is up is not known yet: the profile proxies answer later.
             // A stored take-over is kept for now and settled in keepAudioConnectionsFresh().
             // A take-over saved in an earlier boot is dropped right here (bootCount differs).

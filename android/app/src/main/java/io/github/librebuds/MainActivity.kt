@@ -1,10 +1,16 @@
 // LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.librebuds
 
+import android.Manifest
+import android.bluetooth.BluetoothManager
+import android.companion.CompanionDeviceManager
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,6 +27,8 @@ import io.github.librebuds.bt.AudioConnections
 import io.github.librebuds.bt.refreshAudioConnections
 import io.github.librebuds.companion.AssociationStore
 import io.github.librebuds.companion.Stored
+import io.github.librebuds.diag.DiagnosticsExport
+import io.github.librebuds.diag.DiagnosticsHeader
 import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.service.BudsService
 import io.github.librebuds.state.AppPreferences
@@ -102,13 +110,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Shares the frame log as a cache file; a large log would not fit in an intent extra. */
+    /**
+     * Shares a header, the recent app events and the frame log as a cache file; a large log would not
+     * fit in an intent extra. The header makes the file useful even when no frame was exchanged.
+     */
     private fun exportDiagnostics() {
-        val jsonl = LibreBudsApp.from(this).frameLog.toJsonl()
+        val app = LibreBudsApp.from(this)
+        val text = DiagnosticsExport.build(diagnosticsHeader(app), app.eventLog, app.frameLog)
         lifecycleScope.launch {
             val uri = withContext(Dispatchers.IO) {
                 val dir = File(cacheDir, DIAGNOSTICS_DIR).apply { mkdirs() }
-                val file = File(dir, "librebuds-diagnostics.jsonl").apply { writeText(jsonl) }
+                val file = File(dir, "librebuds-diagnostics.jsonl").apply { writeText(text) }
                 FileProvider.getUriForFile(this@MainActivity, "$packageName.diagnostics", file)
             }
             val send = Intent(Intent.ACTION_SEND)
@@ -123,6 +135,41 @@ class MainActivity : ComponentActivity() {
                 Log.w(TAG, "No app to share diagnostics with", e)
             }
         }
+    }
+
+    private fun diagnosticsHeader(app: LibreBudsApp): DiagnosticsHeader {
+        fun granted(permission: String) = checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+        val state = app.controller.state.value
+        val bluetoothEnabled = try {
+            getSystemService(BluetoothManager::class.java)?.adapter?.isEnabled
+        } catch (e: SecurityException) {
+            null
+        }
+        val associations = try {
+            getSystemService(CompanionDeviceManager::class.java)?.myAssociations?.size
+        } catch (e: RuntimeException) {
+            null
+        }
+        return DiagnosticsHeader(
+            versionName = BuildConfig.VERSION_NAME,
+            versionCode = BuildConfig.VERSION_CODE,
+            commit = BuildConfig.BUILD_COMMIT,
+            sdkInt = Build.VERSION.SDK_INT,
+            release = Build.VERSION.RELEASE,
+            manufacturer = Build.MANUFACTURER,
+            model = Build.MODEL,
+            bluetoothEnabled = bluetoothEnabled,
+            connectGranted = granted(Manifest.permission.BLUETOOTH_CONNECT),
+            scanGranted = granted(Manifest.permission.BLUETOOTH_SCAN),
+            notificationsGranted = granted(Manifest.permission.POST_NOTIFICATIONS),
+            overlayGranted = Settings.canDrawOverlays(this),
+            associations = associations,
+            link = state.link.name,
+            lastError = state.lastError?.name,
+            profileId = state.profileId,
+            frames = app.frameLog.size(),
+            exportedAt = System.currentTimeMillis(),
+        )
     }
 
     private companion object {

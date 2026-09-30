@@ -17,6 +17,7 @@ import android.os.ParcelUuid
 import android.provider.Settings
 import android.util.Log
 import io.github.librebuds.BuildConfig
+import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.protocol.beacon.FdeeBeacon
 import io.github.librebuds.state.AppPreferences
 
@@ -38,6 +39,8 @@ object BeaconScanner {
      */
     private const val FIRST_MATCH_EXPERIMENT = false
 
+    private fun event(context: Context, msg: String) = LibreBudsApp.from(context).eventLog.record(TAG, msg)
+
     /** Starts the scan when enabled and not already registered in this boot by this app version. */
     fun ensureStarted(context: Context): Boolean {
         val preferences = AppPreferences(context)
@@ -54,9 +57,12 @@ object BeaconScanner {
     fun start(context: Context): Boolean {
         val preferences = AppPreferences(context)
         preferences.scanMarker = null
-        if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) return false
-        val adapter = adapter(context) ?: return false
-        val scanner = adapter.bluetoothLeScanner ?: return false
+        if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            event(context, "scan not started: no scan permission")
+            return false
+        }
+        val adapter = adapter(context) ?: return false.also { event(context, "scan not started: no adapter") }
+        val scanner = adapter.bluetoothLeScanner ?: return false.also { event(context, "scan not started: Bluetooth off") }
         val filter = ScanFilter.Builder()
             .setServiceData(ParcelUuid.fromString(FdeeBeacon.SERVICE_UUID), byteArrayOf(), byteArrayOf())
             .build()
@@ -70,22 +76,29 @@ object BeaconScanner {
             // Registering the same PendingIntent twice is not documented as idempotent; start clean.
             scanner.stopScan(intent)
             val status = scanner.startScan(listOf(filter), settings, intent)
-            if (status != 0) Log.w(TAG, "Beacon scan not started: $status")
+            if (status != 0) {
+                Log.w(TAG, "Beacon scan not started: $status")
+                event(context, "scan not started: status $status")
+            }
             if (status == 0) {
+                event(context, "scan started (offloaded filtering: $offloaded)")
                 preferences.scanMarker = currentMarker(context)
                 Log.i(TAG, "Beacon scan started (offloaded filtering: $offloaded, first-match experiment: ${BuildConfig.DEBUG && FIRST_MATCH_EXPERIMENT})")
             }
             status == 0
         } catch (e: SecurityException) {
             Log.w(TAG, "Beacon scan refused", e)
+            event(context, "scan refused: ${e.javaClass.simpleName}")
             false
         } catch (e: IllegalStateException) {
             // Bluetooth was turned off between the checks and the call.
             Log.w(TAG, "Beacon scan not started", e)
+            event(context, "scan not started: ${e.javaClass.simpleName}")
             false
         } catch (e: IllegalArgumentException) {
             // The stack refused the scan settings (for example the callback type).
             Log.w(TAG, "Beacon scan settings refused", e)
+            event(context, "scan settings refused: ${e.message}")
             false
         }
     }

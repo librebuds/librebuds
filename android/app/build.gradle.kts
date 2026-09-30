@@ -4,6 +4,14 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// Short commit of the checkout, for the diagnostics export; "unknown" without git or outside a repository.
+val buildCommit: String = runCatching {
+    providers.exec {
+        commandLine("git", "rev-parse", "--short", "HEAD")
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim()
+}.getOrNull()?.takeIf { it.isNotEmpty() && it.all(Char::isLetterOrDigit) } ?: "unknown"
+
 android {
     namespace = "io.github.librebuds"
     compileSdk = 37
@@ -14,6 +22,7 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField("String", "BUILD_COMMIT", "\"$buildCommit\"")
     }
 
     buildTypes {

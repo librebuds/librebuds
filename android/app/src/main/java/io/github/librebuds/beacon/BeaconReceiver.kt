@@ -30,6 +30,7 @@ class BeaconReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.hasExtra(BluetoothLeScanner.EXTRA_ERROR_CODE)) {
             Log.w(TAG, "Beacon scan failed: ${intent.getIntExtra(BluetoothLeScanner.EXTRA_ERROR_CODE, 0)}")
+            LibreBudsApp.from(context).eventLog.record(TAG, "scan failed: error ${intent.getIntExtra(BluetoothLeScanner.EXTRA_ERROR_CODE, 0)}")
             return
         }
         // With hardware filtering the scan also reports when the beacon goes away; that is not a case opening.

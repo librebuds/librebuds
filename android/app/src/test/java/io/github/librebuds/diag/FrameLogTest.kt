@@ -13,8 +13,8 @@ class FrameLogTest {
         log.record(FrameDirection.TX, "5A 00 05 00 2B 2A 01 00 42 7E".hexToBytes())
         log.record(FrameDirection.RX, "5A 00 07 00 2B 2A 01 02 00 00 15 31".hexToBytes())
         assertEquals(
-            "{\"ts\":1000,\"dir\":\"tx\",\"hex\":\"5A 00 05 00 2B 2A 01 00 42 7E\"}\n" +
-                "{\"ts\":1001,\"dir\":\"rx\",\"hex\":\"5A 00 07 00 2B 2A 01 02 00 00 15 31\"}",
+            "{\"type\":\"frame\",\"ts\":1000,\"dir\":\"tx\",\"hex\":\"5A 00 05 00 2B 2A 01 00 42 7E\"}\n" +
+                "{\"type\":\"frame\",\"ts\":1001,\"dir\":\"rx\",\"hex\":\"5A 00 07 00 2B 2A 01 02 00 00 15 31\"}",
             log.toJsonl(),
         )
     }

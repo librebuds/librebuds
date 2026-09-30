@@ -38,7 +38,7 @@ private const val MULTIPOINT = "multipoint"
 /**
  * Top-level navigation: onboarding once, then the device screen with settings, multipoint and the earbud picker on top.
  * [onAssociated] runs after the user associated new earbuds (the Bluetooth service hooks in here);
- * [onExportDiagnostics] shares the recent frame log.
+ * [onExportDiagnostics] shares the diagnostics file (header, recent events, frame log).
  */
 @Composable
 fun AppRoot(
