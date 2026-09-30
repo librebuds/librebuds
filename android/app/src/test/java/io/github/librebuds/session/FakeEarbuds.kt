@@ -159,7 +159,7 @@ class FakeEarbuds(
             listOf(
                 Tlv.of(2, hosts.size),
                 Tlv.of(3, index),
-                Tlv(4, host.mac.split(":").map { it.toInt(16).toByte() }.toByteArray()),
+                Tlv(4, host.mac.split(":").map { it.toInt(16).toByte() }.toByteArray().reversedArray()),
                 Tlv(9, host.name.toByteArray()),
                 Tlv.of(5, host.state),
                 Tlv.of(7, if (host.preferred) 1 else 0),
@@ -171,5 +171,6 @@ class FakeEarbuds(
 
     private fun Packet.byte(type: Int): Int? = find(type)?.takeIf { it.size == 1 }?.get(0)?.toInt()
 
-    private fun ByteArray.toMac(): String = joinToString(":") { "%02X".format(it.toInt() and 0xFF) }
+    // Addresses travel least-significant byte first (see Multipoint), so they are reversed on the wire.
+    private fun ByteArray.toMac(): String = reversedArray().joinToString(":") { "%02X".format(it.toInt() and 0xFF) }
 }
