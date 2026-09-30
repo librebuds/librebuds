@@ -1,6 +1,7 @@
 // LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.librebuds.popup
 
+import io.github.librebuds.overlay.ConnectionIslandSlot
 import io.github.librebuds.overlay.islandShouldShow
 import io.github.librebuds.state.LinkState
 import org.junit.Assert.assertEquals
@@ -86,5 +87,38 @@ class PopupPresenterTest {
             assertTrue("$style", connectIsland(FakePopup(style, "freebuds-pro-4")))
             assertFalse("$style", popupBlocksIsland(FakePopup(style, null), "freebuds-6"))
         }
+    }
+
+    @Test
+    fun overlayPopupOfEitherStyleClosesAnOpenConnectionIsland() {
+        for (style in PopupStyle.entries) {
+            assertTrue("$style", popupClosesIsland(islandOpen = true, action = action(style = style)))
+            assertFalse("$style", popupClosesIsland(islandOpen = false, action = action(style = style)))
+        }
+    }
+
+    @Test
+    fun notificationOrNoPopupLeavesTheConnectionIsland() {
+        assertFalse(popupClosesIsland(islandOpen = true, action = PopupAction.Notification))
+        assertFalse(popupClosesIsland(islandOpen = true, action = PopupAction.Nothing))
+    }
+
+    @Test
+    fun connectionIslandSlotClosesWhatWasRegisteredUntilUnregistered() {
+        var open = true
+        var closed = 0
+        ConnectionIslandSlot.register(isOpen = { open }, close = { closed++; open = false })
+        try {
+            assertTrue(ConnectionIslandSlot.isOpen())
+            if (popupClosesIsland(ConnectionIslandSlot.isOpen(), PopupAction.Island)) ConnectionIslandSlot.close()
+            assertEquals(1, closed)
+            assertFalse(ConnectionIslandSlot.isOpen())
+        } finally {
+            ConnectionIslandSlot.unregister()
+        }
+        open = true
+        assertFalse(ConnectionIslandSlot.isOpen())
+        ConnectionIslandSlot.close()
+        assertEquals(1, closed)
     }
 }

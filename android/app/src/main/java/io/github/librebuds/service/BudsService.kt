@@ -19,6 +19,7 @@ import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.MainActivity
 import io.github.librebuds.R
 import io.github.librebuds.diag.EventLog
+import io.github.librebuds.overlay.ConnectionIslandSlot
 import io.github.librebuds.overlay.IslandHost
 import io.github.librebuds.overlay.IslandWindow
 import io.github.librebuds.overlay.islandBatteryLevel
@@ -95,6 +96,7 @@ class BudsService : Service() {
         // Nothing keeps a session alive without the service; drop it rather than leak it.
         val link = LibreBudsApp.from(this).controller.state.value.link
         if (link == LinkState.CONNECTED || link == LinkState.CONNECTING) LibreBudsApp.from(this).controller.disconnect()
+        ConnectionIslandSlot.unregister()
         island?.forceClose()
         island = null
         scope.cancel()
@@ -168,6 +170,8 @@ class BudsService : Service() {
         if (islandHost.islandOpen) return
         val window = IslandWindow(this)
         island = window
+        // Removed at once (no close animation) when a case-open popup arrives, so they never overlap.
+        ConnectionIslandSlot.register(isOpen = { islandHost.islandOpen }, close = { window.forceClose() })
         window.show(state.name ?: getString(R.string.app_name), islandBatteryLevel(state.battery), islandHost)
     }
 

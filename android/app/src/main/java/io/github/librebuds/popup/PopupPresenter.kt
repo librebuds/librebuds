@@ -16,6 +16,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import io.github.librebuds.MainActivity
 import io.github.librebuds.R
+import io.github.librebuds.overlay.ConnectionIslandSlot
 import io.github.librebuds.protocol.command.BatteryState
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.batterySummary
@@ -72,6 +73,13 @@ interface CasePopup {
 fun popupBlocksIsland(popup: CasePopup?, profileId: String): Boolean =
     popup != null && popup.isOpen && popup.profileId == profileId
 
+/**
+ * Whether the connection island has to go before the popup shows: only an overlay popup (either
+ * style) would overlap it; a notification or no popup leaves it alone.
+ */
+fun popupClosesIsland(islandOpen: Boolean, action: PopupAction): Boolean =
+    islandOpen && (action == PopupAction.Island || action == PopupAction.Card)
+
 /** How long a case-open popup stays on screen without interaction, in either style. */
 const val POPUP_AUTO_CLOSE_MILLIS = 12_000L
 
@@ -96,6 +104,7 @@ object PopupPresenter {
             notificationsAllowed = notificationsAllowed(context),
             locked = context.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked == true,
         )
+        if (popupClosesIsland(ConnectionIslandSlot.isOpen(), action)) ConnectionIslandSlot.close()
         when (action) {
             PopupAction.Island -> if (!showIsland(context, model) && notificationsAllowed(context)) notify(context, model)
             PopupAction.Card -> if (!showCard(context, model, art) && notificationsAllowed(context)) notify(context, model)
