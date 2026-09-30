@@ -15,7 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
     Modified for LibreBuds (2026): adapted to FreeBuds, adds the case-open island, and restarts
-    the auto-close timer when a drag springs back; see NOTICE.
+    the auto-close timer on every release that leaves the island on screen; see NOTICE.
 */
 
 package io.github.librebuds.overlay
@@ -339,7 +339,8 @@ class IslandWindow(private val context: Context) {
                                 resetAutoCloseTimer()
                             }
                         }
-                    } else if (dragDistance < 10) {
+                    } else {
+                        // A tap, or a small movement that never became a drag: the island stays, so its timer runs again.
                         resetAutoCloseTimer()
                     }
 
