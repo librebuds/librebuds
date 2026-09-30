@@ -16,11 +16,12 @@ val buildCommit: String = runCatching {
 
 // Optional release signing, as in LibrePods. The properties file (RELEASE_STORE_FILE,
 // RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD) comes from the Gradle property or
-// environment variable LIBREBUDS_KEYSTORE_PROPERTIES, else android/keystore.properties. Without it the
-// release APK stays unsigned, so CI and contributors build without any key.
+// environment variable LIBREBUDS_KEYSTORE_PROPERTIES (a relative path is taken from android/), else
+// android/keystore.properties. Without it the release APK stays unsigned, so CI and contributors
+// build without any key.
 val keystorePropertiesFile: File = providers.gradleProperty("LIBREBUDS_KEYSTORE_PROPERTIES")
     .orElse(providers.environmentVariable("LIBREBUDS_KEYSTORE_PROPERTIES"))
-    .map { file(it) }
+    .map { rootProject.file(it) }
     .getOrElse(rootProject.file("keystore.properties"))
 val keystoreProperties: Properties? = keystorePropertiesFile.takeIf { it.isFile }?.let { source ->
     Properties().apply { source.inputStream().use { load(it) } }
