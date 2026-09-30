@@ -50,10 +50,13 @@ data class DiagnosticsHeader(
     }.toString()
 }
 
-/** The diagnostics file: the header line, then recent app events, then raw frames; one JSON object per line. */
+/**
+ * The diagnostics file: the header line, then recent app events, then the frames with the serial
+ * number and full addresses removed; one JSON object per line.
+ */
 object DiagnosticsExport {
     fun build(header: DiagnosticsHeader, events: EventLog, frames: FrameLog): String =
-        listOf(header.toJson(), events.toJsonl(), frames.toJsonl())
+        listOf(header.toJson(), events.toJsonl(), frames.toExportJsonl())
             .filter { it.isNotEmpty() }
             .joinToString("\n", postfix = "\n")
 }
