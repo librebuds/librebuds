@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -12,6 +14,18 @@ val buildCommit: String = runCatching {
     }.standardOutput.asText.get().trim()
 }.getOrNull()?.takeIf { it.isNotEmpty() && it.all(Char::isLetterOrDigit) } ?: "unknown"
 
+// Optional release signing, as in LibrePods. The properties file (RELEASE_STORE_FILE,
+// RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD) comes from the Gradle property or
+// environment variable LIBREBUDS_KEYSTORE_PROPERTIES, else android/keystore.properties. Without it the
+// release APK stays unsigned, so CI and contributors build without any key.
+val keystorePropertiesFile: File = providers.gradleProperty("LIBREBUDS_KEYSTORE_PROPERTIES")
+    .orElse(providers.environmentVariable("LIBREBUDS_KEYSTORE_PROPERTIES"))
+    .map { file(it) }
+    .getOrElse(rootProject.file("keystore.properties"))
+val keystoreProperties: Properties? = keystorePropertiesFile.takeIf { it.isFile }?.let { source ->
+    Properties().apply { source.inputStream().use { load(it) } }
+}
+
 android {
     namespace = "io.github.librebuds"
     compileSdk = 37
@@ -20,14 +34,29 @@ android {
         applicationId = "io.github.librebuds"
         minSdk = 33
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.0-test.2"
         buildConfigField("String", "BUILD_COMMIT", "\"$buildCommit\"")
+    }
+
+    signingConfigs {
+        keystoreProperties?.let { properties ->
+            fun required(key: String): String =
+                properties.getProperty(key) ?: error("$key is missing from $keystorePropertiesFile")
+            create("release") {
+                // A relative store path is taken relative to the properties file.
+                storeFile = keystorePropertiesFile.parentFile.resolve(required("RELEASE_STORE_FILE"))
+                storePassword = required("RELEASE_STORE_PASSWORD")
+                keyAlias = required("RELEASE_KEY_ALIAS")
+                keyPassword = required("RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
