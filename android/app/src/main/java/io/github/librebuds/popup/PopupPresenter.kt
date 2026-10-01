@@ -74,6 +74,16 @@ fun popupBlocksIsland(popup: CasePopup?, profileId: String): Boolean =
     popup != null && popup.isOpen && popup.profileId == profileId
 
 /**
+ * Whether a case-open popup for [profileId] was shown [shownAt] (null: never) recently enough that
+ * the connection island would only repeat it: opening the case raises the popup, and the earbuds
+ * usually connect a few seconds later.
+ */
+fun popupRecentlyShown(shownAt: Pair<String, Long>?, profileId: String, now: Long, windowMillis: Long = ISLAND_AFTER_POPUP_MILLIS): Boolean =
+    shownAt != null && shownAt.first == profileId && now - shownAt.second in 0 until windowMillis
+
+const val ISLAND_AFTER_POPUP_MILLIS = 60_000L
+
+/**
  * Whether the connection island has to go once the popup is up: only an overlay popup (either
  * style) that was actually [shown] would overlap it. A notification, no popup, or an overlay that
  * could not be added (the notification fallback) leaves it alone.
@@ -107,6 +117,9 @@ object PopupPresenter {
     @SuppressLint("StaticFieldLeak")
     private var current: CasePopup? = null
 
+    // Profile and time of the last overlay popup actually shown, for [isShowing].
+    private var lastShown: Pair<String, Long>? = null
+
     /** Shows the popup in the style chosen in Settings; [art] is only used by the card. */
     fun show(context: Context, model: PopupModel, art: PopupArt) {
         val preferences = AppPreferences(context)
@@ -122,6 +135,7 @@ object PopupPresenter {
             PopupAction.Card -> showCard(context, model, art)
             PopupAction.Notification, PopupAction.Nothing -> false
         }
+        if (shown) lastShown = model.profileId to System.currentTimeMillis()
         // Closed at once in the same main-thread turn the popup was added, so no frame shows both.
         if (popupClosesIsland(ConnectionIslandSlot.isOpen(), action, shown)) ConnectionIslandSlot.close()
         val overlayFailed = !shown && (action == PopupAction.Island || action == PopupAction.Card)
@@ -130,8 +144,12 @@ object PopupPresenter {
         Log.i(TAG, "popup for ${model.title}: ${deliveryDescription(action, shown, notified)}")
     }
 
-    /** Whether a case-open popup for [profileId] is on screen (the connection island then stays away). */
-    fun isShowing(profileId: String): Boolean = popupBlocksIsland(current, profileId)
+    /**
+     * Whether a case-open popup for [profileId] is on screen or was shown in the last minute; the
+     * connection island then stays away, so opening the case does not raise two islands.
+     */
+    fun isShowing(profileId: String): Boolean =
+        popupBlocksIsland(current, profileId) || popupRecentlyShown(lastShown, profileId, System.currentTimeMillis())
 
     /** Closes the popup and its notification fallback, for example when the user turned the popup off. */
     fun dismiss(context: Context) {

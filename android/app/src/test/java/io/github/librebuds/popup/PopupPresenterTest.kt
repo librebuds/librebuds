@@ -141,4 +141,15 @@ class PopupPresenterTest {
         assertEquals("notification (overlay could not be added)", deliveryDescription(PopupAction.Card, shown = false, notified = true))
         assertTrue(deliveryDescription(PopupAction.Nothing, shown = false, notified = false).startsWith("not delivered"))
     }
+
+    @Test
+    fun connectionIslandWaitsAMinuteAfterThePopupOfTheSameEarbuds() {
+        val shown = "freebuds-5" to 1_000L
+        assertTrue(popupRecentlyShown(shown, "freebuds-5", now = 20_000))
+        assertFalse(popupRecentlyShown(shown, "freebuds-5", now = 1_000 + ISLAND_AFTER_POPUP_MILLIS))
+        assertFalse(popupRecentlyShown(shown, "freebuds-6", now = 20_000))
+        assertFalse(popupRecentlyShown(null, "freebuds-5", now = 20_000))
+        // A clock set back does not hold the island off.
+        assertFalse(popupRecentlyShown(shown, "freebuds-5", now = 500))
+    }
 }
