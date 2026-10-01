@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
@@ -67,6 +68,10 @@ private val PanelColor = Color(0xF21C1C1E)
 private fun QuickSettingsPanel(viewModel: DeviceViewModel, modes: List<NoiseControlMode>, onDismiss: () -> Unit) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val batteries = ui.state.battery.toUiBatteries()
+    val context = LocalContext.current
+    val art = remember(ui.state.profileId) {
+        LibreBudsApp.from(context).registry.profiles.firstOrNull { it.id == ui.state.profileId }?.art ?: "generic"
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -99,7 +104,7 @@ private fun QuickSettingsPanel(viewModel: DeviceViewModel, modes: List<NoiseCont
                 )
             }
             if (batteries.isNotEmpty()) {
-                BatteryView(batteries)
+                BatteryView(batteries, art)
             }
             if (ui.state.isConnected && "anc" in ui.state.capabilities) {
                 ControlCenterNoiseControlSegmentedButton(

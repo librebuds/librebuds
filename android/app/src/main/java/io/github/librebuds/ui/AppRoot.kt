@@ -18,6 +18,7 @@ import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.companion.disambiguatedLabels
 import io.github.librebuds.popup.PopupPresenter
+import io.github.librebuds.protocol.profile.Profile
 import io.github.librebuds.popup.PopupVideos
 import io.github.librebuds.popup.artFor
 import io.github.librebuds.popup.demoPopupModel
@@ -67,7 +68,8 @@ fun AppRoot(
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val registry = remember { LibreBudsApp.from(context).registry }
     val showDemo = BuildConfig.DEBUG && demoMode
-    val rows = homeRows(detection, ui.state, showDemo) { id -> registry.profiles.firstOrNull { it.id == id }?.name }
+    val profileOf = { id: String -> registry.profiles.firstOrNull { it.id == id } }
+    val rows = homeRows(detection, ui.state, showDemo, profileOf)
     // Keeps each open screen's saved state (scroll position, the device screen's one association
     // request) while a screen above it shows; dropped once the screen is popped.
     val screenStates = rememberSaveableStateHolder()
@@ -102,6 +104,7 @@ fun AppRoot(
                     showOffMode = showOffMode,
                     address = top.address,
                     name = top.name,
+                    art = deviceArt(top.address, detection, ui.state, profileOf),
                     onOpened = { onResult ->
                         if (top.address == DEMO_ADDRESS) onResult(true) else onOpenEarbuds(top.address, top.name, onResult)
                     },
@@ -180,13 +183,22 @@ private val BackStackSaver = Saver<BackStack, ArrayList<String>>(
 )
 
 /**
+ * The profile `art` shape for the device screen at [address]: from the detected pair's profile, else
+ * (the demo row, or a pair no longer detected) from the controller's current profile.
+ */
+private fun deviceArt(address: String, detection: Detection, state: BudsState, profileOf: (String) -> Profile?): String {
+    val profileId = detection.buds.firstOrNull { it.address.equals(address, ignoreCase = true) }?.profileId ?: state.profileId
+    return profileOf(profileId)?.art ?: "generic"
+}
+
+/**
  * The home list: the detected earbuds (battery from the controller when it holds that pair), plus
- * the demo earbuds first when [showDemo]. [modelName] maps a profile id to its product name. Two
+ * the demo earbuds first when [showDemo]. [profileOf] maps a profile id to its profile. Two
  * detected pairs with the same name (two physical units of the same model) get the row label, not
  * the routing name, suffixed with their address so they are tellable apart; the demo row never collides.
  */
-private fun homeRows(detection: Detection, state: BudsState, showDemo: Boolean, modelName: (String) -> String?): List<HomeRow> {
-    fun row(address: String, name: String, model: String?, audioUp: Boolean, label: String = name): HomeRow {
+private fun homeRows(detection: Detection, state: BudsState, showDemo: Boolean, profileOf: (String) -> Profile?): List<HomeRow> {
+    fun row(address: String, name: String, model: String?, audioUp: Boolean, label: String = name, art: String = "generic"): HomeRow {
         val current = address.equals(state.address, ignoreCase = true)
         return HomeRow(
             address = address,
@@ -195,9 +207,13 @@ private fun homeRows(detection: Detection, state: BudsState, showDemo: Boolean, 
             connected = audioUp || (current && state.isConnected),
             battery = state.battery?.takeIf { current }?.let(::batterySummaryNoBreak),
             label = label,
+            art = art,
         )
     }
-    val demo = if (showDemo) listOf(row(DEMO_ADDRESS, DEMO_NAME, modelName(state.profileId), audioUp = false)) else emptyList()
+    val demoProfile = profileOf(state.profileId)
+    val demo = if (showDemo) listOf(row(DEMO_ADDRESS, DEMO_NAME, demoProfile?.name, audioUp = false, art = demoProfile?.art ?: "generic")) else emptyList()
     val labels = disambiguatedLabels(detection.buds)
-    return demo + detection.buds.map { row(it.address, it.name, it.model, detection.isConnected(it.address), labels.getValue(it.address)) }
+    return demo + detection.buds.map {
+        row(it.address, it.name, it.model, detection.isConnected(it.address), labels.getValue(it.address), profileOf(it.profileId)?.art ?: "generic")
+    }
 }

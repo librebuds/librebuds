@@ -69,6 +69,7 @@ fun DeviceScreen(
     showOffMode: Boolean,
     address: String,
     name: String,
+    art: String,
     onOpened: (onResult: (associated: Boolean) -> Unit) -> Unit,
     onNavigateBack: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -127,7 +128,7 @@ fun DeviceScreen(
                 )
             }
             if (batteries.isNotEmpty()) {
-                BatteryView(batteries)
+                BatteryView(batteries, art)
             }
             if (ui.state.isConnected && "anc" in ui.state.capabilities) {
                 NoiseControlSettings(

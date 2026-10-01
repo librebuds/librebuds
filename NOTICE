@@ -19,7 +19,14 @@ Third-party references:
   its layout (res/layout/popup_window.xml) is written for LibreBuds.
 - res/drawable/ic_undo.xml: Material Symbols icon path (Google, Apache License 2.0).
 - Material Symbols icon paths (Google, Apache License 2.0), via LibrePods'
-  presentation/MaterialIcons.kt (android/app/.../ui/icons/MaterialIcons.kt).
+  presentation/MaterialIcons.kt (android/app/.../ui/icons/MaterialIcons.kt), plus the
+  "nearby" path added there and res/drawable/ic_mode_off.xml, ic_mode_cancellation.xml and
+  ic_mode_awareness.xml.
+- Product renders and launcher artwork (res/drawable-nodpi/battery_*.webp, thumb_*.webp,
+  res/drawable-night-nodpi/*.webp, res/mipmap-*/ic_launcher_foreground.webp, and the
+  vectors derived from them: res/drawable/ic_launcher_monochrome.xml and ic_buds.xml):
+  LibreBuds original artwork generated with an image model; no third-party licence. The
+  launcher background (res/drawable/ic_launcher_background.xml) is a plain gradient.
 - Inter typeface (SIL Open Font License 1.1), loaded at runtime through Google Fonts.
 - Popup video clips in android/app/src/debug/res/raw/popup_*.mp4 (debug builds only) are derived from
   "HUAWEI FreeBuds 6.jpg" by Kyu3a (Wikimedia Commons, CC BY-SA 4.0,

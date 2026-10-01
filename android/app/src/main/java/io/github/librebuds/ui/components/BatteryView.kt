@@ -35,14 +35,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -55,7 +53,8 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 
 @Composable
 fun BatteryView(
-    batteryList: List<Battery>
+    batteryList: List<Battery>,
+    art: String = "generic"
 ) {
     val left = batteryList.find { it.component == BatteryComponent.LEFT }
     val right = batteryList.find { it.component == BatteryComponent.RIGHT }
@@ -80,9 +79,8 @@ fun BatteryView(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = painterResource(R.drawable.ic_buds),
+                    painter = painterResource(ProductArt.battery(art)),
                     contentDescription = stringResource(R.string.buds),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(112.dp)
@@ -133,9 +131,8 @@ fun BatteryView(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = painterResource(R.drawable.ic_case),
+                    painter = painterResource(ProductArt.CASE),
                     contentDescription = stringResource(R.string.case_alt),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(112.dp)

@@ -3,26 +3,36 @@ package io.github.librebuds.ui.screens
 
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.librebuds.R
 import io.github.librebuds.ui.components.ListItemOrientation
 import io.github.librebuds.ui.components.MaterialButtonStyle
+import io.github.librebuds.ui.components.ProductArt
 import io.github.librebuds.ui.components.StyledButton
 import io.github.librebuds.ui.components.StyledIconButton
 import io.github.librebuds.ui.components.StyledList
@@ -41,7 +51,9 @@ data class HomeRow(
     val model: String?,
     val connected: Boolean,
     val battery: String?,
-    val label: String = name
+    val label: String = name,
+    /** The profile's `art` shape, which picks the row's thumbnail. */
+    val art: String = "generic"
 )
 
 /**
@@ -80,6 +92,7 @@ fun HomeScreen(
                             name = row.label,
                             description = rowDescription(row),
                             orientation = ListItemOrientation.Vertical,
+                            leadingContent = { ProductThumbnail(row.art) },
                             onClick = { onOpenDevice(row) }
                         )
                     }
@@ -99,6 +112,27 @@ fun HomeScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * The earbuds render on a rounded tile: light grey in the light theme, dark grey in the dark theme,
+ * so the white product stays visible on the row's surface.
+ */
+@Composable
+private fun ProductThumbnail(art: String) {
+    val tile = if (isSystemInDarkTheme()) Color(0xFF2C2C2E) else Color(0xFFE3E3E8)
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .background(tile, RoundedCornerShape(12.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(ProductArt.thumbnail(art)),
+            contentDescription = null,
+            modifier = Modifier.size(42.dp)
+        )
     }
 }
 

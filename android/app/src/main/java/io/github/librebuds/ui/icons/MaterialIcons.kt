@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
@@ -313,84 +314,31 @@ object MaterialIcons {
 
     private var _bluetooth: ImageVector? = null
 
-    val bluetooth_searching: ImageVector
+    /** Material Symbols "nearby" (outlined), from its 960-unit web path. */
+    val nearby: ImageVector
         get() {
-            if (_bluetooth_searching != null) {
-                return _bluetooth_searching!!
+            if (_nearby != null) {
+                return _nearby!!
             }
-            _bluetooth_searching =
+            _nearby =
                 ImageVector.Builder(
-                    name = "bluetooth_searching",
+                    name = "nearby",
                     defaultWidth = 24.dp,
                     defaultHeight = 24.dp,
-                    viewportWidth = 24f,
-                    viewportHeight = 24f,
+                    viewportWidth = 960f,
+                    viewportHeight = 960f,
                 )
-                    .apply {
-                        path(
-                            fill = SolidColor(Color.Black),
-                            fillAlpha = 1f,
-                            stroke = null,
-                            strokeAlpha = 1f,
-                            strokeLineWidth = 1f,
-                            strokeLineCap = StrokeCap.Butt,
-                            strokeLineJoin = StrokeJoin.Bevel,
-                            strokeLineMiter = 1f,
-                            pathFillType = PathFillType.NonZero,
-                        ) {
-                            moveTo(9f, 22f)
-                            verticalLineTo(14.4f)
-                            lineTo(4.4f, 19f)
-                            lineTo(3f, 17.6f)
-                            lineTo(8.6f, 12f)
-                            lineTo(3f, 6.4f)
-                            lineTo(4.4f, 5f)
-                            lineTo(9f, 9.6f)
-                            verticalLineTo(2f)
-                            horizontalLineToRelative(1f)
-                            lineToRelative(5.7f, 5.7f)
-                            lineTo(11.4f, 12f)
-                            lineToRelative(4.3f, 4.3f)
-                            lineTo(10f, 22f)
-                            horizontalLineTo(9f)
-                            close()
-                            moveTo(11f, 9.6f)
-                            lineTo(12.9f, 7.7f)
-                            lineTo(11f, 5.85f)
-                            verticalLineTo(9.6f)
-                            close()
-                            moveToRelative(0f, 8.55f)
-                            lineTo(12.9f, 16.3f)
-                            lineTo(11f, 14.4f)
-                            verticalLineToRelative(3.75f)
-                            close()
-                            moveToRelative(5.55f, -3.8f)
-                            lineTo(14.25f, 12f)
-                            lineToRelative(2.3f, -2.3f)
-                            quadToRelative(0.23f, 0.55f, 0.36f, 1.13f)
-                            reflectiveQuadTo(17.05f, 12f)
-                            reflectiveQuadToRelative(-0.14f, 1.19f)
-                            quadToRelative(-0.14f, 0.59f, -0.36f, 1.16f)
-                            close()
-                            moveTo(19.5f, 17.2f)
-                            lineTo(18.25f, 16f)
-                            quadToRelative(0.5f, -0.93f, 0.78f, -1.94f)
-                            reflectiveQuadTo(19.3f, 12f)
-                            reflectiveQuadTo(19.03f, 9.94f)
-                            quadTo(18.75f, 8.92f, 18.25f, 8f)
-                            lineTo(19.5f, 6.75f)
-                            quadToRelative(0.73f, 1.2f, 1.11f, 2.52f)
-                            reflectiveQuadTo(21f, 12f)
-                            reflectiveQuadToRelative(-0.39f, 2.71f)
-                            quadTo(20.23f, 16.02f, 19.5f, 17.2f)
-                            close()
-                        }
-                    }
+                    .addGroup(translationY = 960f)
+                    .addPath(
+                        pathData = addPathNodes("M480-304 304-480l176-176 176 176-176 176Zm56 199q-11 11-26 17t-30 6q-15 0-30-6t-26-17L105-424q-11-11-17-26t-6-30q0-15 6-30t17-26l318-318q12-12 26.5-18t30.5-6q16 0 30.5 6t26.5 18l318 318q11 11 17 26t6 30q0 15-6 30t-17 26L536-105Zm-56-87 288-288-288-288-288 288 288 288Z"),
+                        fill = SolidColor(Color.Black),
+                    )
+                    .clearGroup()
                     .build()
-            return _bluetooth_searching!!
+            return _nearby!!
         }
 
-    private var _bluetooth_searching: ImageVector? = null
+    private var _nearby: ImageVector? = null
 
     val call: ImageVector
         get() {

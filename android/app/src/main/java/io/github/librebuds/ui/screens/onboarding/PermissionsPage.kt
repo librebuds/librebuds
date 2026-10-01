@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
@@ -36,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -55,6 +57,8 @@ import io.github.librebuds.ui.components.StyledList
 import io.github.librebuds.ui.components.StyledListItem
 import io.github.librebuds.ui.components.StyledListScope
 import io.github.librebuds.ui.icons.MaterialIcons
+import io.github.librebuds.ui.theme.DesignSystem
+import io.github.librebuds.ui.theme.LocalDesignSystem
 
 /** Current permission items, a hint per item key, and ways to ask for one or open App info. */
 class PermissionRequests(
@@ -122,13 +126,14 @@ fun rememberPermissionRequests(preferences: AppPreferences): PermissionRequests 
     )
 }
 
-private class PermissionText(val title: Int, val reason: Int, val icon: ImageVector)
+/** [tile] is the iOS-style tint behind the white glyph in the Apple design system. */
+private class PermissionText(val title: Int, val reason: Int, val icon: ImageVector, val tile: Color)
 
 private fun textFor(key: String): PermissionText = when (key) {
-    OnboardingState.BLUETOOTH_CONNECT -> PermissionText(R.string.permission_bluetooth_connect, R.string.permission_bluetooth_connect_reason, MaterialIcons.bluetooth)
-    OnboardingState.BLUETOOTH_SCAN -> PermissionText(R.string.permission_bluetooth_scan, R.string.permission_bluetooth_scan_reason, MaterialIcons.bluetooth_searching)
-    OnboardingState.POST_NOTIFICATIONS -> PermissionText(R.string.permission_notifications, R.string.permission_notifications_reason, MaterialIcons.notifications)
-    else -> PermissionText(R.string.permission_overlay, R.string.permission_overlay_reason, MaterialIcons.stack)
+    OnboardingState.BLUETOOTH_CONNECT -> PermissionText(R.string.permission_bluetooth_connect, R.string.permission_bluetooth_connect_reason, MaterialIcons.bluetooth, Color(0xFF007AFF))
+    OnboardingState.BLUETOOTH_SCAN -> PermissionText(R.string.permission_bluetooth_scan, R.string.permission_bluetooth_scan_reason, MaterialIcons.nearby, Color(0xFF5856D6))
+    OnboardingState.POST_NOTIFICATIONS -> PermissionText(R.string.permission_notifications, R.string.permission_notifications_reason, MaterialIcons.notifications, Color(0xFFFF3B30))
+    else -> PermissionText(R.string.permission_overlay, R.string.permission_overlay_reason, MaterialIcons.stack, Color(0xFFFF9500))
 }
 
 @Composable
@@ -190,18 +195,35 @@ private fun StyledListScope.PermissionRow(
         description = stringResource(text.reason),
         orientation = ListItemOrientation.Vertical,
         leadingContent = {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(containerColor, MaterialShapes.SoftBurst.normalized().toShape()),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = text.icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = iconColor
-                )
+            if (LocalDesignSystem.current == DesignSystem.Apple) {
+                // iOS Settings style: a white glyph on a tinted rounded square.
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(text.tile, RoundedCornerShape(9.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = text.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = Color.White
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(containerColor, MaterialShapes.SoftBurst.normalized().toShape()),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = text.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = iconColor
+                    )
+                }
             }
         },
         trailingContent = {
