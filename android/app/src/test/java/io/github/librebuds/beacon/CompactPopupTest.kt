@@ -128,4 +128,12 @@ class CompactPopupTest {
         assertEquals(listOf("ignored: already shown for this opening: FreeBuds 5 [000141/0 compact open, -60 dBm]"), decisionLogLines(batch(6_000, open to -60), logged))
         shown.forEach { assertTrue(!it.contains("11:11")) }
     }
+
+    @Test
+    fun aClosedCaseOfTheSameModelNearbyDoesNotEndTheOpening() {
+        // Another FreeBuds 5, lid closed, shares the model key with the user's open case.
+        assertEquals(listOf(PopupDecision.SHOW, PopupDecision.IGNORE_NOT_OPEN), decisions(batch(0, open to -60, closed to -75)))
+        assertEquals(listOf(PopupDecision.IGNORE_NOT_OPEN, PopupDecision.IGNORE_SHOWN), decisions(batch(6_000, closed to -75, open to -60)))
+        assertEquals(listOf(PopupDecision.IGNORE_SHOWN), decisions(batch(12_000, open to -60)))
+    }
 }

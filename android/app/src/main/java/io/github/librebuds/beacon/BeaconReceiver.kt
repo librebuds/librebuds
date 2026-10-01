@@ -62,7 +62,7 @@ class BeaconReceiver : BroadcastReceiver() {
             bonded = bondedProfiles(context, app.registry),
         )
         val pruned = CaseOpenings.prune(openings, now)
-        if (pruned != before) openingStore.save(pruned)
+        if (CaseOpenings.worthSaving(before, pruned)) openingStore.save(pruned)
         for (line in decisionLogLines(verdicts, lastLogged)) Log.i(TAG, line)
         for (verdict in verdicts) {
             if (verdict.decision != PopupDecision.SHOW) continue

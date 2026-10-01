@@ -83,6 +83,19 @@ object CaseOpenings {
         }.toMap()
     }
 
+    /**
+     * Whether [next] is worth writing over [previous]: a changed lid, popup or battery state, or an
+     * open time moved by more than [SAVE_INTERVAL_MILLIS]. An open case sends many frames a second.
+     */
+    fun worthSaving(previous: Map<String, Opening>, next: Map<String, Opening>): Boolean =
+        previous.keys != next.keys || next.any { (key, o) ->
+            val p = previous.getValue(key)
+            p.open != o.open || p.shown != o.shown || p.batteries != o.batteries ||
+                o.lastOpenAt - p.lastOpenAt !in 0 until SAVE_INTERVAL_MILLIS
+        }
+
+    private const val SAVE_INTERVAL_MILLIS = 5_000L
+
     /** Drops openings not seen for an hour (or stamped in the future), so the store stays small. */
     fun prune(openings: Map<String, Opening>, now: Long): Map<String, Opening> =
         openings.filterValues { now - it.lastOpenAt in 0 until PopupTimes.MAX_AGE_MILLIS }

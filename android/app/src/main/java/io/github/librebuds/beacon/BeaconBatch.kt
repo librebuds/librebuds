@@ -4,6 +4,7 @@ package io.github.librebuds.beacon
 import io.github.librebuds.protocol.beacon.Beacon
 import io.github.librebuds.protocol.beacon.BeaconFormat
 import io.github.librebuds.protocol.beacon.FdeeBeacon
+import io.github.librebuds.protocol.beacon.LidState
 import io.github.librebuds.protocol.profile.Profile
 import io.github.librebuds.protocol.profile.ProfileRegistry
 
@@ -48,13 +49,17 @@ fun judgeBatch(
     bonded: Set<String>? = null,
 ): List<BeaconVerdict> {
     val shownInBatch = mutableMapOf<String, Long>()
-    return results.mapNotNull { result ->
-        val beacon = result.serviceData?.let(FdeeBeacon::parse) ?: return@mapNotNull null
+    val parsed = results.mapNotNull { result -> result.serviceData?.let(FdeeBeacon::parse)?.let { result to it } }
+    // Openings are keyed by model, so a second, closed case of the same model nearby must not end the
+    // opening of a case seen open in this very batch (whatever the order of the frames).
+    val openInBatch = parsed.filter { (_, beacon) -> beacon.caseOpen }.map { (_, beacon) -> cooldownKey(beacon) }.toSet()
+    return parsed.map { (result, beacon) ->
         val sighting = BeaconSighting(result.address, result.rssi, beacon, now)
         val key = cooldownKey(beacon)
         val lastShown = shownInBatch[key] ?: lastShownAt(key)
         val verdict = if (beacon.format == BeaconFormat.COMPACT) {
-            val opening = CaseOpenings.step(openings[key], beacon, now)
+            val closesHere = beacon.lid == LidState.CLOSED || beacon.lid == LidState.TRANSITIONAL
+            val opening = if (closesHere && key in openInBatch) openings[key] else CaseOpenings.step(openings[key], beacon, now)
             if (opening != null) openings[key] = opening else openings.remove(key)
             val known = compactProfile(beacon, registry, associated, bonded) != null
             val profile = popupProfile(beacon, registry, associated, claimUnknown = false)

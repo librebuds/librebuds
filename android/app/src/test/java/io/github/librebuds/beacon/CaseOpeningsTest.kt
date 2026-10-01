@@ -80,4 +80,16 @@ class CaseOpeningsTest {
         assertEquals(emptyMap<String, Opening>(), CaseOpenings.decode("not json"))
         assertEquals(emptyMap<String, Opening>(), CaseOpenings.decode("""{"k":{"open":true}}"""))
     }
+
+    @Test
+    fun savesOnlyMeaningfulChanges() {
+        val opening = CaseOpenings.step(null, open, 10_000)!!
+        val before = mapOf("k" to opening)
+        assertFalse(CaseOpenings.worthSaving(before, mapOf("k" to opening.copy(lastOpenAt = 14_000))))
+        assertTrue(CaseOpenings.worthSaving(before, mapOf("k" to opening.copy(lastOpenAt = 15_000))))
+        assertTrue(CaseOpenings.worthSaving(before, mapOf("k" to opening.copy(shown = true))))
+        assertTrue(CaseOpenings.worthSaving(before, mapOf("k" to opening.copy(open = false))))
+        assertTrue(CaseOpenings.worthSaving(before, emptyMap()))
+        assertTrue(CaseOpenings.worthSaving(emptyMap(), before))
+    }
 }
