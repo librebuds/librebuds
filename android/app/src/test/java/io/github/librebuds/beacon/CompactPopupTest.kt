@@ -108,7 +108,7 @@ class CompactPopupTest {
     fun twoModelsAreTrackedSeparately() {
         val verdicts = batch(0, open to -60, neighbourOpen to -60, bonded = setOf("freebuds-5", "freebuds-pro-2"))
         assertEquals(listOf(PopupDecision.SHOW, PopupDecision.SHOW), decisions(verdicts))
-        assertTrue(openings.keys.containsAll(listOf("000141/0", "000131/1")))
+        assertTrue(openings.keys.containsAll(listOf("000141/0@11:11:11:11:11:11", "000131/1@11:11:11:11:11:11")))
     }
 
     @Test
@@ -135,5 +135,28 @@ class CompactPopupTest {
         assertEquals(listOf(PopupDecision.SHOW, PopupDecision.IGNORE_NOT_OPEN), decisions(batch(0, open to -60, closed to -75)))
         assertEquals(listOf(PopupDecision.IGNORE_NOT_OPEN, PopupDecision.IGNORE_SHOWN), decisions(batch(6_000, closed to -75, open to -60)))
         assertEquals(listOf(PopupDecision.IGNORE_SHOWN), decisions(batch(12_000, open to -60)))
+    }
+
+    private fun batchFrom(now: Long, vararg results: Triple<String, ByteArray, Int>): List<BeaconVerdict> {
+        val verdicts = judgeBatch(
+            results = results.map { (address, data, rssi) -> RawSighting(address, rssi, data) },
+            now = now, rules = rules, registry = registry, associated = null,
+            lastShownAt = { shownAt[it] }, openings = openings, bonded = setOf("freebuds-5"),
+        )
+        verdicts.filter { it.decision == PopupDecision.SHOW }.forEach { shownAt[cooldownKey(it.sighting.beacon)] = now }
+        return verdicts
+    }
+
+    @Test
+    fun anotherPairsClosedCaseInItsOwnBatchDoesNotRestartTheOpening() {
+        // Seen on a phone with two FreeBuds 5: the closed pair on the desk sent its frames in batches
+        // of their own, and every one of them ended the opening of the pair in the user's hand.
+        val mine = "AA:AA:AA:AA:AA:01"
+        val desk = "BB:BB:BB:BB:BB:02"
+        assertEquals(listOf(PopupDecision.SHOW), decisions(batchFrom(0, Triple(mine, open, -60))))
+        assertEquals(listOf(PopupDecision.IGNORE_NOT_OPEN), decisions(batchFrom(5_000, Triple(desk, closed, -72))))
+        assertEquals(listOf(PopupDecision.IGNORE_SHOWN), decisions(batchFrom(5_100, Triple(mine, open, -58))))
+        assertEquals(listOf(PopupDecision.IGNORE_NOT_OPEN), decisions(batchFrom(10_000, Triple(desk, closed, -70))))
+        assertEquals(listOf(PopupDecision.IGNORE_SHOWN), decisions(batchFrom(10_100, Triple(mine, open, -57))))
     }
 }

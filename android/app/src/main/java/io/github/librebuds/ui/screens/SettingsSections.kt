@@ -119,11 +119,14 @@ fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, on
  */
 @Composable
 fun CancellationLevelList(picker: Picker, onSelect: (Int) -> Unit) {
-    var request by remember { mutableStateOf<PickerRequest?>(null) }
+    var open by remember { mutableStateOf(false) }
+    val title = stringResource(R.string.cancellation_level)
     StyledList {
-        PickerRow(stringResource(R.string.cancellation_level), picker, { request = it }, onSelect = onSelect)
+        PickerRow(title, picker, { open = true }, onSelect = onSelect)
     }
-    PickerSheet(request) { request = null }
+    // Built from the live picker on every recomposition, so the check follows the earbuds' level
+    // (a request captured when the row was tapped would keep showing the old one).
+    PickerSheet(if (open) PickerRequest(title, picker, onSelect) else null) { open = false }
 }
 
 @Composable

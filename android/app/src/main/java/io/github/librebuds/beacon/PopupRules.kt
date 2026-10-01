@@ -30,8 +30,11 @@ class PopupRules(
      * -79 dBm from a phone close by; only earbuds bonded to this phone get this far, so it is lenient.
      */
     private val compactThreshold: Int = -80,
-    /** Openings already show once each; this only stops a lid flapping open and shut. */
-    private val compactCooldownMillis: Long = 5_000,
+    /**
+     * Openings already show once each. This also covers a pair whose BLE address rotates while the
+     * case stays open (a new address looks like a new opening) and a lid flapping open and shut.
+     */
+    private val compactCooldownMillis: Long = 20_000,
 ) {
     /**
      * A compact beacon: shows on the first frame of an [opening] that is near enough, then never

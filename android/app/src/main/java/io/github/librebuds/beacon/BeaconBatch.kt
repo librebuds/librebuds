@@ -29,6 +29,9 @@ data class BeaconVerdict(
  */
 fun cooldownKey(beacon: Beacon): String = "${beacon.modelId ?: "-"}/${beacon.subModelId ?: 0}"
 
+/** The key an opening is followed under: one transmitter (model and BLE address). */
+fun openingKey(beacon: Beacon, address: String): String = "${cooldownKey(beacon)}@$address"
+
 /**
  * Decides every parsable result of one scan batch at wall-clock [now]. A popup shown for a key earlier
  * in the batch puts the key's later sightings in cooldown; [lastShownAt] gives the stored times.
@@ -50,21 +53,24 @@ fun judgeBatch(
 ): List<BeaconVerdict> {
     val shownInBatch = mutableMapOf<String, Long>()
     val parsed = results.mapNotNull { result -> result.serviceData?.let(FdeeBeacon::parse)?.let { result to it } }
-    // Openings are keyed by model, so a second, closed case of the same model nearby must not end the
-    // opening of a case seen open in this very batch (whatever the order of the frames).
-    val openInBatch = parsed.filter { (_, beacon) -> beacon.caseOpen }.map { (_, beacon) -> cooldownKey(beacon) }.toSet()
+    // Openings are followed per transmitter (model and BLE address): a second case of the same model
+    // nearby, closed on the desk, must not end the opening of the case in the user's hand. Seen on a
+    // real phone with two FreeBuds 5: the other pair's closed frames restarted the opening every few
+    // seconds and raised the island again and again.
+    val openInBatch = parsed.filter { (_, beacon) -> beacon.caseOpen }.map { (result, beacon) -> openingKey(beacon, result.address) }.toSet()
     return parsed.map { (result, beacon) ->
         val sighting = BeaconSighting(result.address, result.rssi, beacon, now)
         val key = cooldownKey(beacon)
         val lastShown = shownInBatch[key] ?: lastShownAt(key)
         val verdict = if (beacon.format == BeaconFormat.COMPACT) {
             val closesHere = beacon.lid == LidState.CLOSED || beacon.lid == LidState.TRANSITIONAL
-            val opening = if (closesHere && key in openInBatch) openings[key] else CaseOpenings.step(openings[key], beacon, now)
-            if (opening != null) openings[key] = opening else openings.remove(key)
+            val okey = openingKey(beacon, result.address)
+            val opening = if (closesHere && okey in openInBatch) openings[okey] else CaseOpenings.step(openings[okey], beacon, now)
+            if (opening != null) openings[okey] = opening else openings.remove(okey)
             val known = compactProfile(beacon, registry, associated, bonded) != null
             val profile = popupProfile(beacon, registry, associated, claimUnknown = false)
             val decision = rules.decideCompact(sighting, known, opening, lastShown)
-            if (decision == PopupDecision.SHOW) openings[key] = opening!!.copy(shown = true)
+            if (decision == PopupDecision.SHOW) openings[okey] = opening!!.copy(shown = true)
             BeaconVerdict(sighting, decision, profile, opening?.batteries ?: BudBatteries())
         } else {
             val profile = popupProfile(beacon, registry, associated)
