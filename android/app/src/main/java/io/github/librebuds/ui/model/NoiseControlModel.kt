@@ -30,13 +30,14 @@ private fun noiseControlMode(mode: AncMode): NoiseControlMode? = NoiseControlMod
 
 /**
  * The cancellation level picker for [profile]: the device's [currentLevel] (null when not
- * reported) and the profile's levels in its order. Null when the profile lists no levels.
+ * reported) and the profile's levels in its order. Null when the profile lists fewer than two
+ * levels: a single option is nothing to choose.
  * The current level is named by its shared meaning even when the profile does not offer it, so
  * a level the earbuds picked themselves still reads as e.g. "Ultra" rather than a raw code.
  */
 fun cancellationLevelPicker(profile: Profile, currentLevel: Int?): Picker? {
     val levels = profile.cancellationLevels()
-    if (levels.isEmpty()) return null
+    if (levels.size < 2) return null
     val options = levels.map { SettingOption(it, profile.cancellationLevelKey(it)) }
     val extra = currentLevel?.takeIf { level -> options.none { it.code == level } }
         ?.let { SettingOption(it, profile.cancellationLevelKey(it)) }

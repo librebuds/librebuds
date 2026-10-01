@@ -60,12 +60,14 @@ class NoiseControlModelTest {
         assertEquals(OptionGroup.CANCELLATION_LEVEL, picker.group)
         assertEquals(listOf(3 to "dynamic", 1 to "cozy", 0 to "general"), picker.options.map { it.code to it.key })
         assertNull(cancellationLevelPicker(profile("""{"modes":["off","cancellation"]}"""), 3))
+        // A single level is nothing to choose.
+        assertNull(cancellationLevelPicker(threeModes, 3))
     }
 
     @Test
     fun levelOutsideTheListIsNamedButNotOffered() {
-        val ultra = cancellationLevelPicker(threeModes, 2)!!
-        assertEquals(listOf(3), ultra.options.map { it.code })
+        val ultra = cancellationLevelPicker(freebuds5, 2)!!
+        assertEquals(listOf(3, 1, 0), ultra.options.map { it.code })
         assertEquals("ultra", ultra.keyOf(2))
         val unknown = cancellationLevelPicker(freebuds5, 5)!!
         assertEquals(listOf(3, 1, 0), unknown.options.map { it.code })
