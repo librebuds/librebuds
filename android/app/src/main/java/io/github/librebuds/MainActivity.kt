@@ -26,7 +26,7 @@ import io.github.librebuds.bt.AclTracker
 import io.github.librebuds.bt.AudioConnections
 import io.github.librebuds.bt.refreshAudioConnections
 import io.github.librebuds.companion.AssociationStore
-import io.github.librebuds.companion.Stored
+import io.github.librebuds.companion.CompanionLink
 import io.github.librebuds.diag.DiagnosticsExport
 import io.github.librebuds.diag.DiagnosticsHeader
 import io.github.librebuds.protocol.profile.ProfileRegistry
@@ -66,8 +66,7 @@ class MainActivity : ComponentActivity() {
                 viewModel,
                 settingsViewModel,
                 preferences,
-                associationStore,
-                onAssociated = ::onAssociated,
+                onOpenEarbuds = ::openEarbuds,
                 onExportDiagnostics = ::exportDiagnostics
             )
         }
@@ -79,35 +78,43 @@ class MainActivity : ComponentActivity() {
         // Covers a scan permission granted in the system settings and a force stop, which dropped the scan.
         BeaconScanner.ensureStarted(this)
         val stored = associationStore.primary() ?: return
-        if (AclTracker.isConnected(stored.address)) {
-            BudsService.start(this, stored.address, stored.name)
-        } else {
-            startIfAudioConnected(stored)
-        }
+        startIfConnected(stored.address, stored.name)
     }
 
     /**
-     * [AclTracker] is empty after the process restarted, so also look for the stored earbuds among
-     * the connected A2DP and headset devices, and record them in [AclTracker] when found.
+     * Starts the connection service for [address] once the earbuds are known to be connected. [AclTracker]
+     * is empty after the process restarted, so the connected A2DP and headset devices are asked too, and
+     * earbuds found there are recorded in [AclTracker].
      */
-    private fun startIfAudioConnected(stored: Stored) {
+    private fun startIfConnected(address: String, name: String?) {
+        if (AclTracker.isConnected(address)) {
+            BudsService.start(this, address, name)
+            return
+        }
         var started = false
         refreshAudioConnections(this) {
-            if (started || !AudioConnections.contains(stored.address)) return@refreshAudioConnections
-            AclTracker.onConnected(stored.address)
+            if (started || !AudioConnections.contains(address)) return@refreshAudioConnections
+            AclTracker.onConnected(address)
             if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
                 started = true
-                BudsService.start(this, stored.address, stored.name)
+                BudsService.start(this, address, name)
             }
         }
     }
 
-    /** Starts the service for fresh earbuds and records them as present if their audio is already up. */
-    private fun onAssociated(stored: Stored) {
-        BudsService.start(this, stored.address, stored.name)
-        refreshAudioConnections(this) {
-            if (AudioConnections.contains(stored.address)) AclTracker.onConnected(stored.address)
+    /**
+     * A device screen opened [address]. The first time, the system companion dialog links these earbuds
+     * to the app (for background presence) and they become the stored pair. They connect if they are
+     * connected to the phone, also when the dialog was declined; it returns on the next visit. The controller holds one pair, so the last opened earbuds are the ones it follows.
+     */
+    private fun openEarbuds(address: String, name: String, onResult: (Boolean) -> Unit) {
+        // Connect first: a dismissed dialog may never call back, and the visible app needs no association.
+        startIfConnected(address, name)
+        if (associationStore.primary()?.address.equals(address, ignoreCase = true)) {
+            onResult(true)
+            return
         }
+        CompanionLink(this).associate(this, address, name) { stored -> onResult(stored != null) }
     }
 
     /**

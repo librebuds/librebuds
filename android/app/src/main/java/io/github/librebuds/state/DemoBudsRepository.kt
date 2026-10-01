@@ -16,6 +16,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
+/** The address the demo earbuds report; never a real device. */
+const val DEMO_ADDRESS = "00:00:00:00:00:00"
+
+/** The demo earbuds' name, as shown on the home list. */
+const val DEMO_NAME = "Demo earbuds"
+
 /**
  * In-memory earbuds for UI work without hardware (debug builds, demo mode). Every per-model
  * setting and two multipoint hosts are seeded so all sections can be seen; changes only update
@@ -28,8 +34,8 @@ class DemoBudsRepository(
     private val mutable = MutableStateFlow(
         BudsState(
             link = LinkState.CONNECTED,
-            address = "00:00:00:00:00:00",
-            name = "Demo earbuds",
+            address = DEMO_ADDRESS,
+            name = DEMO_NAME,
             profileId = "freebuds-6",
             capabilities = setOf("battery", "anc", "wear", "gestures", "equalizer", "lowLatency", "soundQuality", "multipoint", "language"),
             battery = BatteryState(90, 100, 85, 60, false, false, true),

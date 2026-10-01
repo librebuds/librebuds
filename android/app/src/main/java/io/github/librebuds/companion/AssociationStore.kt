@@ -7,7 +7,10 @@ import androidx.core.content.edit
 /** The earbuds the user associated through the companion device manager. */
 data class Stored(val address: String, val name: String?, val associationId: Int)
 
-/** Persists the primary association; one pair of earbuds for now. */
+/**
+ * Persists the primary association (the earbuds the service connects to) and every address that was
+ * ever associated, so renamed earbuds the app knows stay listed.
+ */
 class AssociationStore(context: Context) {
     private val prefs = context.getSharedPreferences("association", Context.MODE_PRIVATE)
 
@@ -17,7 +20,11 @@ class AssociationStore(context: Context) {
         return Stored(address, prefs.getString(KEY_NAME, null), prefs.getInt(KEY_ASSOCIATION_ID, 0))
     }
 
+    /** Addresses of every pair of earbuds associated so far, the primary included. */
+    fun known(): Set<String> = prefs.getStringSet(KEY_KNOWN, null).orEmpty() + listOfNotNull(primary()?.address)
+
     fun save(stored: Stored) = prefs.edit {
+        putStringSet(KEY_KNOWN, prefs.getStringSet(KEY_KNOWN, null).orEmpty() + stored.address.uppercase())
         putString(KEY_ADDRESS, stored.address)
         putString(KEY_NAME, stored.name)
         putInt(KEY_ASSOCIATION_ID, stored.associationId)
@@ -29,5 +36,6 @@ class AssociationStore(context: Context) {
         const val KEY_ADDRESS = "address"
         const val KEY_NAME = "name"
         const val KEY_ASSOCIATION_ID = "association_id"
+        const val KEY_KNOWN = "known_addresses"
     }
 }

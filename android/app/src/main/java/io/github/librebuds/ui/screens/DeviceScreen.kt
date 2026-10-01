@@ -22,7 +22,11 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -35,7 +39,6 @@ import io.github.librebuds.ui.DeviceViewModel
 import io.github.librebuds.ui.SettingsViewModel
 import io.github.librebuds.ui.components.AboutCard
 import io.github.librebuds.ui.components.BatteryView
-import io.github.librebuds.ui.components.MaterialButtonStyle
 import io.github.librebuds.ui.components.NoiseControlSettings
 import io.github.librebuds.ui.components.StyledButton
 import io.github.librebuds.ui.components.StyledIconButton
@@ -54,22 +57,39 @@ internal fun screenContentPadding(): PaddingValues {
     return PaddingValues(start = 16.dp, end = 16.dp, top = top, bottom = bottom)
 }
 
+/**
+ * One pair of earbuds. [onOpened] runs once per visit to link these earbuds to the app (the system
+ * companion dialog the first time) and reports whether they are associated. The controller holds one
+ * pair at a time: while it is busy with other earbuds, this screen only shows that these are not connected.
+ */
 @Composable
 fun DeviceScreen(
     viewModel: DeviceViewModel,
     settingsViewModel: SettingsViewModel,
     showOffMode: Boolean,
-    hasDevice: Boolean,
-    onAddDevice: () -> Unit,
+    address: String,
+    name: String,
+    onOpened: (onResult: (associated: Boolean) -> Unit) -> Unit,
+    onNavigateBack: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenMultipoint: () -> Unit
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val settings by settingsViewModel.ui.collectAsStateWithLifecycle()
     val batteries = ui.state.battery.toUiBatteries()
+    var requested by rememberSaveable(address) { mutableStateOf(false) }
+    var declined by rememberSaveable(address) { mutableStateOf(false) }
+    LaunchedEffect(address) {
+        if (requested) return@LaunchedEffect
+        requested = true
+        onOpened { associated -> declined = !associated }
+    }
+    val current = address.equals(ui.state.address, ignoreCase = true)
 
     StyledScaffold(
-        title = ui.state.name ?: stringResource(R.string.app_name),
+        title = name,
+        showBackButton = true,
+        onNavigateBack = onNavigateBack,
         actionButtons = listOf { backdrop ->
             StyledIconButton(
                 icon = Icons.Filled.Settings,
@@ -85,15 +105,15 @@ fun DeviceScreen(
                 .padding(screenContentPadding()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (!hasDevice) {
-                StyledButton(
-                    onClick = onAddDevice,
-                    backdrop = rememberLayerBackdrop(),
-                    materialButtonStyle = MaterialButtonStyle.Filled,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = stringResource(R.string.add_earbuds), style = MaterialTheme.typography.labelLarge)
-                }
+            if (declined) {
+                Text(
+                    text = stringResource(R.string.association_declined),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+            if (!current) {
+                LinkBanner(takenOver = false, updatedAtMillis = null, onTakeOver = {})
                 return@Column
             }
             if (!ui.state.isConnected) {
