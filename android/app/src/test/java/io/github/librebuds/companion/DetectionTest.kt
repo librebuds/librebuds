@@ -61,8 +61,8 @@ class DetectionTest {
 
         val labels = disambiguatedLabels(listOf(first, second, unique))
 
-        assertEquals("HUAWEI FreeBuds 5 (…55:66)", labels.getValue("11:22:33:44:55:66"))
-        assertEquals("HUAWEI FreeBuds 5 (…77:88)", labels.getValue("aa:bb:cc:dd:77:88"))
+        assertEquals("HUAWEI FreeBuds 5 · 55:66", labels.getValue("11:22:33:44:55:66"))
+        assertEquals("HUAWEI FreeBuds 5 · 77:88", labels.getValue("aa:bb:cc:dd:77:88"))
         assertEquals("HUAWEI FreeBuds Pro 4", labels.getValue("99:88:77:66:55:44"))
     }
 
@@ -73,8 +73,8 @@ class DetectionTest {
 
         val labels = disambiguatedLabels(listOf(lower, upper))
 
-        assertEquals("huawei freebuds 5 (…55:66)", labels.getValue("11:11:11:11:55:66"))
-        assertEquals("HUAWEI FREEBUDS 5 (…55:66)", labels.getValue("22:22:22:22:55:66"))
+        assertEquals("huawei freebuds 5 · 55:66", labels.getValue("11:11:11:11:55:66"))
+        assertEquals("HUAWEI FREEBUDS 5 · 55:66", labels.getValue("22:22:22:22:55:66"))
     }
 
     @Test

@@ -43,14 +43,15 @@ fun detectFreeBuds(bonded: List<BondedDevice>, registry: ProfileRegistry, known:
 
 /**
  * A home-list label per address: [buds] whose name is shared with another pair (two physical units
- * of the same model keep the stock Bluetooth name) get the last two bytes of their address appended,
- * so the rows stay tellable apart; a name no one else shares keeps its plain form.
+ * of the same model keep the stock Bluetooth name) get the last two bytes of their address appended
+ * after a separating dot, so the rows stay tellable apart without reading as cramped; a name no one
+ * else shares keeps its plain form.
  */
 fun disambiguatedLabels(buds: List<DetectedBuds>): Map<String, String> {
     val counts = buds.groupingBy { it.name.lowercase() }.eachCount()
     return buds.associate { bud ->
         val label = if (counts.getValue(bud.name.lowercase()) > 1) {
-            "${bud.name} (…${bud.address.takeLast(5).uppercase()})"
+            "${bud.name} · ${bud.address.takeLast(5).uppercase()}"
         } else {
             bud.name
         }
