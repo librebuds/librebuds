@@ -129,4 +129,16 @@ class PopupPresenterTest {
         ConnectionIslandSlot.close()
         assertEquals(1, closed)
     }
+
+    @Test
+    fun deliveryIsDescribedForTheLog() {
+        assertEquals("overlay card", deliveryDescription(PopupAction.Card, shown = true, notified = false))
+        assertEquals("overlay island", deliveryDescription(PopupAction.Island, shown = true, notified = false))
+        assertEquals(
+            "notification (locked screen or no overlay permission)",
+            deliveryDescription(PopupAction.Notification, shown = false, notified = true),
+        )
+        assertEquals("notification (overlay could not be added)", deliveryDescription(PopupAction.Card, shown = false, notified = true))
+        assertTrue(deliveryDescription(PopupAction.Nothing, shown = false, notified = false).startsWith("not delivered"))
+    }
 }

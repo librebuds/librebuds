@@ -81,6 +81,15 @@ fun popupBlocksIsland(popup: CasePopup?, profileId: String): Boolean =
 fun popupClosesIsland(islandOpen: Boolean, action: PopupAction, shown: Boolean): Boolean =
     islandOpen && shown && (action == PopupAction.Island || action == PopupAction.Card)
 
+/** How [PopupPresenter.show] delivered a popup, for the log. */
+fun deliveryDescription(action: PopupAction, shown: Boolean, notified: Boolean): String = when {
+    action == PopupAction.Nothing -> "not delivered (popup off, or no overlay or notification permission)"
+    shown -> "overlay ${if (action == PopupAction.Island) "island" else "card"}"
+    notified && action == PopupAction.Notification -> "notification (locked screen or no overlay permission)"
+    notified -> "notification (overlay could not be added)"
+    else -> "not delivered (overlay failed, notifications not allowed)"
+}
+
 /** How long a case-open popup stays on screen without interaction, in either style. */
 const val POPUP_AUTO_CLOSE_MILLIS = 12_000L
 
@@ -113,7 +122,9 @@ object PopupPresenter {
         // Closed at once in the same main-thread turn the popup was added, so no frame shows both.
         if (popupClosesIsland(ConnectionIslandSlot.isOpen(), action, shown)) ConnectionIslandSlot.close()
         val overlayFailed = !shown && (action == PopupAction.Island || action == PopupAction.Card)
-        if (action == PopupAction.Notification || overlayFailed && notificationsAllowed(context)) notify(context, model)
+        val notified = action == PopupAction.Notification || overlayFailed && notificationsAllowed(context)
+        if (notified) notify(context, model)
+        Log.i(TAG, "popup for ${model.title}: ${deliveryDescription(action, shown, notified)}")
     }
 
     /** Whether a case-open popup for [profileId] is on screen (the connection island then stays away). */
