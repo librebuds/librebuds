@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import io.github.librebuds.LibreBudsApp
 
 private const val TAG = "BondedDevices"
 
@@ -24,4 +25,20 @@ fun readBondedDevices(context: Context): List<BondedDevice>? {
         Log.w(TAG, "Cannot list paired devices", e)
         null
     }
+}
+
+/**
+ * The paired FreeBuds (see [detectFreeBuds]), or null when the Bluetooth connect permission is missing.
+ * Shared by the connection service and the screens so both recognise the same earbuds.
+ */
+fun readDetectedBuds(context: Context): List<DetectedBuds>? {
+    val bonded = readBondedDevices(context) ?: return null
+    return detectFreeBuds(bonded, LibreBudsApp.from(context).registry, AssociationStore(context).known())
+}
+
+/** Whether Bluetooth is on; false without an adapter or when the system refuses to tell. */
+fun isBluetoothOn(context: Context): Boolean = try {
+    context.getSystemService(BluetoothManager::class.java)?.adapter?.isEnabled == true
+} catch (e: SecurityException) {
+    false
 }

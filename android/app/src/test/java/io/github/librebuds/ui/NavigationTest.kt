@@ -2,87 +2,60 @@
 package io.github.librebuds.ui
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NavigationTest {
-    private val buds = Route.Device("33:33:33:33:33:33", "HUAWEI FreeBuds 6")
-    private val other = Route.Device("44:44:44:44:44:44", "FreeBuds Pro 4")
-
     @Test
-    fun coldStartWithOneConnectedOpensItOverHome() {
-        val stack = BackStack.initial(onboardingDone = true).autoOpen(listOf(buds))
-        assertEquals(listOf(Route.Home, buds), stack.entries)
-
-        val home = stack.back()!!
-        assertEquals(listOf(Route.Home), home.entries)
-        assertNull("Back at home leaves the app", home.back())
+    fun startsOnTheBudsScreenOnceOnboardingIsDone() {
+        assertEquals(listOf(Route.Buds), BackStack.initial(onboardingDone = true).entries)
+        assertEquals(listOf(Route.Onboarding), BackStack.initial(onboardingDone = false).entries)
     }
 
     @Test
-    fun coldStartWithNoneOrSeveralConnectedStaysHome() {
-        assertEquals(listOf(Route.Home), BackStack.initial(true).autoOpen(emptyList()).entries)
-        assertEquals(listOf(Route.Home), BackStack.initial(true).autoOpen(listOf(buds, other)).entries)
+    fun backOnTheBudsScreenLeavesTheApp() {
+        assertNull(BackStack.initial(true).back())
     }
 
     @Test
-    fun autoOpenFiresOnlyOnce() {
-        val stack = BackStack.initial(true).autoOpen(emptyList())
-        assertFalse(stack.autoOpenPending)
-        assertEquals(listOf(Route.Home), stack.autoOpen(listOf(buds)).entries)
+    fun finishingOnboardingReplacesItWithTheRoot() {
+        val stack = BackStack.initial(onboardingDone = false).finishOnboarding()
+        assertEquals(listOf(Route.Buds), stack.entries)
+        assertNull("Back does not return to onboarding", stack.back())
     }
 
     @Test
-    fun autoOpenWaitsForOnboardingThenApplies() {
-        val onboarding = BackStack.initial(onboardingDone = false).autoOpen(listOf(buds))
-        assertEquals(listOf(Route.Onboarding), onboarding.entries)
-        assertTrue(onboarding.autoOpenPending)
-
-        val home = onboarding.finishOnboarding()
-        assertEquals(listOf(Route.Home), home.entries)
-        assertEquals(listOf(Route.Home, buds), home.autoOpen(listOf(buds)).entries)
-    }
-
-    @Test
-    fun autoOpenDoesNotJumpOverAScreenTheUserOpened() {
-        val stack = BackStack.initial(true).push(Route.Settings).autoOpen(listOf(buds))
-        assertEquals(listOf(Route.Home, Route.Settings), stack.entries)
-        assertFalse(stack.autoOpenPending)
-    }
-
-    @Test
-    fun settingsAndMultipointReturnToWhereTheyWereOpened() {
-        val device = BackStack.initial(true).push(buds)
-        assertEquals(device, device.push(Route.Settings).back())
-        assertEquals(device, device.push(Route.Multipoint).back())
-
-        val home = BackStack.initial(true)
-        assertEquals(home, home.push(Route.Settings).back())
+    fun settingsAndMultipointReturnToTheBudsScreen() {
+        val root = BackStack.initial(true)
+        assertEquals(root, root.push(Route.Settings).back())
+        assertEquals(root, root.push(Route.Multipoint).back())
+        assertEquals(root.push(Route.Multipoint), root.push(Route.Multipoint).push(Route.Settings).back())
     }
 
     @Test
     fun pushingTheSameScreenTwiceKeepsOneEntry() {
-        val stack = BackStack.initial(true).push(buds).push(buds)
-        assertEquals(listOf(Route.Home, buds), stack.entries)
+        val stack = BackStack.initial(true).push(Route.Settings).push(Route.Settings)
+        assertEquals(listOf(Route.Buds, Route.Settings), stack.entries)
     }
 
     @Test
     fun topKeysDifferPerEntry() {
-        val device = BackStack.initial(true).push(buds)
-        val settings = device.push(Route.Settings)
-        assertEquals(device.topKey(), settings.back()!!.topKey())
-        assertTrue(setOf(BackStack.initial(true).topKey(), device.topKey(), settings.topKey()).size == 3)
+        val root = BackStack.initial(true)
+        val multipoint = root.push(Route.Multipoint)
+        val settings = multipoint.push(Route.Settings)
+        assertEquals(multipoint.topKey(), settings.back()!!.topKey())
+        assertTrue(setOf(root.topKey(), multipoint.topKey(), settings.topKey()).size == 3)
     }
 
     @Test
     fun encodesAndDecodes() {
-        val stack = BackStack.initial(true).push(Route.Device("AA:BB:CC:DD:EE:FF", "Buds | renamed")).push(Route.Multipoint)
+        val stack = BackStack.initial(true).push(Route.Multipoint).push(Route.Settings)
         assertEquals(stack, BackStack.decode(stack.encode()))
-        val done = BackStack.initial(true).autoOpen(emptyList())
-        assertEquals(done, BackStack.decode(done.encode()))
-        assertNull(BackStack.decode(listOf("auto:pending", "nowhere")))
+        assertEquals(BackStack.initial(false), BackStack.decode(BackStack.initial(false).encode()))
+        assertNull(BackStack.decode(listOf("buds", "nowhere")))
+        // A stack saved by the version with the home list is unusable and falls back to a fresh start.
+        assertNull(BackStack.decode(listOf("auto:pending", "home")))
         assertNull(BackStack.decode(emptyList()))
     }
 }

@@ -7,17 +7,32 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.bluetooth.BluetoothA2dp
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothHeadset
+import android.bluetooth.BluetoothProfile
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import androidx.core.content.IntentCompat
 import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.MainActivity
 import io.github.librebuds.R
+import io.github.librebuds.bt.isAudioConnected
+import io.github.librebuds.bt.probeAclConnections
+import io.github.librebuds.bt.refreshAudioConnections
+import io.github.librebuds.companion.Presence
+import io.github.librebuds.companion.isBluetoothOn
+import io.github.librebuds.companion.readDetectedBuds
+import io.github.librebuds.companion.trackPresence
 import io.github.librebuds.diag.EventLog
 import io.github.librebuds.overlay.ConnectionIslandSlot
 import io.github.librebuds.overlay.IslandHost
@@ -28,6 +43,7 @@ import io.github.librebuds.popup.PopupPresenter
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.LinkState
+import io.github.librebuds.state.PairHistory
 import io.github.librebuds.state.batterySummary
 import io.github.librebuds.ui.model.Battery
 import io.github.librebuds.ui.model.toUiBatteries
@@ -37,62 +53,62 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
- * Keeps the earbud connection alive while they are around, as a `connectedDevice` foreground service.
+ * The background side of the app, as a `connectedDevice` foreground service. It is started at boot, when
+ * the app opens and when paired FreeBuds connect, and keeps running while Bluetooth is on and at least
+ * one pair of FreeBuds is paired ([serviceShouldRun]). Meanwhile it follows the ACL, A2DP and headset
+ * state of every paired FreeBuds and connects the control channel of whichever pair is connected to the
+ * phone ([AutoConnectPlanner]); no companion device association is needed for that.
+ *
  * The connect itself runs on the app scope so stopping the service never cancels a blocking socket
- * connect halfway; [BudsController.disconnect] is what aborts it.
+ * connect halfway; [io.github.librebuds.session.BudsController.disconnect] is what aborts it.
  */
 class BudsService : Service() {
     private val scope = MainScope()
     private var collector: Job? = null
-    private var stopTracker = ServiceStopTracker()
+    private val planner = AutoConnectPlanner()
 
-    // The latest connect launched by this service; it runs on the app scope (see the class KDoc).
+    // The latest connect launched by this service and the address it is for.
     private var connectJob: Job? = null
+    private var connectAddress: String? = null
 
     // Stopping with the latest startId never discards a START that is still being delivered.
     private var lastStartId = 0
     private var island: IslandWindow? = null
+    private var receiverRegistered = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         running = true
-        val channel = NotificationChannel(CHANNEL_ID, getString(R.string.notification_channel_connection), NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(CHANNEL_ID, getString(R.string.notification_channel_connection), NotificationManager.IMPORTANCE_LOW).apply {
+            description = getString(R.string.notification_channel_connection_description)
+            setShowBadge(false)
+        }
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        val filter = IntentFilter().apply { WATCHED_ACTIONS.forEach(::addAction) }
+        // Only the system sends these protected broadcasts; exported just makes sure they are delivered.
+        registerReceiver(bluetoothReceiver, filter, Context.RECEIVER_EXPORTED)
+        receiverRegistered = true
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         lastStartId = startId
-        val app = LibreBudsApp.from(this)
-        when (intent?.action) {
-            ACTION_START -> {
-                // Enter the foreground before anything else: a service started with
-                // startForegroundService() must do so even if it is about to stop.
-                if (!enterForeground(app.controller.state.value)) return START_NOT_STICKY
-                val address = intent.getStringExtra(EXTRA_ADDRESS)
-                if (address == null) {
-                    stopService()
-                    return START_NOT_STICKY
-                }
-                val name = intent.getStringExtra(EXTRA_NAME)
-                // Launch before the collector starts, so its first state already sees the active connect.
-                val launch = shouldLaunchConnect(app.controller.state.value, address)
-                event(this, "start ${EventLog.maskMac(address)}: link ${app.controller.state.value.link}, ${if (launch) "connecting" else "no new connect"}")
-                if (launch) launchConnect(address, name)
-                watchState()
-            }
-            else -> {
-                event(this, "stop requested (${intent?.action ?: "no action"})")
-                app.controller.disconnect()
-                stopService()
-            }
-        }
-        return START_NOT_STICKY
+        // Enter the foreground before anything else: a service started with
+        // startForegroundService() must do so even if it is about to stop.
+        if (!enterForeground(LibreBudsApp.from(this).controller.state.value)) return START_NOT_STICKY
+        watchState()
+        // A null intent is a restart by the system after it killed the process (START_STICKY).
+        val preferred = intent?.getStringExtra(EXTRA_ADDRESS)
+        event(this, "start (${if (intent == null) "restarted" else "requested"}${preferred?.let { ", for ${EventLog.maskMac(it)}" } ?: ""})")
+        sweep(preferred)
+        return START_STICKY
     }
 
     override fun onDestroy() {
         running = false
+        if (receiverRegistered) unregisterReceiver(bluetoothReceiver)
+        receiverRegistered = false
         // Nothing keeps a session alive without the service; drop it rather than leak it.
         val link = LibreBudsApp.from(this).controller.state.value.link
         if (link == LinkState.CONNECTED || link == LinkState.CONNECTING) LibreBudsApp.from(this).controller.disconnect()
@@ -119,20 +135,79 @@ class BudsService : Service() {
         false
     }
 
-    /** Mirrors the controller state into the notification and stops once the earbuds are gone. */
+    /**
+     * Re-reads which FreeBuds are connected: the ACL probe and the profile proxies, which answer later
+     * and evaluate again. Then decides at once with what is known, preferring [preferred] when the
+     * user opened that pair in the app.
+     */
+    private fun sweep(preferred: String? = null) {
+        readDetectedBuds(this)?.let { buds -> probeAclConnections(this, buds.map { it.address }) }
+        refreshAudioConnections(this) { evaluate("profiles") }
+        evaluate("sweep", preferred)
+    }
+
+    /** Stops when the service is no longer needed, otherwise connects the pair the planner picks. */
+    private fun evaluate(reason: String, preferred: String? = null) {
+        if (!running) return
+        val buds = readDetectedBuds(this)
+        if (!serviceShouldRun(isBluetoothOn(this), connectGranted = buds != null, bondedFreeBuds = buds?.size ?: 0)) {
+            event(this, "stopping ($reason): bluetooth ${if (isBluetoothOn(this)) "on" else "off"}, ${buds?.size ?: "no permission for"} paired FreeBuds")
+            stopService()
+            return
+        }
+        val controller = LibreBudsApp.from(this).controller
+        // A take-over without audio to those earbuds any more is over: they may connect on their own next time.
+        controller.clearTakeOver(keepWhile = ::isAudioConnected)
+        val state = controller.state.value
+        val connected = buds.orEmpty().filter { isAudioConnected(it.address) }.map { it.address } +
+            // The controller is talking to its pair right now, whatever the trackers missed.
+            listOfNotNull(state.address?.takeIf { state.link == LinkState.CONNECTED || state.link == LinkState.CONNECTING })
+        val target = preferred?.takeIf { address ->
+            connected.any { it.equals(address, ignoreCase = true) } && !planner.isHeldElsewhere(address)
+        } ?: planner.target(connected, PairHistory(this).all(), state)
+        if (target == null || !shouldLaunchConnect(state, target)) return
+        if (connectJob?.isActive == true && target.equals(connectAddress, ignoreCase = true)) return
+        val name = buds.orEmpty().firstOrNull { it.address.equals(target, ignoreCase = true) }?.bondedName
+        event(this, "connect ${EventLog.maskMac(target)} ($reason, link ${state.link})")
+        launchConnect(target, name)
+    }
+
+    private val bluetoothReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val address = IntentCompat.getParcelableExtra(intent, BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)?.address
+            when (intent.action) {
+                BluetoothDevice.ACTION_ACL_CONNECTED -> address?.let {
+                    trackPresence(Presence.APPEARED, it)
+                    if (isFreeBuds(it)) PairHistory(context).record(it)
+                    planner.onLinkUp(it)
+                }
+                BluetoothDevice.ACTION_ACL_DISCONNECTED -> address?.let {
+                    trackPresence(Presence.DISAPPEARED, it)
+                    planner.onGone(it)
+                }
+                BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED, BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED -> {
+                    val profileState = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, BluetoothProfile.STATE_DISCONNECTED)
+                    // Audio coming up is often when the control channel accepts a connect that failed on the bare ACL.
+                    if (profileState == BluetoothProfile.STATE_CONNECTED) address?.let(planner::onLinkUp)
+                    refreshAudioConnections(context) { evaluate("profiles changed") }
+                }
+            }
+            evaluate(intent.action?.substringAfterLast('.') ?: "broadcast")
+        }
+    }
+
+    private fun isFreeBuds(address: String): Boolean =
+        readDetectedBuds(this).orEmpty().any { it.address.equals(address, ignoreCase = true) }
+
+    /** Mirrors the controller state into the notification and the island, and re-plans once a link ends. */
     private fun watchState() {
         if (collector?.isActive == true) return
         val controller = LibreBudsApp.from(this).controller
         val manager = getSystemService(NotificationManager::class.java)
-        stopTracker = ServiceStopTracker()
         collector = scope.launch {
             var previous: LinkState? = null
             controller.state.collect { state ->
-                if (stopTracker.onState(state.link, connectActive = connectJob?.isActive == true)) {
-                    event(this@BudsService, "stopping: link ${state.link}")
-                    stopService()
-                    return@collect
-                }
+                planner.onState(state)
                 val islandWanted = islandShouldShow(
                     previous = previous,
                     current = state.link,
@@ -144,25 +219,20 @@ class BudsService : Service() {
                     showIsland(state)
                 }
                 island?.update(state.battery.toUiBatteries())
-                previous = state.link
                 // Without POST_NOTIFICATIONS the update is dropped; the service keeps running.
                 manager.notify(NOTIFICATION_ID, notification(state))
+                // A link that just ended may leave another connected pair to switch to.
+                if (state.link == LinkState.DISCONNECTED && previous != null && previous != LinkState.DISCONNECTED) evaluate("link ended")
+                previous = state.link
             }
         }
     }
 
     private fun launchConnect(address: String, name: String?) {
         val app = LibreBudsApp.from(this)
-        val job = app.appScope.launch { app.controller.connect(address, name) }
-        connectJob = job
-        // A stop deferred while this connect ran applies once it finished (the state may not change again).
-        scope.launch {
-            job.join()
-            if (connectJob === job && stopTracker.onConnectFinished(app.controller.state.value.link)) {
-                event(this@BudsService, "stopping after connect: link ${app.controller.state.value.link}")
-                stopService()
-            }
-        }
+        planner.onLaunched(address)
+        connectAddress = address
+        connectJob = app.appScope.launch { app.controller.connect(address, name) }
     }
 
     /** Shows the connection island; runs on the main thread, where the state collector runs. */
@@ -199,25 +269,39 @@ class BudsService : Service() {
     }
 
     private fun notification(state: BudsState): Notification {
-        val text = when (state.link) {
-            LinkState.CONNECTED -> batterySummary(state.battery)
-            LinkState.CONNECTING -> getString(R.string.connecting)
-            LinkState.TAKEN_OVER -> getString(R.string.controlled_by_other)
-            LinkState.DISCONNECTED -> getString(R.string.not_connected)
-        }
+        val content = notificationContent(
+            state,
+            appName = getString(R.string.app_name),
+            connected = getString(R.string.buds_connected),
+            connecting = getString(R.string.connecting),
+            takenOver = getString(R.string.controlled_by_other),
+            waiting = getString(R.string.notification_waiting),
+        )
         val open = PendingIntent.getActivity(
             this, 0,
             Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        // The service must stay in the foreground, but its notification need not show: the system lets
+        // the user turn this channel off, and this action goes straight there.
+        val hide = PendingIntent.getActivity(
+            this, 1,
+            Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                .putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL_ID)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_buds)
-            .setContentTitle(state.name ?: getString(R.string.app_name))
-            .setContentText(text)
+            .setContentTitle(content.title)
+            .setContentText(content.text)
             .setContentIntent(open)
+            .addAction(0, getString(R.string.notification_hide), hide)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
+            .setShowWhen(false)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .build()
     }
@@ -227,21 +311,35 @@ class BudsService : Service() {
         private const val CHANNEL_ID = "connection"
         private const val NOTIFICATION_ID = 1
         private const val ACTION_START = "io.github.librebuds.action.START"
-        private const val ACTION_STOP = "io.github.librebuds.action.STOP"
         private const val EXTRA_ADDRESS = "address"
-        private const val EXTRA_NAME = "name"
+
+        private val WATCHED_ACTIONS = listOf(
+            BluetoothDevice.ACTION_ACL_CONNECTED,
+            BluetoothDevice.ACTION_ACL_DISCONNECTED,
+            BluetoothDevice.ACTION_BOND_STATE_CHANGED,
+            BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED,
+            BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED,
+            BluetoothAdapter.ACTION_STATE_CHANGED,
+        )
 
         @Volatile
         private var running = false
 
         private fun event(context: Context, msg: String) = LibreBudsApp.from(context).eventLog.record(TAG, msg)
 
-        /** Starts or refreshes the connection to [address]; logs instead of crashing when the system refuses. */
-        fun start(context: Context, address: String, name: String?) {
-            val intent = Intent(context, BudsService::class.java)
-                .setAction(ACTION_START)
-                .putExtra(EXTRA_ADDRESS, address)
-                .putExtra(EXTRA_NAME, name)
+        /**
+         * Makes sure the service runs, when [serviceShouldRun] says it should; logs instead of crashing
+         * when the system refuses. [preferred] is a pair the user opened in the app: when it is connected
+         * to the phone, the service switches to it (never reclaiming one another device holds).
+         */
+        fun start(context: Context, preferred: String? = null) {
+            val buds = readDetectedBuds(context)
+            val bluetoothOn = isBluetoothOn(context)
+            if (!serviceShouldRun(bluetoothOn, connectGranted = buds != null, bondedFreeBuds = buds?.size ?: 0)) {
+                if (!running) event(context, "not starting: bluetooth ${if (bluetoothOn) "on" else "off"}, ${buds?.size ?: "no permission for"} paired FreeBuds")
+                return
+            }
+            val intent = Intent(context, BudsService::class.java).setAction(ACTION_START).putExtra(EXTRA_ADDRESS, preferred)
             try {
                 context.startForegroundService(intent)
             } catch (e: ForegroundServiceStartNotAllowedException) {
@@ -257,23 +355,33 @@ class BudsService : Service() {
         }
 
         /**
-         * Disconnects and stops the service. When it is not running there is nothing to stop, but
-         * a take-over is cleared: the earbuds are gone, so the next START may connect them again.
+         * Earbuds left the phone. The running service follows that through its own receiver; when it
+         * is not running, a take-over is cleared (the earbuds are gone), so they may connect again.
          */
-        fun stop(context: Context) {
-            if (!running) {
-                event(context, "stop while not running: clearing take-over")
-                LibreBudsApp.from(context).controller.clearTakeOver()
-                return
-            }
-            try {
-                context.startService(Intent(context, BudsService::class.java).setAction(ACTION_STOP))
-            } catch (e: IllegalStateException) {
-                // Background start refused: disconnecting directly makes the running service stop itself.
-                Log.w(TAG, "Cannot deliver stop to the connection service", e)
-                event(context, "stop not delivered, disconnecting directly")
-                LibreBudsApp.from(context).controller.disconnect()
-            }
+        fun onEarbudsGone(context: Context) {
+            if (running) return
+            LibreBudsApp.from(context).controller.clearTakeOver(keepWhile = ::isAudioConnected)
         }
+    }
+}
+
+/** The notification's title and line. */
+data class NotificationContent(val title: String, val text: String)
+
+/**
+ * What the persistent notification says: the pair and its model with the battery while connected,
+ * the pair and what is going on while connecting or held by another device, and a quiet waiting line
+ * (titled with the app) while no FreeBuds are connected, rather than a "Not connected" alarm.
+ */
+fun notificationContent(state: BudsState, appName: String, connected: String, connecting: String, takenOver: String, waiting: String): NotificationContent {
+    val name = state.name ?: appName
+    return when (state.link) {
+        LinkState.CONNECTED -> NotificationContent(
+            name,
+            listOfNotNull(state.device.model?.takeIf { it != state.name }, state.battery?.let(::batterySummary)).joinToString(" · ").ifEmpty { connected },
+        )
+        LinkState.CONNECTING -> NotificationContent(name, connecting)
+        LinkState.TAKEN_OVER -> NotificationContent(name, takenOver)
+        LinkState.DISCONNECTED -> NotificationContent(appName, waiting)
     }
 }

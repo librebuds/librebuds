@@ -41,7 +41,7 @@ class LibreBudsApp : Application() {
     lateinit var controller: BudsController
         private set
 
-    /** Device profiles bundled as assets; loaded once for the controller and the home list. */
+    /** Device profiles bundled as assets; loaded once for the controller and the pair detection. */
     lateinit var registry: ProfileRegistry
         private set
 

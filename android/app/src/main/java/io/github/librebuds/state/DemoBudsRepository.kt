@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.update
 /** The address the demo earbuds report; never a real device. */
 const val DEMO_ADDRESS = "00:00:00:00:00:00"
 
-/** The demo earbuds' name, as shown on the home list. */
+/** The demo earbuds' name, as shown on the device screen and in the pair switcher. */
 const val DEMO_NAME = "Demo earbuds"
 
 /**

@@ -36,6 +36,7 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.librebuds.R
 import io.github.librebuds.state.LinkState
 import io.github.librebuds.ui.DeviceViewModel
+import io.github.librebuds.ui.PairRow
 import io.github.librebuds.ui.SettingsViewModel
 import io.github.librebuds.ui.components.AboutCard
 import io.github.librebuds.ui.components.BatteryView
@@ -57,40 +58,56 @@ internal fun screenContentPadding(): PaddingValues {
     return PaddingValues(start = 16.dp, end = 16.dp, top = top, bottom = bottom)
 }
 
+/** What the device screen says about the link above the values, if anything. */
+enum class LinkNotice { NONE, CONNECTING, PHONE_ONLY, NOT_CONNECTED, TAKEN_OVER }
+
 /**
- * One pair of earbuds. [onOpened] runs once per visit to link these earbuds to the app (the system
- * companion dialog the first time) and reports whether they are associated. The controller holds one
- * pair at a time: while it is busy with other earbuds, this screen only shows that these are not connected.
+ * The notice for a pair: [current] is whether the controller holds this pair, [phoneConnected] its
+ * real Bluetooth state toward the phone (ACL, A2DP or headset), [link] the controller's link. A pair
+ * the phone has but the controller does not (yet) gets [LinkNotice.PHONE_ONLY], never "Not connected".
+ */
+fun linkNotice(current: Boolean, phoneConnected: Boolean, link: LinkState): LinkNotice {
+    if (!current) return if (phoneConnected) LinkNotice.PHONE_ONLY else LinkNotice.NOT_CONNECTED
+    return when (link) {
+        LinkState.CONNECTED -> LinkNotice.NONE
+        LinkState.CONNECTING -> LinkNotice.CONNECTING
+        LinkState.TAKEN_OVER -> LinkNotice.TAKEN_OVER
+        LinkState.DISCONNECTED -> if (phoneConnected) LinkNotice.PHONE_ONLY else LinkNotice.NOT_CONNECTED
+    }
+}
+
+/**
+ * The root screen: one pair of earbuds, [pair]. Its title opens the pair switcher over [pairs];
+ * [onPick] switches to another pair. [onShown] runs once per pair shown, so the service may switch the
+ * controller to it when it is connected to the phone. The controller holds one pair at a time: for a
+ * pair it does not hold, this screen only shows its connection state toward the phone. There is no
+ * back button: Back leaves the app from here.
  */
 @Composable
 fun DeviceScreen(
     viewModel: DeviceViewModel,
     settingsViewModel: SettingsViewModel,
     showOffMode: Boolean,
-    address: String,
-    name: String,
-    art: String,
-    onOpened: (onResult: (associated: Boolean) -> Unit) -> Unit,
-    onNavigateBack: () -> Unit,
+    pair: PairRow,
+    pairs: List<PairRow>,
+    onShown: () -> Unit,
+    onPick: (PairRow) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenMultipoint: () -> Unit
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val settings by settingsViewModel.ui.collectAsStateWithLifecycle()
     val batteries = ui.state.battery.toUiBatteries()
-    var requested by rememberSaveable(address) { mutableStateOf(false) }
-    var declined by rememberSaveable(address) { mutableStateOf(false) }
-    LaunchedEffect(address) {
-        if (requested) return@LaunchedEffect
-        requested = true
-        onOpened { associated -> declined = !associated }
-    }
+    val address = pair.address
+    var switcherOpen by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(address) { onShown() }
     val current = address.equals(ui.state.address, ignoreCase = true)
+    val notice = linkNotice(current, pair.connected, ui.state.link)
 
     StyledScaffold(
-        title = name,
-        showBackButton = true,
-        onNavigateBack = onNavigateBack,
+        title = pair.label,
+        onTitleClick = { switcherOpen = true },
+        titleClickLabel = stringResource(R.string.switch_earbuds),
         actionButtons = listOf { backdrop ->
             StyledIconButton(
                 icon = Icons.Filled.Settings,
@@ -106,29 +123,17 @@ fun DeviceScreen(
                 .padding(screenContentPadding()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (declined) {
-                Text(
-                    text = stringResource(R.string.association_declined),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-            if (!current) {
-                LinkBanner(takenOver = false, updatedAtMillis = null, showHint = true, onTakeOver = {})
-                return@Column
-            }
-            if (!ui.state.isConnected) {
+            if (notice != LinkNotice.NONE) {
                 LinkBanner(
-                    takenOver = ui.state.link == LinkState.TAKEN_OVER,
-                    updatedAtMillis = ui.state.updatedAtMillis,
-                    // Only when nothing is known yet this session (no battery either); once there is a
-                    // stale value to show, "Last updated" below is the useful line, not this hint.
-                    showHint = batteries.isEmpty(),
+                    notice = notice,
+                    // Only the controller's own pair has last known values to date.
+                    lastSeenMillis = ui.state.updatedAtMillis?.takeIf { current && batteries.isNotEmpty() },
                     onTakeOver = viewModel::takeOver
                 )
             }
+            if (!current) return@Column
             if (batteries.isNotEmpty()) {
-                BatteryView(batteries, art)
+                BatteryView(batteries, pair.art)
             }
             if (ui.state.isConnected && "anc" in ui.state.capabilities) {
                 NoiseControlSettings(
@@ -160,43 +165,55 @@ fun DeviceScreen(
             AboutCard(ui.state.device.model, ui.state.device.firmware, ui.state.device.serial)
         }
     }
+
+    PairSwitcherSheet(
+        visible = switcherOpen,
+        pairs = pairs,
+        onPick = {
+            switcherOpen = false
+            onPick(it)
+        },
+        onDismiss = { switcherOpen = false }
+    )
 }
 
 /**
- * Shown while the earbuds are not connected; the last known values stay visible below it. [showHint]
- * adds a line explaining what to do, for when there is nothing else to show yet (no stale value, not
- * taken over by another device).
+ * Shown while the controller has no live link to this pair. [lastSeenMillis] marks the last known
+ * values below it as such; the take-over button shows only while another device holds the earbuds.
  */
 @Composable
-private fun LinkBanner(takenOver: Boolean, updatedAtMillis: Long?, showHint: Boolean, onTakeOver: () -> Unit) {
+private fun LinkBanner(notice: LinkNotice, lastSeenMillis: Long?, onTakeOver: () -> Unit) {
     val context = LocalContext.current
+    val calm = notice == LinkNotice.CONNECTING || notice == LinkNotice.PHONE_ONLY
+    val container = if (calm) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.errorContainer
+    val onContainer = if (calm) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onErrorContainer
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(16.dp))
+            .background(container, RoundedCornerShape(16.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            text = stringResource(if (takenOver) R.string.controlled_by_other else R.string.not_connected),
-            color = MaterialTheme.colorScheme.onErrorContainer,
+            text = stringResource(
+                when (notice) {
+                    LinkNotice.TAKEN_OVER -> R.string.controlled_by_other
+                    LinkNotice.CONNECTING -> R.string.connecting
+                    LinkNotice.PHONE_ONLY -> R.string.phone_connected_waiting
+                    LinkNotice.NOT_CONNECTED, LinkNotice.NONE -> R.string.not_connected_take_out
+                }
+            ),
+            color = onContainer,
             style = MaterialTheme.typography.bodyMedium
         )
-        updatedAtMillis?.let { millis ->
+        lastSeenMillis?.let { millis ->
             Text(
-                text = stringResource(R.string.last_updated, formatUpdatedAt(context, millis)),
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                text = stringResource(R.string.last_seen_line, formatUpdatedAt(context, millis)),
+                color = onContainer,
                 style = MaterialTheme.typography.bodySmall
             )
         }
-        if (showHint && !takenOver && updatedAtMillis == null) {
-            Text(
-                text = stringResource(R.string.open_case_near_phone),
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-        if (takenOver) {
+        if (notice == LinkNotice.TAKEN_OVER) {
             StyledButton(
                 onClick = onTakeOver,
                 backdrop = rememberLayerBackdrop(),
@@ -210,7 +227,7 @@ private fun LinkBanner(takenOver: Boolean, updatedAtMillis: Long?, showHint: Boo
     }
 }
 
-/** Localized short time, with the date added when it was not today. Shared with the home list. */
+/** Localized short time, with the date added when it was not today. Shared with the pair switcher. */
 internal fun formatUpdatedAt(context: Context, millis: Long): String {
     val dateFlags = if (DateUtils.isToday(millis)) 0 else DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_ABBREV_MONTH
     return DateUtils.formatDateTime(context, millis, DateUtils.FORMAT_SHOW_TIME or dateFlags)

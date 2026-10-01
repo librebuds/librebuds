@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
-    Modified for LibreBuds (2026): adapted to FreeBuds; see NOTICE.
+    Modified for LibreBuds (2026): adapted to FreeBuds, tappable title; see NOTICE.
 */
 
 package io.github.librebuds.ui.components
@@ -29,6 +29,10 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.semantics.Role
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -88,6 +92,8 @@ fun StyledScaffold(
     title: String,
     showBackButton: Boolean = false,
     onNavigateBack: () -> Unit = {},
+    onTitleClick: (() -> Unit)? = null,
+    titleClickLabel: String? = null,
     actionButtons: List<@Composable (backdrop: LayerBackdrop) -> Unit> = emptyList(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     content: @Composable () -> Unit
@@ -129,13 +135,23 @@ fun StyledScaffold(
                             },
                             title = {
                                 Crossfade(targetState = title) {
-                                    Text(
-                                        text = it,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.padding(start = if (showBackButton) 8.dp else 12.dp, end = 12.dp),
-                                        style = MaterialTheme.typography.titleSmall
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .padding(start = if (showBackButton) 8.dp else 12.dp, end = 12.dp)
+                                            .titleClickable(onTitleClick, titleClickLabel)
+                                    ) {
+                                        Text(
+                                            text = it,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f, fill = false),
+                                            style = MaterialTheme.typography.titleSmall
+                                        )
+                                        if (onTitleClick != null) {
+                                            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.padding(start = 4.dp).size(20.dp))
+                                        }
+                                    }
                                 }
                             },
                             actions = {
@@ -242,17 +258,42 @@ fun StyledScaffold(
                             Column(modifier = Modifier.fillMaxSize()) {
                                 Spacer(modifier = Modifier.height(topPadding + 12.dp))
                                 Crossfade(targetState = title) {
-                                    Text(
-                                        text = it,
-                                        style = TextStyle(
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (isDarkTheme) Color.White else Color.Black,
-                                            fontFamily = interFamily
-                                        ),
+                                    val textColor = if (isDarkTheme) Color.White else Color.Black
+                                    Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Center
-                                    )
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Clear of the back and action buttons on either side; a long name ellipsizes.
+                                        Row(
+                                            modifier = Modifier
+                                                .padding(horizontal = 72.dp)
+                                                .titleClickable(onTitleClick, titleClickLabel),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = it,
+                                                style = TextStyle(
+                                                    fontSize = 20.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = textColor,
+                                                    fontFamily = interFamily
+                                                ),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false),
+                                                textAlign = TextAlign.Center
+                                            )
+                                            if (onTitleClick != null) {
+                                                Icon(
+                                                    Icons.Filled.KeyboardArrowDown,
+                                                    contentDescription = null,
+                                                    tint = textColor,
+                                                    modifier = Modifier.padding(start = 4.dp).size(22.dp)
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -292,3 +333,10 @@ fun StyledScaffold(
         }
     }
 }
+
+/** Makes the title a button when [onClick] is set, with a rounded touch area around the text. */
+private fun Modifier.titleClickable(onClick: (() -> Unit)?, label: String?): Modifier =
+    if (onClick == null) this else this
+        .clip(RoundedCornerShape(12.dp))
+        .clickable(onClickLabel = label, role = Role.Button, onClick = onClick)
+        .padding(horizontal = 8.dp, vertical = 4.dp)

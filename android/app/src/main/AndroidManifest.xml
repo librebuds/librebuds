@@ -94,6 +94,13 @@
             </intent-filter>
         </receiver>
 
+        <receiver android:name=".service.ServiceStartReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <receiver android:name=".beacon.BeaconReceiver" android:exported="false" />
 
         <receiver android:name=".beacon.BootReceiver" android:exported="true">

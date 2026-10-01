@@ -13,8 +13,8 @@ class PresenceRulesTest {
     }
 
     @Test
-    fun matchingAssociationDisappearedStops() {
-        assertEquals(PresenceAction.STOP, presenceAction(Presence.DISAPPEARED, 7, stored))
+    fun matchingAssociationDisappearedIsGone() {
+        assertEquals(PresenceAction.GONE, presenceAction(Presence.DISAPPEARED, 7, stored))
     }
 
     @Test
@@ -32,25 +32,23 @@ class PresenceRulesTest {
         assertEquals(PresenceAction.IGNORE, presenceAction(null, 7, stored))
     }
 
+    private val freeBuds: (String) -> Boolean = { it.equals("AA:BB:CC:DD:EE:FF", ignoreCase = true) }
+
     @Test
-    fun aclForPrimaryMatchesCaseInsensitively() {
-        assertEquals(PresenceAction.START, aclAction(Presence.APPEARED, "aa:bb:cc:dd:ee:ff", stored))
-        assertEquals(PresenceAction.STOP, aclAction(Presence.DISAPPEARED, "AA:BB:CC:DD:EE:FF", stored))
+    fun aclForAnyPairedFreeBudsStartsWithoutAnAssociation() {
+        assertEquals(PresenceAction.START, aclAction(Presence.APPEARED, "aa:bb:cc:dd:ee:ff", freeBuds))
+        assertEquals(PresenceAction.GONE, aclAction(Presence.DISAPPEARED, "AA:BB:CC:DD:EE:FF", freeBuds))
     }
 
     @Test
     fun aclForOtherDeviceIsIgnored() {
-        assertEquals(PresenceAction.IGNORE, aclAction(Presence.APPEARED, "11:22:33:44:55:66", stored))
+        assertEquals(PresenceAction.IGNORE, aclAction(Presence.APPEARED, "11:22:33:44:55:66", freeBuds))
+        assertEquals(PresenceAction.IGNORE, aclAction(Presence.DISAPPEARED, "11:22:33:44:55:66", freeBuds))
     }
 
     @Test
-    fun aclWithoutStoredDeviceOrAddressIsIgnored() {
-        assertEquals(PresenceAction.IGNORE, aclAction(Presence.APPEARED, "AA:BB:CC:DD:EE:FF", null))
-        assertEquals(PresenceAction.IGNORE, aclAction(Presence.APPEARED, null, stored))
-    }
-
-    @Test
-    fun aclWithUnknownActionIsIgnored() {
-        assertEquals(PresenceAction.IGNORE, aclAction(null, "AA:BB:CC:DD:EE:FF", stored))
+    fun aclWithoutAddressOrWithUnknownActionIsIgnored() {
+        assertEquals(PresenceAction.IGNORE, aclAction(Presence.APPEARED, null, freeBuds))
+        assertEquals(PresenceAction.IGNORE, aclAction(null, "AA:BB:CC:DD:EE:FF", freeBuds))
     }
 }
