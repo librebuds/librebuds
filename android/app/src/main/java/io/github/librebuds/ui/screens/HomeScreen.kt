@@ -128,7 +128,7 @@ fun HomeScreen(
 private fun ProductThumbnail(art: String) {
     val dark = isSystemInDarkTheme()
     val tile = if (dark) Color(0xFF2C2C2E) else Color(0xFFD1D1D8)
-    val outline = if (dark) Color(0x33FFFFFF) else Color(0x33000000)
+    val outline = if (dark) Color(0x33FFFFFF) else Color(0x4D000000)
     val shape = RoundedCornerShape(12.dp)
     Box(
         modifier = Modifier
