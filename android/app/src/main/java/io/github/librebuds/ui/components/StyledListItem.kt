@@ -281,7 +281,12 @@ private fun StyledListItemContent(
                         leadingContent()
                         Spacer(modifier = Modifier.width(12.dp))
                     }
-                    Column (verticalArrangement = Arrangement.Center) {
+                    // Vertical rows let a long description wrap instead of pushing the trailing content out of the row.
+                    val vertical = orientation == ListItemOrientation.Vertical
+                    Column (
+                        modifier = if (vertical) Modifier.weight(1f) else Modifier,
+                        verticalArrangement = Arrangement.Center
+                    ) {
                         Text(
                             text = name,
                             style = MaterialTheme.typography.bodyMedium,
@@ -297,7 +302,7 @@ private fun StyledListItemContent(
                         }
                     }
 
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = if (vertical) Modifier.width(8.dp) else Modifier.weight(1f))
 
                     if (orientation == ListItemOrientation.Horizontal && description != null) {
                         Text(

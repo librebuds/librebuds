@@ -188,7 +188,7 @@ private fun StyledListScope.PermissionRow(
     StyledListItem(
         name = title,
         description = stringResource(text.reason),
-        orientation = ListItemOrientation.Horizontal,
+        orientation = ListItemOrientation.Vertical,
         leadingContent = {
             Box(
                 modifier = Modifier
