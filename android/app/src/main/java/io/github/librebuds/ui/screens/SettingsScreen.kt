@@ -45,6 +45,9 @@ fun SettingsScreen(
     onArtVariantChange: (ArtVariant) -> Unit,
     lastBeacon: LastBeacon?,
     onShowTestPopup: () -> Unit,
+    companionPair: String?,
+    companionLinked: Boolean,
+    onLinkCompanion: () -> Unit,
     onExportDiagnostics: () -> Unit,
     onSaveDiagnostics: () -> Unit,
     onNavigateBack: () -> Unit
@@ -90,6 +93,20 @@ fun SettingsScreen(
                     enabled = popupEnabled,
                     onClick = { onPopupStyleChange(if (popupStyle == PopupStyle.ISLAND) PopupStyle.CARD else PopupStyle.ISLAND) }
                 )
+                // Optional: the service runs without it, but a companion association lets Android start it
+                // from the background in cases a plain Bluetooth broadcast does not.
+                companionPair?.let { pair ->
+                    StyledListItem(
+                        name = stringResource(R.string.background_link),
+                        description = if (companionLinked) {
+                            stringResource(R.string.background_linked)
+                        } else {
+                            stringResource(R.string.background_link_description, pair)
+                        },
+                        orientation = ListItemOrientation.Vertical,
+                        onClick = if (companionLinked) null else onLinkCompanion
+                    )
+                }
                 // Onboarding may have been skipped or blocked; the grant stays reachable here.
                 if (!overlay.granted) {
                     StyledListItem(

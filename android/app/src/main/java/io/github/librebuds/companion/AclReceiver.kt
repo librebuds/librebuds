@@ -7,10 +7,13 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.IntentCompat
 import io.github.librebuds.service.BudsService
+import io.github.librebuds.state.PairHistory
 
 /**
- * Tracks Bluetooth ACL links for [io.github.librebuds.bt.AclTracker] and, for the stored earbuds, starts or stops the
- * connection service when companion presence events do not arrive.
+ * Tracks Bluetooth ACL links for [io.github.librebuds.bt.AclTracker], records when paired FreeBuds
+ * connect ([PairHistory]) and makes sure the connection service runs when they do. The running service
+ * listens for the same broadcasts itself; this receiver covers a service that is not running yet. The
+ * system may refuse that start from the background, which [BudsService.start] logs.
  */
 class AclReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -22,10 +25,14 @@ class AclReceiver : BroadcastReceiver() {
             else -> null
         }
         trackPresence(presence, address)
-        val stored = AssociationStore(context).primary()
-        when (aclAction(presence, address, stored)) {
-            PresenceAction.START -> stored?.let { BudsService.start(context, it.address, it.name) }
-            PresenceAction.STOP -> BudsService.stop(context)
+        val buds = readDetectedBuds(context).orEmpty()
+        val action = aclAction(presence, address) { candidate -> buds.any { it.address.equals(candidate, ignoreCase = true) } }
+        when (action) {
+            PresenceAction.START -> {
+                PairHistory(context).record(address)
+                BudsService.start(context)
+            }
+            PresenceAction.GONE -> BudsService.onEarbudsGone(context)
             PresenceAction.IGNORE -> Unit
         }
     }

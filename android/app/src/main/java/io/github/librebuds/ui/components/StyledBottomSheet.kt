@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
-    Modified for LibreBuds (2026): adapted to FreeBuds; see NOTICE.
+    Modified for LibreBuds (2026): adapted to FreeBuds, opaque surface and scrim; see NOTICE.
 */
 package io.github.librebuds.ui.components
 
@@ -64,6 +64,7 @@ fun StyledBottomSheet(
     )
 
     val animatedCorner = lerp(48.dp, 42.dp, progress)
+    val surface = (if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)).copy(alpha = 0.97f)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -71,7 +72,7 @@ fun StyledBottomSheet(
         containerColor = Color.Transparent,
         dragHandle = { },
         shape = RoundedCornerShape(animatedCorner),
-        scrimColor = Color.Transparent,
+        scrimColor = Color.Black.copy(alpha = 0.32f),
         modifier = Modifier.padding(4.dp)
     ) {
         val innerBackdrop = rememberLayerBackdrop()
@@ -88,13 +89,9 @@ fun StyledBottomSheet(
                         blur(4f.dp.toPx())
                         lens(12f.dp.toPx(), 48f.dp.toPx(), true)
                     },
-                    onDrawSurface = {
-                        drawRect(
-                            if (isDarkTheme) Color.DarkGray.copy(alpha = 0.3f) else Color(
-                                0xFFE0E0E0
-                            ).copy(alpha = 0.45f)
-                        )
-                    }
+                    // Nearly opaque: the backdrop callers pass is not a layer of the screen behind, so a
+                    // translucent surface let that screen's text show through the sheet.
+                    onDrawSurface = { drawRect(surface) }
                 )
                 .padding(top = 24.dp)
                 .padding(horizontal = 16.dp)

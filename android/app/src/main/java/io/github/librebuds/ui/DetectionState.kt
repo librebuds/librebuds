@@ -10,45 +10,35 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
-import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.bt.isAudioConnected
+import io.github.librebuds.bt.probeAclConnections
 import io.github.librebuds.bt.refreshAudioConnections
-import io.github.librebuds.companion.AssociationStore
 import io.github.librebuds.companion.DetectedBuds
 import io.github.librebuds.companion.Presence
-import io.github.librebuds.companion.detectFreeBuds
-import io.github.librebuds.companion.readBondedDevices
+import io.github.librebuds.companion.readDetectedBuds
 import io.github.librebuds.companion.trackPresence
-import kotlinx.coroutines.delay
+import io.github.librebuds.state.PairHistory
 
 /**
- * The paired FreeBuds and which of them are connected. [permissionMissing] means the list could not
- * be read at all. [settled] turns true once both audio profiles answered (or after a short wait), so
- * the connected set is trustworthy for the cold-start jump.
+ * The paired FreeBuds and which of them are connected to the phone, each from its own Bluetooth state
+ * (ACL, A2DP or headset), not only the pair the controller holds. [permissionMissing] means the list
+ * could not be read at all. [lastConnectedAt] is when each pair last connected, by uppercase address.
  */
 data class Detection(
     val buds: List<DetectedBuds>,
     val connected: Set<String>,
     val permissionMissing: Boolean,
-    val settled: Boolean,
+    val lastConnectedAt: Map<String, Long> = emptyMap(),
 ) {
     fun isConnected(address: String): Boolean = address.uppercase() in connected
 }
-
-/** A2DP and headset, the profiles [refreshAudioConnections] asks. */
-private const val AUDIO_PROFILE_COUNT = 2
-
-/** How long the cold-start jump waits for the profile proxies; after that home just stays. */
-private const val SETTLE_TIMEOUT_MILLIS = 2000L
 
 private val WATCHED_ACTIONS = listOf(
     BluetoothDevice.ACTION_ACL_CONNECTED,
@@ -63,23 +53,19 @@ private val WATCHED_ACTIONS = listOf(
 
 /**
  * Reads the paired FreeBuds while the screen is resumed and follows pairing, connection and
- * Bluetooth on/off broadcasts, so the list updates without leaving the app.
+ * Bluetooth on/off broadcasts, so the screen and the pair switcher update without leaving the app.
  */
 @Composable
 fun rememberDetection(): Detection {
     val context = LocalContext.current
-    val app = remember { LibreBudsApp.from(context) }
-    val store = remember { AssociationStore(context) }
+    val history = remember { PairHistory(context) }
     var version by remember { mutableIntStateOf(0) }
-    var settled by remember { mutableStateOf(false) }
 
     LifecycleResumeEffect(Unit) {
-        var answers = 0
         val refresh = {
-            refreshAudioConnections(context) {
-                if (++answers >= AUDIO_PROFILE_COUNT) settled = true
-                version++
-            }
+            // An ACL-only link that came up before this process started is invisible to the broadcasts.
+            readDetectedBuds(context)?.let { buds -> probeAclConnections(context, buds.map { it.address }) }
+            refreshAudioConnections(context) { version++ }
         }
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -101,20 +87,14 @@ fun rememberDetection(): Detection {
         onPauseOrDispose { context.unregisterReceiver(receiver) }
     }
 
-    LaunchedEffect(Unit) {
-        delay(SETTLE_TIMEOUT_MILLIS)
-        settled = true
-    }
-
-    return remember(version, settled) {
-        val bonded = readBondedDevices(context)
-        val buds = bonded?.let { detectFreeBuds(it, app.registry, store.known()) }.orEmpty()
+    return remember(version) {
+        val detected = readDetectedBuds(context)
+        val buds = detected.orEmpty()
         Detection(
             buds = buds,
             connected = buds.filter { isAudioConnected(it.address) }.mapTo(mutableSetOf()) { it.address.uppercase() },
-            permissionMissing = bonded == null,
-            // Without the permission nothing can connect-detect, so there is nothing to wait for.
-            settled = settled || bonded == null,
+            permissionMissing = detected == null,
+            lastConnectedAt = history.all(),
         )
     }
 }

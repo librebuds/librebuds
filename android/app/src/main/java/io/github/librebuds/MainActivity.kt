@@ -18,16 +18,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.librebuds.beacon.BeaconScanner
-import io.github.librebuds.bt.AclTracker
-import io.github.librebuds.bt.AudioConnections
-import io.github.librebuds.bt.refreshAudioConnections
-import io.github.librebuds.companion.AssociationStore
 import io.github.librebuds.companion.CompanionLink
 import io.github.librebuds.diag.DiagnosticsExport
 import io.github.librebuds.diag.DiagnosticsHeader
@@ -46,8 +41,6 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
-    private lateinit var associationStore: AssociationStore
-
     // Registered before onCreate's content is set, as the contract API requires.
     private val saveDiagnosticsLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         result.data?.data?.let(::writeDiagnosticsTo)
@@ -70,61 +63,43 @@ class MainActivity : ComponentActivity() {
             }
         )[SettingsViewModel::class.java]
         val preferences = AppPreferences(this)
-        associationStore = AssociationStore(this)
         setContent {
             AppRoot(
                 viewModel,
                 settingsViewModel,
                 preferences,
-                onOpenEarbuds = ::openEarbuds,
+                onShowEarbuds = ::showEarbuds,
+                onLinkCompanion = ::linkCompanion,
                 onExportDiagnostics = ::exportDiagnostics,
                 onSaveDiagnostics = ::saveDiagnosticsToFile
             )
         }
     }
 
-    /** A visible activity may start the foreground service, which covers missed presence events. */
+    /**
+     * A visible activity may start the foreground service, so opening the app starts it (it also starts
+     * at boot); it then connects whichever paired FreeBuds are connected to the phone.
+     */
     override fun onStart() {
         super.onStart()
         // Covers a scan permission granted in the system settings and a force stop, which dropped the scan.
         BeaconScanner.ensureStarted(this)
-        val stored = associationStore.primary() ?: return
-        startIfConnected(stored.address, stored.name)
+        BudsService.start(this)
     }
 
     /**
-     * Starts the connection service for [address] once the earbuds are known to be connected. [AclTracker]
-     * is empty after the process restarted, so the connected A2DP and headset devices are asked too, and
-     * earbuds found there are recorded in [AclTracker].
+     * The device screen shows [address]. When those earbuds are connected to the phone and the controller
+     * holds another pair, the service switches to them; it never takes earbuds back from another device.
      */
-    private fun startIfConnected(address: String, name: String?) {
-        if (AclTracker.isConnected(address)) {
-            BudsService.start(this, address, name)
-            return
-        }
-        var started = false
-        refreshAudioConnections(this) {
-            if (started || !AudioConnections.contains(address)) return@refreshAudioConnections
-            AclTracker.onConnected(address)
-            if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
-                started = true
-                BudsService.start(this, address, name)
-            }
-        }
+    private fun showEarbuds(address: String) {
+        BudsService.start(this, preferred = address)
     }
 
     /**
-     * A device screen opened [address]. The first time, the system companion dialog links these earbuds
-     * to the app (for background presence) and they become the stored pair. They connect if they are
-     * connected to the phone, also when the dialog was declined; it returns on the next visit. The controller holds one pair, so the last opened earbuds are the ones it follows.
+     * Optional: links [address] to the app through the system companion dialog, so Android may start the
+     * service from the background when the earbuds connect even where a plain broadcast is not enough.
      */
-    private fun openEarbuds(address: String, name: String, onResult: (Boolean) -> Unit) {
-        // Connect first: a dismissed dialog may never call back, and the visible app needs no association.
-        startIfConnected(address, name)
-        if (associationStore.primary()?.address.equals(address, ignoreCase = true)) {
-            onResult(true)
-            return
-        }
+    private fun linkCompanion(address: String, name: String, onResult: (Boolean) -> Unit) {
         CompanionLink(this).associate(this, address, name) { stored -> onResult(stored != null) }
     }
 

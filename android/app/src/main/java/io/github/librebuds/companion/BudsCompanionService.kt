@@ -10,8 +10,9 @@ import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.service.BudsService
 
 /**
- * Bound by the system while the associated earbuds are present; starts and stops the connection
- * service. API 36+ delivers [onDevicePresenceEvent]; API 33-35 the appeared/disappeared callbacks.
+ * Bound by the system while associated earbuds are present. An optional extra: the connection service
+ * also runs without any association, but presence lets the system start it from the background where
+ * a plain broadcast may not. API 36+ delivers [onDevicePresenceEvent]; API 33-35 the appeared/disappeared callbacks.
  * Starting and stopping are idempotent, so a callback delivered on both paths does no harm.
  */
 class BudsCompanionService : CompanionDeviceService() {
@@ -41,8 +42,8 @@ class BudsCompanionService : CompanionDeviceService() {
         // Presence is also what tells a later link drop apart: TAKEN_OVER while the earbuds are here.
         if (stored != null && action != PresenceAction.IGNORE) trackPresence(presence, stored.address)
         when (action) {
-            PresenceAction.START -> stored?.let { BudsService.start(this, it.address, it.name) }
-            PresenceAction.STOP -> BudsService.stop(this)
+            PresenceAction.START -> BudsService.start(this)
+            PresenceAction.GONE -> BudsService.onEarbudsGone(this)
             PresenceAction.IGNORE -> Unit
         }
     }

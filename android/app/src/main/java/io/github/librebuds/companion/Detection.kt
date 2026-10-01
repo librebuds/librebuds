@@ -42,7 +42,7 @@ fun detectFreeBuds(bonded: List<BondedDevice>, registry: ProfileRegistry, known:
 }
 
 /**
- * A home-list label per address: [buds] whose name is shared with another pair (two physical units
+ * A pair switcher label per address: [buds] whose name is shared with another pair (two physical units
  * of the same model keep the stock Bluetooth name) get the last two bytes of their address appended
  * after a separating dot, so the rows stay tellable apart without reading as cramped; a name no one
  * else shares keeps its plain form.

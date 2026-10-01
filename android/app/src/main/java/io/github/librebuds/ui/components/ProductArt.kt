@@ -13,7 +13,7 @@ object ProductArt {
     @DrawableRes
     fun battery(shape: String): Int = if (shape == "stem") R.drawable.battery_buds_stem else R.drawable.battery_buds_round
 
-    /** Small earbuds for a home list row, cropped tight for a tile. */
+    /** Small earbuds for a pair switcher row, cropped tight for a tile. */
     @DrawableRes
     fun thumbnail(shape: String): Int = if (shape == "stem") R.drawable.thumb_buds_stem else R.drawable.thumb_buds_round
 
