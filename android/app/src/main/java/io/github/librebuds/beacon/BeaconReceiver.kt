@@ -1,12 +1,15 @@
 // LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.librebuds.beacon
 
+import android.Manifest
+import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.ParcelUuid
 import android.util.Log
 import io.github.librebuds.LibreBudsApp
@@ -45,6 +48,9 @@ class BeaconReceiver : BroadcastReceiver() {
         val now = System.currentTimeMillis()
         // Every parsed beacon, not just ones that show a popup: unknown or far-away devices still update it.
         lastBeaconOf(rawResults, now)?.let { if (shouldStoreLastBeacon(preferences.lastBeacon, it)) preferences.lastBeacon = it }
+        val openingStore = CaseOpeningStore(context)
+        val openings = openingStore.load().toMutableMap()
+        val before = openings.toMap()
         val verdicts = judgeBatch(
             results = rawResults,
             now = now,
@@ -52,13 +58,35 @@ class BeaconReceiver : BroadcastReceiver() {
             registry = app.registry,
             associated = associated,
             lastShownAt = preferences::lastPopupAt,
+            openings = openings,
+            bonded = bondedProfiles(context, app.registry),
         )
+        val pruned = CaseOpenings.prune(openings, now)
+        if (pruned != before) openingStore.save(pruned)
+        for (line in decisionLogLines(verdicts, lastLogged)) Log.i(TAG, line)
         for (verdict in verdicts) {
             if (verdict.decision != PopupDecision.SHOW) continue
-            val beacon = verdict.sighting.beacon
-            val profile = popupProfile(beacon, app.registry, associated) ?: continue
-            PopupPresenter.show(app, popupModel(beacon, profile), artFor(profile.art, preferences.artVariant, PopupVideos.map()))
-            preferences.markPopupShown(cooldownKey(beacon), verdict.sighting.atMillis)
+            val profile = verdict.profile ?: continue
+            PopupPresenter.show(app, popupModel(profile, verdict.batteries), artFor(profile.art, preferences.artVariant, PopupVideos.map()))
+            preferences.markPopupShown(cooldownKey(verdict.sighting.beacon), verdict.sighting.atMillis)
+        }
+    }
+
+    /**
+     * Profile ids of the earbuds bonded to this phone, matched by their Bluetooth name; null without
+     * the connect permission or an adapter, when the bonded devices cannot be read.
+     */
+    private fun bondedProfiles(context: Context, registry: ProfileRegistry): Set<String>? {
+        if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return null
+        val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter ?: return null
+        return try {
+            adapter.bondedDevices.orEmpty()
+                .mapNotNull { device -> device.name?.let { registry.match(btName = it) } }
+                .filter { it.id != ProfileRegistry.GENERIC.id }
+                .map { it.id }
+                .toSet()
+        } catch (e: SecurityException) {
+            null
         }
     }
 
@@ -70,6 +98,9 @@ class BeaconReceiver : BroadcastReceiver() {
 
     private companion object {
         const val TAG = "BeaconReceiver"
+
+        /** Last decision logged per cooldown key, for this process (see [decisionLogLines]). */
+        val lastLogged = mutableMapOf<String, PopupDecision>()
         val FDEE: ParcelUuid = ParcelUuid.fromString(FdeeBeacon.SERVICE_UUID)
     }
 }

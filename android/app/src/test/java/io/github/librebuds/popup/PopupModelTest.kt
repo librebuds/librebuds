@@ -1,6 +1,8 @@
 // LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.librebuds.popup
 
+import io.github.librebuds.beacon.BudBatteries
+import io.github.librebuds.protocol.beacon.BeaconBattery
 import io.github.librebuds.protocol.beacon.FdeeBeacon
 import io.github.librebuds.protocol.command.BatteryState
 import io.github.librebuds.protocol.profile.ProfileRegistry
@@ -71,5 +73,17 @@ class PopupModelTest {
             assertFalse(dropped.connected)
             assertEquals(connected.batteries, dropped.batteries)
         }
+    }
+
+    @Test
+    fun popupModelShowsOnlyKnownLevels() {
+        val levels = BudBatteries(
+            left = BeaconBattery(90, charging = true),
+            case = BeaconBattery(40, charging = false),
+        )
+        assertEquals(
+            listOf(Battery(BatteryComponent.LEFT, 90, BatteryStatus.CHARGING), Battery(BatteryComponent.CASE, 40, BatteryStatus.NOT_CHARGING)),
+            popupModel(profile, levels).batteries,
+        )
     }
 }

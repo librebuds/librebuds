@@ -1,6 +1,7 @@
 // LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.librebuds.popup
 
+import io.github.librebuds.beacon.BudBatteries
 import io.github.librebuds.protocol.beacon.Beacon
 import io.github.librebuds.protocol.beacon.BeaconBattery
 import io.github.librebuds.protocol.profile.Profile
@@ -13,14 +14,18 @@ import io.github.librebuds.ui.model.toUiBatteries
 /** [profileId] ties the popup to one model, so live state from other connected earbuds is never mixed in. */
 data class PopupModel(val title: String, val art: String, val batteries: List<Battery>, val connected: Boolean, val profileId: String)
 
-fun popupModel(beacon: Beacon, profile: Profile): PopupModel {
+fun popupModel(beacon: Beacon, profile: Profile): PopupModel =
+    popupModel(profile, BudBatteries(left = beacon.left, right = beacon.right, case = beacon.case))
+
+/** The popup for [profile] with the beacon [levels] that are known (left, right, case; any may be missing). */
+fun popupModel(profile: Profile, levels: BudBatteries): PopupModel {
     fun ui(component: Int, battery: BeaconBattery?) = battery?.let {
         Battery(component, it.percent, if (it.charging) BatteryStatus.CHARGING else BatteryStatus.NOT_CHARGING)
     }
     val batteries = listOfNotNull(
-        ui(BatteryComponent.LEFT, beacon.left),
-        ui(BatteryComponent.RIGHT, beacon.right),
-        ui(BatteryComponent.CASE, beacon.case),
+        ui(BatteryComponent.LEFT, levels.left),
+        ui(BatteryComponent.RIGHT, levels.right),
+        ui(BatteryComponent.CASE, levels.case),
     )
     return PopupModel(title = profile.name, art = profile.art, batteries = batteries, connected = false, profileId = profile.id)
 }
