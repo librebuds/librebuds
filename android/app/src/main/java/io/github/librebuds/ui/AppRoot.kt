@@ -24,7 +24,7 @@ import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.DEMO_ADDRESS
 import io.github.librebuds.state.DEMO_NAME
-import io.github.librebuds.state.batterySummary
+import io.github.librebuds.state.batterySummaryNoBreak
 import io.github.librebuds.ui.screens.DeviceScreen
 import io.github.librebuds.ui.screens.HomeRow
 import io.github.librebuds.ui.screens.HomeScreen
@@ -187,7 +187,7 @@ private fun homeRows(detection: Detection, state: BudsState, showDemo: Boolean, 
             name = name,
             model = model,
             connected = audioUp || (current && state.isConnected),
-            battery = state.battery?.takeIf { current }?.let(::batterySummary),
+            battery = state.battery?.takeIf { current }?.let(::batterySummaryNoBreak),
         )
     }
     val demo = if (showDemo) listOf(row(DEMO_ADDRESS, DEMO_NAME, modelName(state.profileId), audioUp = false)) else emptyList()

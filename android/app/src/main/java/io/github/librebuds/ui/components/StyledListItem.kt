@@ -61,6 +61,8 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.librebuds.ui.theme.DesignSystem
@@ -281,34 +283,50 @@ private fun StyledListItemContent(
                         leadingContent()
                         Spacer(modifier = Modifier.width(12.dp))
                     }
-                    // Vertical rows let a long description wrap instead of pushing the trailing content out of the row.
-                    val vertical = orientation == ListItemOrientation.Vertical
-                    Column (
-                        modifier = if (vertical) Modifier.weight(1f) else Modifier,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        if (description != null && orientation == ListItemOrientation.Vertical) {
-                            Spacer(modifier = Modifier.height(4.dp))
+                    val descriptionColor = MaterialTheme.colorScheme.onSurface.copy(if (isDarkTheme) 0.6f else 0.8f) // TODO: move to color scheme
+                    if (orientation == ListItemOrientation.Vertical) {
+                        // The text takes the remaining width, so a long description wraps instead of
+                        // pushing the trailing content out of the row.
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.Center
+                        ) {
                             Text(
-                                text = description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(if (isDarkTheme) 0.6f else 0.8f), // TODO: move to color scheme
+                                text = name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
+                            if (description != null) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = descriptionColor,
+                                )
+                            }
                         }
-                    }
-
-                    Spacer(modifier = if (vertical) Modifier.width(8.dp) else Modifier.weight(1f))
-
-                    if (orientation == ListItemOrientation.Horizontal && description != null) {
-                        Text(
-                            text = description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(if (isDarkTheme) 0.6f else 0.8f) // TODO: move to color scheme
+                        Spacer(modifier = Modifier.width(8.dp))
+                    } else {
+                        LabelValue(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(vertical = 8.dp),
+                            label = {
+                                Text(
+                                    text = name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            },
+                            value = {
+                                if (description != null) {
+                                    Text(
+                                        text = description,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = descriptionColor
+                                    )
+                                }
+                            }
                         )
                     }
 
@@ -405,6 +423,48 @@ private fun StyledListItemContent(
                 if (index+1 != count) {
                     Spacer(modifier = Modifier.height(2.dp))
                 }
+            }
+        }
+    }
+}
+
+/**
+ * A label with its value on the same line, the value at the end, when both fit; otherwise the value
+ * moves under the label and both wrap within the row, which grows in height. Never overlaps or clips.
+ */
+@Composable
+private fun LabelValue(
+    modifier: Modifier = Modifier,
+    gap: Dp = 12.dp,
+    lineGap: Dp = 2.dp,
+    label: @Composable () -> Unit,
+    value: @Composable () -> Unit
+) {
+    Layout(contents = listOf(label, value), modifier = modifier) { (labels, values), constraints ->
+        val width = constraints.maxWidth
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val labelMeasurable = labels.firstOrNull()
+        val valueMeasurable = values.firstOrNull()
+        val gapPx = gap.roundToPx()
+        val labelWidth = labelMeasurable?.maxIntrinsicWidth(Constraints.Infinity) ?: 0
+        val valueWidth = valueMeasurable?.maxIntrinsicWidth(Constraints.Infinity) ?: 0
+        val oneLine = valueMeasurable == null || labelWidth + gapPx + valueWidth <= width
+        if (oneLine) {
+            val labelPlaceable = labelMeasurable?.measure(loose)
+            val valuePlaceable = valueMeasurable?.measure(loose.copy(maxWidth = (width - (labelPlaceable?.width ?: 0) - gapPx).coerceAtLeast(0)))
+            val height = maxOf(labelPlaceable?.height ?: 0, valuePlaceable?.height ?: 0, constraints.minHeight)
+            layout(width, height) {
+                labelPlaceable?.placeRelative(0, (height - labelPlaceable.height) / 2)
+                valuePlaceable?.placeRelative(width - valuePlaceable.width, (height - valuePlaceable.height) / 2)
+            }
+        } else {
+            val labelPlaceable = labelMeasurable?.measure(loose)
+            val valuePlaceable = valueMeasurable.measure(loose)
+            val top = (labelPlaceable?.height ?: 0) + lineGap.roundToPx()
+            val height = maxOf(top + valuePlaceable.height, constraints.minHeight)
+            layout(width, height) {
+                labelPlaceable?.placeRelative(0, 0)
+                valuePlaceable.placeRelative(0, top)
             }
         }
     }

@@ -9,3 +9,7 @@ fun batterySummary(battery: BatteryState?): String {
     val text = "L ${level(battery?.left)} · R ${level(battery?.right)} · Case ${level(battery?.case)}"
     return if (battery?.caseCharging == true) "$text (charging)" else text
 }
+
+/** [batterySummary] with each label kept on the same line as its level, for text that wraps. */
+fun batterySummaryNoBreak(battery: BatteryState?): String =
+    batterySummary(battery).replace(Regex("\\b(L|R|Case) "), "$1 ").replace(" (charging)", " (charging)")

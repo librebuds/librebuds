@@ -17,4 +17,10 @@ class FormattingTest {
         assertEquals("L -- · R -- · Case --", batterySummary(BatteryState(50, null, null, null, null, null, null)))
         assertEquals("L -- · R -- · Case --", batterySummary(null))
     }
+
+    @Test
+    fun noBreakSummaryKeepsLabelsWithTheirLevels() {
+        val battery = BatteryState(90, 100, 84, 74, false, false, true)
+        assertEquals("L\u00A0100% · R\u00A084% · Case\u00A074%\u00A0(charging)", batterySummaryNoBreak(battery))
+    }
 }
