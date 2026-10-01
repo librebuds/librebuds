@@ -56,6 +56,8 @@ fun PairSwitcherSheet(visible: Boolean, pairs: List<PairRow>, onPick: (PairRow) 
             Text(
                 text = stringResource(R.string.switch_earbuds),
                 style = MaterialTheme.typography.titleMedium,
+                // The sheet container is transparent, so the default content color would not follow the theme.
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             StyledList {

@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import io.github.librebuds.LibreBudsApp
 import java.lang.reflect.Method
 
 private const val TAG = "AclProbe"
@@ -21,6 +22,16 @@ private val isConnectedMethod: Method? by lazy {
     }
 }
 
+/** Whether the probe's outcome was written to the event log yet; once per process is enough. */
+@Volatile
+private var outcomeLogged = false
+
+private fun logOutcome(context: Context, msg: String) {
+    if (outcomeLogged) return
+    outcomeLogged = true
+    LibreBudsApp.from(context).eventLog.record(TAG, msg)
+}
+
 /**
  * Asks the system whether each of [addresses] has an ACL link right now and records the connected ones
  * in [AclTracker]. Covers earbuds that connected before this process started, when no ACL broadcast
@@ -31,15 +42,16 @@ private val isConnectedMethod: Method? by lazy {
 fun probeAclConnections(context: Context, addresses: Collection<String>) {
     if (addresses.isEmpty()) return
     if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return
-    val method = isConnectedMethod ?: return
+    val method = isConnectedMethod ?: return logOutcome(context, "ACL probe unavailable: no isConnected()")
     val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter ?: return
     for (address in addresses) {
         val connected = try {
             method.invoke(adapter.getRemoteDevice(address)) as? Boolean
         } catch (e: Throwable) {
             Log.i(TAG, "isConnected() failed: ${e.javaClass.simpleName}")
-            return
+            return logOutcome(context, "ACL probe blocked: ${e.javaClass.simpleName}")
         }
+        logOutcome(context, "ACL probe available")
         if (connected == true) AclTracker.onConnected(address)
     }
 }

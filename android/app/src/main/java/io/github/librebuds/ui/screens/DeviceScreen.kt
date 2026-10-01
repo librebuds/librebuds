@@ -78,8 +78,8 @@ fun linkNotice(current: Boolean, phoneConnected: Boolean, link: LinkState): Link
 
 /**
  * The root screen: one pair of earbuds, [pair]. Its title opens the pair switcher over [pairs];
- * [onPick] switches to another pair. [onShown] runs once per pair shown, so the service may switch the
- * controller to it when it is connected to the phone. The controller holds one pair at a time: for a
+ * [onPick] switches to another pair. [onShown] runs once per pair shown and again when the phone connects
+ * it, so the service may switch the controller to it when it is connected to the phone. The controller holds one pair at a time: for a
  * pair it does not hold, this screen only shows its connection state toward the phone. There is no
  * back button: Back leaves the app from here.
  */
@@ -100,7 +100,8 @@ fun DeviceScreen(
     val batteries = ui.state.battery.toUiBatteries()
     val address = pair.address
     var switcherOpen by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(address) { onShown() }
+    // Again once the phone has the pair: picked while still in its case, it then becomes the service's choice.
+    LaunchedEffect(address, pair.connected) { onShown() }
     val current = address.equals(ui.state.address, ignoreCase = true)
     val notice = linkNotice(current, pair.connected, ui.state.link)
 
