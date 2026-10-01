@@ -43,10 +43,20 @@ class ProductArtTest {
     }
 
     @Test
+    fun freebudsPro5GetsItsOwnRendersRegardlessOfShape() {
+        assertEquals(R.drawable.battery_buds_freebuds_pro_5, ProductArt.battery("stem", "freebuds-pro-5"))
+        assertEquals(R.drawable.thumb_buds_freebuds_pro_5, ProductArt.thumbnail("stem", "freebuds-pro-5"))
+        assertEquals(R.drawable.battery_case_freebuds_pro_5, ProductArt.case("freebuds-pro-5"))
+    }
+
+    @Test
     fun modelOverrideWinsEvenWhenTheShapeDisagrees() {
         // freebuds-5 is a "round" profile; a mismatched shape argument must not change the result.
         assertEquals(R.drawable.battery_buds_freebuds_5, ProductArt.battery("stem", "freebuds-5"))
         assertEquals(R.drawable.thumb_buds_freebuds_5, ProductArt.thumbnail("stem", "freebuds-5"))
+        // freebuds-pro-5 is a "stem" profile; a mismatched "round" shape argument must not change the result.
+        assertEquals(R.drawable.battery_buds_freebuds_pro_5, ProductArt.battery("round", "freebuds-pro-5"))
+        assertEquals(R.drawable.thumb_buds_freebuds_pro_5, ProductArt.thumbnail("round", "freebuds-pro-5"))
     }
 
     @Test

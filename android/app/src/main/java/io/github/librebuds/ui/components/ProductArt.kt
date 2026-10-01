@@ -30,6 +30,11 @@ object ProductArt {
             thumbnail = R.drawable.thumb_buds_freebuds_6,
             case = R.drawable.battery_case_freebuds_6,
         ),
+        "freebuds-pro-5" to ModelArt(
+            battery = R.drawable.battery_buds_freebuds_pro_5,
+            thumbnail = R.drawable.thumb_buds_freebuds_pro_5,
+            case = R.drawable.battery_case_freebuds_pro_5,
+        ),
     )
 
     /** Earbuds above the battery rings, the same canvas and baseline as [case]. */
