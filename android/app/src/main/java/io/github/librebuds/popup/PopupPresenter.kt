@@ -93,6 +93,9 @@ fun deliveryDescription(action: PopupAction, shown: Boolean, notified: Boolean):
 /** How long a case-open popup stays on screen without interaction, in either style. */
 const val POPUP_AUTO_CLOSE_MILLIS = 12_000L
 
+/** The island closes after the same delay as the LibrePods island. */
+const val ISLAND_AUTO_CLOSE_MILLIS = 4_500L
+
 /** Shows the case-open popup, or its notification fallback. Main thread only. */
 object PopupPresenter {
     private const val TAG = "PopupPresenter"

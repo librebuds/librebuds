@@ -52,7 +52,7 @@ class PopupIsland(context: Context, private val onClosed: () -> Unit) : CasePopu
     /** Shows the island; returns false when the window could not be added (for example, the overlay permission was revoked). */
     fun open(model: PopupModel): Boolean {
         this.model = model
-        window.show(model.title, 0, host, IslandType.CASE_OPEN, autoCloseMillis = POPUP_AUTO_CLOSE_MILLIS)
+        window.show(model.title, 0, host, IslandType.CASE_OPEN, autoCloseMillis = ISLAND_AUTO_CLOSE_MILLIS)
         if (!host.islandOpen) return false
         collectState()
         return true
