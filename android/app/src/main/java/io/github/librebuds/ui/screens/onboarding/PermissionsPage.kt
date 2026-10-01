@@ -206,7 +206,7 @@ private fun StyledListScope.PermissionRow(
                     Icon(
                         imageVector = text.icon,
                         contentDescription = null,
-                        modifier = Modifier.size(22.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = Color.White
                     )
                 }

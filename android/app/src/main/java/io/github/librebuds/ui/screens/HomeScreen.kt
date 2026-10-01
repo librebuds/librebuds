@@ -124,14 +124,14 @@ private fun ProductThumbnail(art: String) {
     val tile = if (isSystemInDarkTheme()) Color(0xFF2C2C2E) else Color(0xFFE3E3E8)
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(52.dp)
             .background(tile, RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center
     ) {
         Image(
             painter = painterResource(ProductArt.thumbnail(art)),
             contentDescription = null,
-            modifier = Modifier.size(42.dp)
+            modifier = Modifier.size(48.dp)
         )
     }
 }
