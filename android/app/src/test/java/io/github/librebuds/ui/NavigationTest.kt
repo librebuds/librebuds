@@ -69,6 +69,14 @@ class NavigationTest {
     }
 
     @Test
+    fun topKeysDifferPerEntry() {
+        val device = BackStack.initial(true).push(buds)
+        val settings = device.push(Route.Settings)
+        assertEquals(device.topKey(), settings.back()!!.topKey())
+        assertTrue(setOf(BackStack.initial(true).topKey(), device.topKey(), settings.topKey()).size == 3)
+    }
+
+    @Test
     fun encodesAndDecodes() {
         val stack = BackStack.initial(true).push(Route.Device("AA:BB:CC:DD:EE:FF", "Buds | renamed")).push(Route.Multipoint)
         assertEquals(stack, BackStack.decode(stack.encode()))

@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,7 +65,15 @@ fun AppRoot(
     val registry = remember { LibreBudsApp.from(context).registry }
     val showDemo = BuildConfig.DEBUG && demoMode
     val rows = homeRows(detection, ui.state, showDemo) { id -> registry.profiles.firstOrNull { it.id == id }?.name }
-    val goBack = { stack = stack.back() ?: stack }
+    // Keeps each open screen's saved state (scroll position, the device screen's one association
+    // request) while a screen above it shows; dropped once the screen is popped.
+    val screenStates = rememberSaveableStateHolder()
+    val goBack: () -> Unit = {
+        stack.back()?.let { previous ->
+            screenStates.removeState(stack.topKey())
+            stack = previous
+        }
+    }
 
     // The demo row never counts: it would hide home on every start while demo mode is on.
     LaunchedEffect(detection.settled, stack.top) {
@@ -75,85 +84,87 @@ fun AppRoot(
     BackHandler(enabled = stack.canGoBack, onBack = goBack)
 
     LibreBudsTheme(m3eEnabled = designSystem == DesignSystem.Material) {
-        when (val top = stack.top) {
-            Route.Onboarding -> OnboardingScreen(preferences = preferences, onDone = { stack = stack.finishOnboarding() })
-            Route.Home -> HomeScreen(
-                rows = rows,
-                permissionMissing = detection.permissionMissing,
-                onOpenDevice = { row -> stack = stack.push(Route.Device(row.address, row.name)) },
-                onOpenSettings = { stack = stack.push(Route.Settings) }
-            )
-            is Route.Device -> DeviceScreen(
-                viewModel = viewModel,
-                settingsViewModel = settingsViewModel,
-                showOffMode = showOffMode,
-                address = top.address,
-                name = top.name,
-                onOpened = { onResult ->
-                    if (top.address == DEMO_ADDRESS) onResult(true) else onOpenEarbuds(top.address, top.name, onResult)
-                },
-                onNavigateBack = goBack,
-                onOpenSettings = { stack = stack.push(Route.Settings) },
-                onOpenMultipoint = { stack = stack.push(Route.Multipoint) }
-            )
-            Route.Multipoint -> MultipointScreen(viewModel = settingsViewModel, onNavigateBack = goBack)
-            Route.Settings -> {
-                val overlay = rememberOverlayAccess(preferences)
-                SettingsScreen(
-                    designSystem = designSystem,
-                    onDesignSystemChange = {
-                        designSystem = it
-                        preferences.designSystem = it
-                    },
-                    showOffMode = showOffMode,
-                    onShowOffModeChange = {
-                        showOffMode = it
-                        preferences.showOffMode = it
-                    },
-                    showIsland = showIsland,
-                    onShowIslandChange = {
-                        showIsland = it
-                        preferences.showIsland = it
-                    },
-                    popupEnabled = popupEnabled,
-                    onPopupEnabledChange = {
-                        popupEnabled = it
-                        preferences.popupEnabled = it
-                        if (it) {
-                            BeaconScanner.start(context)
-                        } else {
-                            BeaconScanner.stop(context)
-                            PopupPresenter.dismiss(context)
-                        }
-                    },
-                    popupStyle = popupStyle,
-                    onPopupStyleChange = {
-                        popupStyle = it
-                        preferences.popupStyle = it
-                    },
-                    overlay = overlay,
-                    onOpenAppInfo = { openAppDetailsSettings(context) },
-                    demoMode = demoMode,
-                    onDemoModeChange = {
-                        demoMode = it
-                        preferences.demoMode = it
-                    },
-                    artVariant = artVariant,
-                    onArtVariantChange = {
-                        artVariant = it
-                        preferences.artVariant = it
-                    },
-                    // Read fresh every time Settings is entered, since BeaconReceiver writes it outside Compose.
-                    lastBeacon = preferences.lastBeacon,
-                    onShowTestPopup = {
-                        val app = LibreBudsApp.from(context)
-                        demoPopupModel(app.registry)?.let { model ->
-                            PopupPresenter.show(app, model, artFor(model.art, preferences.artVariant, PopupVideos.map()))
-                        }
-                    },
-                    onExportDiagnostics = onExportDiagnostics,
-                    onNavigateBack = goBack
+        screenStates.SaveableStateProvider(stack.topKey()) {
+            when (val top = stack.top) {
+                Route.Onboarding -> OnboardingScreen(preferences = preferences, onDone = { stack = stack.finishOnboarding() })
+                Route.Home -> HomeScreen(
+                    rows = rows,
+                    permissionMissing = detection.permissionMissing,
+                    onOpenDevice = { row -> stack = stack.push(Route.Device(row.address, row.name)) },
+                    onOpenSettings = { stack = stack.push(Route.Settings) }
                 )
+                is Route.Device -> DeviceScreen(
+                    viewModel = viewModel,
+                    settingsViewModel = settingsViewModel,
+                    showOffMode = showOffMode,
+                    address = top.address,
+                    name = top.name,
+                    onOpened = { onResult ->
+                        if (top.address == DEMO_ADDRESS) onResult(true) else onOpenEarbuds(top.address, top.name, onResult)
+                    },
+                    onNavigateBack = goBack,
+                    onOpenSettings = { stack = stack.push(Route.Settings) },
+                    onOpenMultipoint = { stack = stack.push(Route.Multipoint) }
+                )
+                Route.Multipoint -> MultipointScreen(viewModel = settingsViewModel, onNavigateBack = goBack)
+                Route.Settings -> {
+                    val overlay = rememberOverlayAccess(preferences)
+                    SettingsScreen(
+                        designSystem = designSystem,
+                        onDesignSystemChange = {
+                            designSystem = it
+                            preferences.designSystem = it
+                        },
+                        showOffMode = showOffMode,
+                        onShowOffModeChange = {
+                            showOffMode = it
+                            preferences.showOffMode = it
+                        },
+                        showIsland = showIsland,
+                        onShowIslandChange = {
+                            showIsland = it
+                            preferences.showIsland = it
+                        },
+                        popupEnabled = popupEnabled,
+                        onPopupEnabledChange = {
+                            popupEnabled = it
+                            preferences.popupEnabled = it
+                            if (it) {
+                                BeaconScanner.start(context)
+                            } else {
+                                BeaconScanner.stop(context)
+                                PopupPresenter.dismiss(context)
+                            }
+                        },
+                        popupStyle = popupStyle,
+                        onPopupStyleChange = {
+                            popupStyle = it
+                            preferences.popupStyle = it
+                        },
+                        overlay = overlay,
+                        onOpenAppInfo = { openAppDetailsSettings(context) },
+                        demoMode = demoMode,
+                        onDemoModeChange = {
+                            demoMode = it
+                            preferences.demoMode = it
+                        },
+                        artVariant = artVariant,
+                        onArtVariantChange = {
+                            artVariant = it
+                            preferences.artVariant = it
+                        },
+                        // Read fresh every time Settings is entered, since BeaconReceiver writes it outside Compose.
+                        lastBeacon = preferences.lastBeacon,
+                        onShowTestPopup = {
+                            val app = LibreBudsApp.from(context)
+                            demoPopupModel(app.registry)?.let { model ->
+                                PopupPresenter.show(app, model, artFor(model.art, preferences.artVariant, PopupVideos.map()))
+                            }
+                        },
+                        onExportDiagnostics = onExportDiagnostics,
+                        onNavigateBack = goBack
+                    )
+                }
             }
         }
     }

@@ -43,6 +43,9 @@ data class BackStack(val entries: List<Route>, val autoOpenPending: Boolean = tr
         return BackStack(opened, autoOpenPending = false)
     }
 
+    /** Identifies the top entry for per-screen saved state; unique within the stack. */
+    fun topKey(): String = "${entries.lastIndex}:${encodeRoute(top)}"
+
     /** Strings for saved instance state. */
     fun encode(): ArrayList<String> = ArrayList(listOf(if (autoOpenPending) PENDING else DONE) + entries.map(::encodeRoute))
 
