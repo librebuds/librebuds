@@ -124,6 +124,7 @@ class BudsController(
             name = name,
             battery = previous?.battery,
             anc = previous?.anc,
+            device = previous?.device ?: DeviceSummary(),
             updatedAtMillis = previous?.updatedAtMillis,
         )
         event("connect ${EventLog.maskMac(address)} (generation $myGeneration)")
@@ -156,7 +157,12 @@ class BudsController(
                 link = LinkState.CONNECTED,
                 profileId = profile.id,
                 capabilities = profile.capabilities.keys,
-                device = DeviceSummary(model = profile.name, firmware = info?.firmware, serial = info?.serial),
+                // A failed device-info read keeps the details known from an earlier connect.
+                device = DeviceSummary(
+                    model = profile.name,
+                    firmware = info?.firmware ?: it.device.firmware,
+                    serial = info?.serial ?: it.device.serial,
+                ),
                 updatedAtMillis = clock(),
             )
         }

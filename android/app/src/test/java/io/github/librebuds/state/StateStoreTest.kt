@@ -69,7 +69,7 @@ class StateStoreTest {
     }
 
     @Test
-    fun sessionOnlyFieldsAreNotPersisted() {
+    fun sessionOnlyFieldsAreNotPersistedButDeviceDetailsAre() {
         val live = full.copy(
             link = LinkState.CONNECTED,
             capabilities = setOf("battery", "anc", "wear"),
@@ -80,7 +80,19 @@ class StateStoreTest {
             multipointEnabled = true,
             inEar = true,
         )
-        assertEquals(full, roundTrip(live))
+        assertEquals(full.copy(device = DeviceSummary(model = "FreeBuds 6", firmware = "1.0", serial = "X")), roundTrip(live))
+    }
+
+    @Test
+    fun deviceDetailsSurviveARestart() {
+        val live = full.copy(device = DeviceSummary(model = "FreeBuds 5", firmware = "5.0.0.208", serial = "TESTSERIAL000001"))
+        assertEquals(DeviceSummary(model = "FreeBuds 5", firmware = "5.0.0.208", serial = "TESTSERIAL000001"), roundTrip(live)?.device)
+    }
+
+    @Test
+    fun stateSavedWithoutDeviceDetailsStillLoads() {
+        val old = PersistedState.from(full, BOOT).encode().replace(Regex(",\\s*\"(model|firmware|serial)\":\"[^\"]*\""), "")
+        assertEquals(DeviceSummary(), PersistedState.decode(old)?.toBudsState({ false }, BOOT)?.device)
     }
 
     @Test

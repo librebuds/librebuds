@@ -10,8 +10,8 @@ import kotlinx.serialization.json.Json
 
 /**
  * The part of [BudsState] that outlives the process: which earbuds, whether another device held
- * them, and the last known battery and noise control. Settings, hosts and device details are
- * session data and are read again on the next connect.
+ * them, the last known battery and noise control, and the model, firmware and serial number read
+ * at the last connect. Settings and hosts are session data and are read again on the next connect.
  */
 @Serializable
 data class PersistedState(
@@ -26,6 +26,10 @@ data class PersistedState(
     val updatedAtMillis: Long?,
     /** The phone's boot count when this was saved; null when it could not be read. */
     val bootCount: Int?,
+    /** Device details from the last connect; absent in states saved by older builds. */
+    val model: String? = null,
+    val firmware: String? = null,
+    val serial: String? = null,
 ) {
     @Serializable
     data class PersistedBattery(
@@ -59,6 +63,7 @@ data class PersistedState(
         },
         anc = if (ancModeCode != null && ancLevel != null) AncState(ancModeCode, ancLevel) else null,
         updatedAtMillis = updatedAtMillis,
+        device = DeviceSummary(model, firmware, serial),
     )
 
     private fun keepsTakeOver(audioUp: (String) -> Boolean, currentBootCount: Int?): Boolean {
@@ -86,6 +91,9 @@ data class PersistedState(
             ancLevel = state.anc?.level,
             updatedAtMillis = state.updatedAtMillis,
             bootCount = bootCount,
+            model = state.device?.model,
+            firmware = state.device?.firmware,
+            serial = state.device?.serial,
         )
 
         /** Null for anything but a well-formed state of the current [VERSION]: a fresh start, never a crash. */
