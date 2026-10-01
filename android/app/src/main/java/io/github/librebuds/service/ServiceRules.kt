@@ -31,8 +31,8 @@ fun shouldLaunchConnect(state: BudsState, address: String): Boolean {
  * - Otherwise the most recently connected pair wins; addresses without a recorded time come last.
  * - A connect that failed is not retried on every broadcast: the address counts as attempted until
  *   its link comes up again ([onLinkUp]: a fresh ACL, A2DP or headset connection).
- * - A pair once seen TAKEN_OVER stays excluded until it leaves the phone ([onGone]), also after the
- *   controller moved on to another pair (the user may switch explicitly).
+ * - A pair once seen TAKEN_OVER stays excluded until it leaves the phone ([onGone]) or the user takes
+ *   it back, also after the controller moved on to another pair (the user may switch explicitly).
  */
 class AutoConnectPlanner {
     private val attempted = mutableSetOf<String>()
@@ -49,9 +49,17 @@ class AutoConnectPlanner {
         heldElsewhere -= address.uppercase()
     }
 
-    /** Follows the controller state, so a take-over is remembered even after the controller moved on. */
+    /**
+     * Follows the controller state, so a take-over is remembered even after the controller moved on,
+     * and forgotten once the controller holds those earbuds again (the user took them back).
+     */
     fun onState(state: BudsState) {
-        if (state.link == LinkState.TAKEN_OVER) state.address?.let { heldElsewhere += it.uppercase() }
+        val address = state.address?.uppercase() ?: return
+        when (state.link) {
+            LinkState.TAKEN_OVER -> heldElsewhere += address
+            LinkState.CONNECTED -> heldElsewhere -= address
+            else -> Unit
+        }
     }
 
     /** Records that a connect to [address] was launched. */

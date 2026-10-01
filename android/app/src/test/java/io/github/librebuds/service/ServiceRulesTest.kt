@@ -113,4 +113,15 @@ class ServiceRulesTest {
         val dropped = BudsState(link = LinkState.DISCONNECTED, address = a)
         assertEquals(b, planner.target(listOf(b), mapOf(a to 9L, b to 1L), dropped))
     }
+
+    @Test
+    fun anExplicitTakeOverEndsTheExclusion() {
+        val planner = AutoConnectPlanner()
+        planner.onState(BudsState(link = LinkState.TAKEN_OVER, address = a))
+        planner.onState(BudsState(link = LinkState.CONNECTED, address = a))
+        assertFalse(planner.isHeldElsewhere(a))
+        // The link later drops while the phone keeps the earbuds: a fresh link may connect them again.
+        planner.onLinkUp(a)
+        assertEquals(a, planner.target(listOf(a), emptyMap(), BudsState(link = LinkState.DISCONNECTED, address = a)))
+    }
 }

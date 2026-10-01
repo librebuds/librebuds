@@ -155,10 +155,9 @@ class BudsService : Service() {
             stopService()
             return
         }
-        val controller = LibreBudsApp.from(this).controller
-        // A take-over without audio to those earbuds any more is over: they may connect on their own next time.
-        controller.clearTakeOver(keepWhile = ::isAudioConnected)
-        val state = controller.state.value
+        val state = LibreBudsApp.from(this).controller.state.value
+        // The state collector may not have run yet (first start): a restored take-over must count already.
+        planner.onState(state)
         val connected = buds.orEmpty().filter { isAudioConnected(it.address) }.map { it.address } +
             // The controller is talking to its pair right now, whatever the trackers missed.
             listOfNotNull(state.address?.takeIf { state.link == LinkState.CONNECTED || state.link == LinkState.CONNECTING })
@@ -184,6 +183,11 @@ class BudsService : Service() {
                 BluetoothDevice.ACTION_ACL_DISCONNECTED -> address?.let {
                     trackPresence(Presence.DISAPPEARED, it)
                     planner.onGone(it)
+                    // Earbuds another device held are gone from the phone: that take-over is over, so they may
+                    // connect on their own next time. Only on this event, never on a guess at process start,
+                    // where a restored take-over waits for the profile proxies (see LibreBudsApp).
+                    val controller = LibreBudsApp.from(context).controller
+                    if (it.equals(controller.state.value.address, ignoreCase = true)) controller.clearTakeOver(keepWhile = ::isAudioConnected)
                 }
                 BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED, BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED -> {
                     val profileState = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, BluetoothProfile.STATE_DISCONNECTED)
