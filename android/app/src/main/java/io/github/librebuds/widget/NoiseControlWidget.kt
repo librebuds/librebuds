@@ -15,10 +15,15 @@ import io.github.librebuds.protocol.command.AncMode
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.ui.model.NoiseControlMode
+import io.github.librebuds.ui.model.listedMode
+import io.github.librebuds.ui.model.offeredModes
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
-/** Home-screen widget with one button per noise-control mode; the active mode is highlighted. */
+/**
+ * Home-screen widget with one button per noise-control mode the model's profile lists; the active
+ * mode is highlighted.
+ */
 class NoiseControlWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         val showOff = AppPreferences(context).showOffMode
@@ -30,9 +35,10 @@ class NoiseControlWidget : AppWidgetProvider() {
             super.onReceive(context, intent)
             return
         }
-        val mode = AncMode.of(intent.getIntExtra(EXTRA_MODE, -1)) ?: return
         val app = LibreBudsApp.from(context)
         val repository = app.repository
+        // A button rendered for an earlier model can still fire; never send a mode this one does not list.
+        val mode = listedMode(intent.getIntExtra(EXTRA_MODE, -1), app.profile(repository.state.value.profileId)) ?: return
         val pending = goAsync()
         // The controller is confined to the main thread, like the app scope it runs on.
         app.appScope.launch {
@@ -62,12 +68,13 @@ class NoiseControlWidget : AppWidgetProvider() {
         )
 
         fun render(context: Context, state: BudsState, showOffMode: Boolean): RemoteViews {
+            val offered = offeredModes(LibreBudsApp.from(context).profile(state.profileId), showOffMode)
             val selected = NoiseControlMode.of(state.anc).takeIf { state.isConnected }
             val selectedColor = context.getColor(R.color.widget_on_accent)
             val normalColor = context.getColor(R.color.widget_text)
             return RemoteViews(context.packageName, R.layout.widget_noise_control).apply {
                 buttons.forEach { button ->
-                    if (button.mode == NoiseControlMode.OFF && !showOffMode) {
+                    if (button.mode !in offered) {
                         setViewVisibility(button.container, View.GONE)
                         return@forEach
                     }

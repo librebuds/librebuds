@@ -6,6 +6,7 @@ import io.github.librebuds.R
 import io.github.librebuds.protocol.command.Gesture
 import io.github.librebuds.protocol.command.HostAction
 import io.github.librebuds.protocol.profile.Profile
+import io.github.librebuds.protocol.profile.ancModes
 import io.github.librebuds.session.GESTURE_SUB_KEYS
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.SettingChange
@@ -14,13 +15,21 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 
 /** Which string family an option's semantic key belongs to. */
-enum class OptionGroup { GESTURE, NOISE_CYCLE, EQUALIZER, SOUND_QUALITY }
+enum class OptionGroup { GESTURE, NOISE_CYCLE, EQUALIZER, SOUND_QUALITY, CANCELLATION_LEVEL }
 
 /** One selectable device value. [key] is the profile's semantic name, or null when the profile does not name it. */
 data class SettingOption(val code: Int, val key: String?)
 
-/** A picker: the current device value (null = not reported) and what can be chosen. */
-data class Picker(val current: Int?, val options: List<SettingOption>, val group: OptionGroup)
+/**
+ * A picker: the current device value (null = not reported) and what can be chosen. [labels] name
+ * values that are not offered (a current value outside [options]) without offering them.
+ */
+data class Picker(
+    val current: Int?,
+    val options: List<SettingOption>,
+    val group: OptionGroup,
+    val labels: List<SettingOption> = emptyList(),
+)
 
 /** One gesture's pickers; a side is null when that value is not shown (not reported, or swipe's mirrored right side). */
 data class GestureControl(
@@ -78,13 +87,21 @@ private fun gestureControls(profile: Profile, state: BudsState): List<GestureCon
         if ("gestures.$subKey" in state.settings.unanswered) return@mapNotNull null
         val setting = state.settings.gestures[gesture] ?: return@mapNotNull null
         val group = if (gesture == Gesture.NOISE_CYCLE) OptionGroup.NOISE_CYCLE else OptionGroup.GESTURE
-        val options = options(entry.table("options"), setting.supported)
+        val all = options(entry.table("options"), setting.supported)
+        // Never offer a cycle through a noise-control mode the profile does not list.
+        val offered = if (gesture == Gesture.NOISE_CYCLE) {
+            val modes = profile.ancModes().toSet()
+            all.filter { option -> noiseCycleModes(option.key)?.let { modes.containsAll(it) } ?: true }
+        } else {
+            all
+        }
+        val hidden = all - offered.toSet()
         val withInCall = (entry["inCall"] as? JsonPrimitive)?.booleanOrNull == true
         GestureControl(
             subKey = subKey,
             gesture = gesture,
-            left = setting.left?.let { picker(it, options, group) },
-            right = setting.right?.takeIf { gesture != Gesture.SWIPE }?.let { picker(it, options, group) },
+            left = setting.left?.let { picker(it, offered, group, hidden) },
+            right = setting.right?.takeIf { gesture != Gesture.SWIPE }?.let { picker(it, offered, group, hidden) },
             inCall = setting.inCall?.takeIf { withInCall }?.let {
                 picker(it, options(entry.table("inCallOptions"), emptyList()), OptionGroup.GESTURE)
             },
@@ -93,8 +110,8 @@ private fun gestureControls(profile: Profile, state: BudsState): List<GestureCon
 }
 
 /** A picker with nothing to choose from is not shown at all. */
-private fun picker(current: Int?, options: List<SettingOption>, group: OptionGroup): Picker? =
-    Picker(current, options, group).takeIf { options.isNotEmpty() }
+private fun picker(current: Int?, options: List<SettingOption>, group: OptionGroup, labels: List<SettingOption> = emptyList()): Picker? =
+    Picker(current, options, group, labels.filter { it.code == current }).takeIf { options.isNotEmpty() }
 
 private fun JsonObject.table(name: String): JsonObject? = this[name] as? JsonObject
 
@@ -108,7 +125,7 @@ private fun options(table: JsonObject?, fallback: List<Int>): List<SettingOption
 }
 
 /** The semantic name the picker's options give [code], or null when none does. */
-fun Picker.keyOf(code: Int): String? = options.firstOrNull { it.code == code }?.key
+fun Picker.keyOf(code: Int): String? = (options.firstOrNull { it.code == code } ?: labels.firstOrNull { it.code == code })?.key
 
 /** The string for a semantic option key, or null for a key this app does not know (show the raw code). */
 @StringRes
@@ -141,6 +158,13 @@ fun optionLabelRes(group: OptionGroup, key: String?): Int? = when (group) {
     OptionGroup.SOUND_QUALITY -> when (key) {
         "connectivity" -> R.string.sound_connectivity
         "quality" -> R.string.sound_quality
+        else -> null
+    }
+    OptionGroup.CANCELLATION_LEVEL -> when (key) {
+        "dynamic" -> R.string.cancellation_level_dynamic
+        "cozy" -> R.string.cancellation_level_cozy
+        "general" -> R.string.cancellation_level_general
+        "ultra" -> R.string.cancellation_level_ultra
         else -> null
     }
 }

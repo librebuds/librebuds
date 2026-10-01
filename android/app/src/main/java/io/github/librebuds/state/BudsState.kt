@@ -45,6 +45,13 @@ interface BudsRepository {
      */
     suspend fun setAnc(mode: AncMode): Result<AncState>
 
+    /**
+     * Turns noise cancellation on at an explicit [level] (one the profile lists); succeeds only
+     * once a read-back after the settle delay shows cancellation at that level. Same cancellation
+     * contract as [setAnc].
+     */
+    suspend fun setAncLevel(level: Int): Result<AncState> = Result.failure(UnsupportedOperationException())
+
     suspend fun refresh(): Result<Unit>
 
     /** Reconnects after another client took the link (spec 8). */

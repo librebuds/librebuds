@@ -45,6 +45,7 @@ import io.github.librebuds.ui.components.StyledButton
 import io.github.librebuds.ui.components.StyledIconButton
 import io.github.librebuds.ui.components.StyledScaffold
 import io.github.librebuds.ui.messageRes
+import io.github.librebuds.ui.model.offeredModes
 import io.github.librebuds.ui.model.toUiBatteries
 import io.github.librebuds.ui.theme.DesignSystem
 import io.github.librebuds.ui.theme.LocalDesignSystem
@@ -139,9 +140,12 @@ fun DeviceScreen(
             if (ui.state.isConnected && "anc" in ui.state.capabilities) {
                 NoiseControlSettings(
                     selected = ui.selectedNoiseMode,
-                    showOff = showOffMode,
+                    modes = offeredModes(ui.listedModes, showOffMode),
                     onSelected = viewModel::selectNoiseMode
                 )
+                ui.cancellationLevel?.let { picker ->
+                    CancellationLevelList(picker, onSelect = viewModel::selectCancellationLevel)
+                }
             }
             ui.error?.let { error ->
                 Text(

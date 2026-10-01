@@ -51,4 +51,7 @@ object Anc {
 
     // SPEC-GAP: in awareness mode the firmware picks the level itself, so only the mode is compared.
     fun confirms(state: AncState, mode: AncMode): Boolean = state.mode == mode
+
+    /** An explicit cancellation level write is confirmed only by both the mode and the level read back. */
+    fun confirmsLevel(state: AncState, level: Int): Boolean = state.mode == AncMode.CANCELLATION && state.level == level
 }

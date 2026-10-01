@@ -94,17 +94,18 @@ private data class NoiseControlOption(
 @Composable
 fun NoiseControlSettings(
     selected: NoiseControlMode?,
-    showOff: Boolean,
+    modes: List<NoiseControlMode>,
     onSelected: (NoiseControlMode) -> Unit
 ) {
-    val options = buildList {
-        if (showOff) {
-            add(NoiseControlOption(NoiseControlMode.OFF, R.string.off, R.drawable.ic_mode_off))
+    // Only the modes the profile lists (see offeredModes), in their order.
+    val options = modes.map { mode ->
+        when (mode) {
+            NoiseControlMode.OFF -> NoiseControlOption(mode, R.string.off, R.drawable.ic_mode_off)
+            NoiseControlMode.NOISE_CANCELLATION -> NoiseControlOption(mode, R.string.noise_cancellation, R.drawable.ic_mode_cancellation)
+            NoiseControlMode.AWARENESS -> NoiseControlOption(mode, R.string.awareness, R.drawable.ic_mode_awareness)
         }
-        add(NoiseControlOption(NoiseControlMode.NOISE_CANCELLATION, R.string.noise_cancellation, R.drawable.ic_mode_cancellation))
-        add(NoiseControlOption(NoiseControlMode.AWARENESS, R.string.awareness, R.drawable.ic_mode_awareness))
     }
-    // -1 when nothing is selected (mode unknown or OFF hidden): no option is highlighted.
+    // -1 when nothing is selected (mode unknown or not offered): no option is highlighted.
     val selectedIndex = options.indexOfFirst { it.mode == selected }
 
     when (LocalDesignSystem.current) {
@@ -337,7 +338,7 @@ fun NoiseControlSettingsPreview() {
         ) {
             NoiseControlSettings(
                 selected = NoiseControlMode.NOISE_CANCELLATION,
-                showOff = false,
+                modes = listOf(NoiseControlMode.NOISE_CANCELLATION, NoiseControlMode.AWARENESS),
                 onSelected = { }
             )
         }

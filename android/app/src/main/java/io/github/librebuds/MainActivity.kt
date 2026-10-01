@@ -26,7 +26,6 @@ import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.companion.CompanionLink
 import io.github.librebuds.diag.DiagnosticsExport
 import io.github.librebuds.diag.DiagnosticsHeader
-import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.service.BudsService
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.ui.AppRoot
@@ -51,14 +50,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val viewModel = ViewModelProvider(
             this,
-            viewModelFactory { initializer { DeviceViewModel(LibreBudsApp.from(this@MainActivity).repository) } }
+            viewModelFactory {
+                initializer {
+                    val app = LibreBudsApp.from(this@MainActivity)
+                    DeviceViewModel(app.repository, app::profile)
+                }
+            }
         )[DeviceViewModel::class.java]
         val settingsViewModel = ViewModelProvider(
             this,
             viewModelFactory {
                 initializer {
                     val app = LibreBudsApp.from(this@MainActivity)
-                    SettingsViewModel(app.repository) { id -> app.registry.profiles.firstOrNull { it.id == id } ?: ProfileRegistry.GENERIC }
+                    SettingsViewModel(app.repository, app::profile)
                 }
             }
         )[SettingsViewModel::class.java]

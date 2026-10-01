@@ -38,7 +38,7 @@ import io.github.librebuds.ui.DeviceViewModel
 import io.github.librebuds.ui.components.BatteryView
 import io.github.librebuds.ui.components.ControlCenterNoiseControlSegmentedButton
 import io.github.librebuds.ui.messageRes
-import io.github.librebuds.ui.model.NoiseControlMode
+import io.github.librebuds.ui.model.offeredModes
 import io.github.librebuds.ui.model.toUiBatteries
 import io.github.librebuds.ui.theme.DesignSystem
 import io.github.librebuds.ui.theme.LibreBudsTheme
@@ -50,13 +50,17 @@ class QuickSettingsDialogActivity : ComponentActivity() {
         window.setGravity(Gravity.BOTTOM)
         val viewModel = ViewModelProvider(
             this,
-            viewModelFactory { initializer { DeviceViewModel(LibreBudsApp.from(this@QuickSettingsDialogActivity).repository) } }
+            viewModelFactory {
+                initializer {
+                    val app = LibreBudsApp.from(this@QuickSettingsDialogActivity)
+                    DeviceViewModel(app.repository, app::profile)
+                }
+            }
         )[DeviceViewModel::class.java]
         val preferences = AppPreferences(this)
-        val modes = NoiseControlMode.entries.filter { it != NoiseControlMode.OFF || preferences.showOffMode }
         setContent {
             LibreBudsTheme(m3eEnabled = preferences.designSystem == DesignSystem.Material) {
-                QuickSettingsPanel(viewModel, modes, onDismiss = ::finish)
+                QuickSettingsPanel(viewModel, preferences.showOffMode, onDismiss = ::finish)
             }
         }
     }
@@ -65,7 +69,7 @@ class QuickSettingsDialogActivity : ComponentActivity() {
 private val PanelColor = Color(0xF21C1C1E)
 
 @Composable
-private fun QuickSettingsPanel(viewModel: DeviceViewModel, modes: List<NoiseControlMode>, onDismiss: () -> Unit) {
+private fun QuickSettingsPanel(viewModel: DeviceViewModel, showOffMode: Boolean, onDismiss: () -> Unit) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val batteries = ui.state.battery.toUiBatteries()
     val context = LocalContext.current
@@ -108,7 +112,8 @@ private fun QuickSettingsPanel(viewModel: DeviceViewModel, modes: List<NoiseCont
             }
             if (ui.state.isConnected && "anc" in ui.state.capabilities) {
                 ControlCenterNoiseControlSegmentedButton(
-                    availableModes = modes,
+                    // Follows the connected model: only the modes its profile lists.
+                    availableModes = offeredModes(ui.listedModes, showOffMode),
                     selectedMode = ui.selectedNoiseMode,
                     onModeSelected = viewModel::selectNoiseMode
                 )

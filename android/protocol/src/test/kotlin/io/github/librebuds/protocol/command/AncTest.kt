@@ -48,6 +48,14 @@ class AncTest {
     }
 
     @Test
+    fun levelConfirmationNeedsCancellationAndTheLevel() {
+        assertTrue(Anc.confirmsLevel(AncState(modeCode = 1, level = 1), 1))
+        assertFalse(Anc.confirmsLevel(AncState(modeCode = 1, level = 3), 1))
+        assertFalse(Anc.confirmsLevel(AncState(modeCode = 2, level = 1), 1))
+        assertFalse(Anc.confirmsLevel(AncState(modeCode = 0, level = 1), 1))
+    }
+
+    @Test
     fun rejectsLevelOutsideByteRange() {
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException::class.java) {
             Anc.writeRequest(AncMode.CANCELLATION, 256)

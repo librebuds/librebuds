@@ -73,6 +73,13 @@ class DemoBudsRepository(
         return Result.success(next)
     }
 
+    override suspend fun setAncLevel(level: Int): Result<AncState> {
+        delay(applyDelayMillis)
+        val next = AncState(modeCode = AncMode.CANCELLATION.code, level = level)
+        mutable.update { it.copy(anc = next, updatedAtMillis = clock()) }
+        return Result.success(next)
+    }
+
     override suspend fun refresh(): Result<Unit> {
         mutable.update { it.copy(updatedAtMillis = clock()) }
         return Result.success(Unit)

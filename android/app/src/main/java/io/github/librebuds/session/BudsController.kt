@@ -25,6 +25,8 @@ import io.github.librebuds.protocol.command.VoiceLanguage
 import io.github.librebuds.protocol.command.WearDetection
 import io.github.librebuds.protocol.profile.Profile
 import io.github.librebuds.protocol.profile.ProfileRegistry
+import io.github.librebuds.protocol.profile.ancModes
+import io.github.librebuds.protocol.profile.cancellationLevels
 import io.github.librebuds.state.BudsRepository
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.DeviceSettings
@@ -266,9 +268,29 @@ class BudsController(
         mutable.update { it.copy(link = LinkState.DISCONNECTED) }
     }
 
+    /** Fails fast with [UnsupportedOperationException] for a mode the profile does not list (a stale widget button, say). */
     override suspend fun setAnc(mode: AncMode): Result<AncState> {
         val current = session ?: return Result.failure(NotConnectedException())
+        if (mode !in profile.ancModes()) {
+            event("anc mode ${mode.code} not offered by profile ${profile.id}")
+            return Result.failure(UnsupportedOperationException())
+        }
         val level = levelFor(mode, mutable.value.anc, profile)
+        return writeAnc(current, mode, level) { Anc.confirms(it, mode) }
+    }
+
+    /** Fails fast with [UnsupportedOperationException] for a level the profile does not list. */
+    override suspend fun setAncLevel(level: Int): Result<AncState> {
+        val current = session ?: return Result.failure(NotConnectedException())
+        if (level !in profile.cancellationLevels()) {
+            event("anc level $level not offered by profile ${profile.id}")
+            return Result.failure(UnsupportedOperationException())
+        }
+        return writeAnc(current, AncMode.CANCELLATION, level) { Anc.confirmsLevel(it, level) }
+    }
+
+    /** Writes [mode] and [level], lets the device settle, reads back; the read-back updates state either way. */
+    private suspend fun writeAnc(current: DeviceSession, mode: AncMode, level: Int, confirmed: (AncState) -> Boolean): Result<AncState> {
         event("anc write mode=${mode.code} level=$level")
         sendWrite(current, Anc.writeRequest(mode, level)).getOrElse { event("anc write failed: ${it.javaClass.simpleName}"); return Result.failure(it) }
         delay(settleMillis)
@@ -276,7 +298,7 @@ class BudsController(
         applyPacket(reply)
         val applied = Anc.parseState(reply) ?: return Result.failure(AncRejectedException())
         event("anc read-back mode=${applied.modeCode} level=${applied.level}")
-        return if (Anc.confirms(applied, mode)) Result.success(applied) else Result.failure(AncRejectedException())
+        return if (confirmed(applied)) Result.success(applied) else Result.failure(AncRejectedException())
     }
 
     /**

@@ -28,6 +28,7 @@ import io.github.librebuds.ui.components.StyledListItem
 import io.github.librebuds.ui.components.StyledListScope
 import io.github.librebuds.ui.components.StyledToggle
 import io.github.librebuds.ui.model.GestureControl
+import io.github.librebuds.ui.model.OptionGroup
 import io.github.librebuds.ui.model.Picker
 import io.github.librebuds.ui.model.keyOf
 import io.github.librebuds.ui.model.optionLabelRes
@@ -112,6 +113,19 @@ fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, on
     PickerSheet(request) { request = null }
 }
 
+/**
+ * The noise cancellation level row shown under the noise-control modes, with its own picker
+ * sheet. [picker] comes from [io.github.librebuds.ui.model.cancellationLevelPicker].
+ */
+@Composable
+fun CancellationLevelList(picker: Picker, onSelect: (Int) -> Unit) {
+    var request by remember { mutableStateOf<PickerRequest?>(null) }
+    StyledList {
+        PickerRow(stringResource(R.string.cancellation_level), picker, { request = it }, onSelect = onSelect)
+    }
+    PickerSheet(request) { request = null }
+}
+
 @Composable
 private fun StyledListScope.GestureRows(
     control: GestureControl,
@@ -177,10 +191,14 @@ private fun PickerSheet(request: PickerRequest?, onDismiss: () -> Unit) {
     }
 }
 
-/** The localized name of [code]'s semantic key, or "Option <code>" when the profile or this app does not name it. */
+/**
+ * The localized name of [code]'s semantic key, or "Option <code>" ("Level <code>" for a
+ * cancellation level) when the profile or this app does not name it.
+ */
 @Composable
 private fun optionLabel(picker: Picker, code: Int): String =
-    optionLabelRes(picker.group, picker.keyOf(code))?.let { stringResource(it) } ?: stringResource(R.string.option_code, code)
+    optionLabelRes(picker.group, picker.keyOf(code))?.let { stringResource(it) }
+        ?: stringResource(if (picker.group == OptionGroup.CANCELLATION_LEVEL) R.string.level_code else R.string.option_code, code)
 
 @StringRes
 private fun Gesture.nameRes(): Int = when (this) {

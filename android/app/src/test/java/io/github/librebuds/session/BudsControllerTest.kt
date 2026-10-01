@@ -32,6 +32,7 @@ class BudsControllerTest {
     private val registry = ProfileRegistry.fromJson(
         listOf(
             """{"id":"freebuds-6","name":"FreeBuds 6","match":{"sku":["BTFT0020"]},"capabilities":{"battery":{},"anc":{"cancellationLevels":[3]}}}""",
+            """{"id":"freebuds-5","name":"FreeBuds 5","match":{"sku":["BTFT0013"]},"capabilities":{"battery":{},"anc":{"modes":["off","cancellation"],"cancellationLevels":[3,1,0]}}}""",
         ),
     )
 
@@ -77,6 +78,73 @@ class BudsControllerTest {
         assertEquals(AncMode.CANCELLATION, result.getOrThrow().mode)
         assertEquals(0xFF, earbuds.ancLevel) // switching mode lets the earbuds pick the level
         assertEquals(AncMode.CANCELLATION, c.state.value.anc?.mode)
+    }
+
+    @Test
+    fun setAncLevelWritesCancellationAtThatLevelAndConfirmsIt() = runTest {
+        val requests = mutableListOf<String>()
+        val earbuds = FakeEarbuds(sku = "BTFT0013", ancMode = 1, ancLevel = 3, onRequest = { requests += it })
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        requests.clear()
+        val result = c.setAncLevel(1)
+        assertEquals(AncState(modeCode = 1, level = 1), result.getOrThrow())
+        assertEquals(1, earbuds.ancMode)
+        assertEquals(1, earbuds.ancLevel)
+        assertEquals(AncState(modeCode = 1, level = 1), c.state.value.anc)
+        assertEquals(listOf("2B/04", "2B/2A"), requests)
+    }
+
+    @Test
+    fun setAncLevelWaitsTheSettleDelayBeforeReadingBack() = runTest {
+        val requests = mutableListOf<Pair<String, Long>>()
+        val earbuds = FakeEarbuds(sku = "BTFT0013", ancMode = 1, ancLevel = 3)
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        earbuds.onRequest = { requests += it to testScheduler.currentTime }
+        c.setAncLevel(0).getOrThrow()
+        val (write, read) = requests
+        assertEquals("2B/04", write.first)
+        assertEquals("2B/2A", read.first)
+        assertEquals(1500L, read.second - write.second)
+    }
+
+    @Test
+    fun setAncLevelWithMismatchedReadBackIsRejectedAndStateFollowsTheDevice() = runTest {
+        val earbuds = FakeEarbuds(sku = "BTFT0013", ancMode = 1, ancLevel = 3, ignoreWrites = setOf("2B/04"))
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        val result = c.setAncLevel(1)
+        assertTrue(result.exceptionOrNull() is AncRejectedException)
+        assertEquals(AncState(modeCode = 1, level = 3), c.state.value.anc)
+    }
+
+    @Test
+    fun setAncLevelRefusesLevelsTheProfileDoesNotList() = runTest {
+        val requests = mutableListOf<String>()
+        val c = controller(FakeEarbuds(sku = "BTFT0013", onRequest = { requests += it }))
+        c.connect("AA", "x")
+        requests.clear()
+        assertTrue(c.setAncLevel(2).exceptionOrNull() is UnsupportedOperationException)
+        assertEquals(emptyList<String>(), requests)
+    }
+
+    @Test
+    fun setAncLevelWithoutConnectionFails() = runTest {
+        assertTrue(controller(FakeEarbuds()).setAncLevel(3).exceptionOrNull() is NotConnectedException)
+    }
+
+    @Test
+    fun setAncRefusesModesTheProfileDoesNotList() = runTest {
+        val requests = mutableListOf<String>()
+        val earbuds = FakeEarbuds(sku = "BTFT0013", onRequest = { requests += it })
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        requests.clear()
+        assertTrue(c.setAnc(AncMode.AWARENESS).exceptionOrNull() is UnsupportedOperationException)
+        assertEquals(emptyList<String>(), requests)
+        assertEquals(0, earbuds.ancMode)
+        assertEquals(AncMode.CANCELLATION, c.setAnc(AncMode.CANCELLATION).getOrThrow().mode)
     }
 
     @Test

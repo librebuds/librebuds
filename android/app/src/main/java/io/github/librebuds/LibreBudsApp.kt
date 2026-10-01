@@ -13,6 +13,7 @@ import io.github.librebuds.bt.refreshAudioConnections
 import io.github.librebuds.diag.EventLog
 import io.github.librebuds.diag.FrameLog
 import io.github.librebuds.profile.ProfileAssets
+import io.github.librebuds.protocol.profile.Profile
 import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.session.BudsController
 import io.github.librebuds.state.AppPreferences
@@ -44,6 +45,9 @@ class LibreBudsApp : Application() {
     /** Device profiles bundled as assets; loaded once for the controller and the pair detection. */
     lateinit var registry: ProfileRegistry
         private set
+
+    /** The bundled profile with [id], or the generic one when no profile has it. */
+    fun profile(id: String): Profile = registry.profiles.firstOrNull { it.id == id } ?: ProfileRegistry.GENERIC
 
     /** Recent raw frames for the diagnostics export. */
     lateinit var frameLog: FrameLog
