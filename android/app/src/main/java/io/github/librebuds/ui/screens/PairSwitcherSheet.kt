@@ -66,7 +66,7 @@ fun PairSwitcherSheet(visible: Boolean, pairs: List<PairRow>, onPick: (PairRow) 
                         name = pair.label,
                         description = pairDescription(pair),
                         orientation = ListItemOrientation.Vertical,
-                        leadingContent = { ProductThumbnail(pair.art) },
+                        leadingContent = { ProductThumbnail(pair.art, pair.profileId) },
                         trailingContent = if (pair.selected) {
                             { Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         } else {
@@ -105,7 +105,7 @@ private fun pairDescription(pair: PairRow): String {
  * near-white card behind it in light theme too.
  */
 @Composable
-private fun ProductThumbnail(art: String) {
+private fun ProductThumbnail(art: String, profileId: String? = null) {
     val dark = isSystemInDarkTheme()
     val tile = if (dark) Color(0xFF2C2C2E) else Color(0xFFD1D1D8)
     val outline = if (dark) Color(0x33FFFFFF) else Color(0x4D000000)
@@ -118,7 +118,7 @@ private fun ProductThumbnail(art: String) {
         contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(ProductArt.thumbnail(art)),
+            painter = painterResource(ProductArt.thumbnail(art, profileId)),
             contentDescription = null,
             modifier = Modifier.size(48.dp)
         )

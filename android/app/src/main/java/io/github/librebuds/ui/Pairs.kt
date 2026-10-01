@@ -25,8 +25,10 @@ data class PairRow(
     val battery: String?,
     val lastSeenMillis: Long? = null,
     val label: String = name,
-    /** The profile's `art` shape, which picks the product image. */
+    /** The profile's `art` shape, which picks the product image when there is no [profileId] override. */
     val art: String = "generic",
+    /** The profile id, which picks a model-specific product image when one exists (see ProductArt). */
+    val profileId: String? = null,
     val selected: Boolean = false,
 )
 
@@ -43,7 +45,15 @@ fun pairRows(
     profileOf: (String) -> Profile?,
     selected: String? = null,
 ): List<PairRow> {
-    fun row(address: String, name: String, model: String?, audioUp: Boolean, label: String = name, art: String = "generic"): PairRow {
+    fun row(
+        address: String,
+        name: String,
+        model: String?,
+        audioUp: Boolean,
+        label: String = name,
+        art: String = "generic",
+        profileId: String? = null,
+    ): PairRow {
         val current = address.equals(state.address, ignoreCase = true)
         val connected = audioUp || (current && state.isConnected)
         return PairRow(
@@ -55,14 +65,20 @@ fun pairRows(
             lastSeenMillis = state.updatedAtMillis?.takeIf { current && !connected },
             label = label,
             art = art,
+            profileId = profileId,
             selected = address.equals(selected, ignoreCase = true),
         )
     }
     val demoProfile = profileOf(state.profileId)
-    val demo = if (showDemo) listOf(row(DEMO_ADDRESS, DEMO_NAME, demoProfile?.name, audioUp = false, art = demoProfile?.art ?: "generic")) else emptyList()
+    val demo = if (showDemo) {
+        listOf(row(DEMO_ADDRESS, DEMO_NAME, demoProfile?.name, audioUp = false, art = demoProfile?.art ?: "generic", profileId = demoProfile?.id))
+    } else {
+        emptyList()
+    }
     val labels = disambiguatedLabels(detection.buds)
     val detected = detection.buds.map {
-        row(it.address, it.name, it.model, detection.isConnected(it.address), labels.getValue(it.address), profileOf(it.profileId)?.art ?: "generic")
+        val profile = profileOf(it.profileId)
+        row(it.address, it.name, it.model, detection.isConnected(it.address), labels.getValue(it.address), profile?.art ?: "generic", profile?.id)
     }.sortedWith(compareByDescending<PairRow> { it.connected }.thenBy { it.label.lowercase() })
     return demo + detected
 }

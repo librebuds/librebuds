@@ -134,7 +134,7 @@ fun DeviceScreen(
             }
             if (!current) return@Column
             if (batteries.isNotEmpty()) {
-                BatteryView(batteries, pair.art)
+                BatteryView(batteries, pair.art, pair.profileId)
             }
             if (ui.state.isConnected && "anc" in ui.state.capabilities) {
                 NoiseControlSettings(

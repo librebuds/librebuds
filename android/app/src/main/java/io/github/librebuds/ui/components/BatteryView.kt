@@ -54,7 +54,8 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 @Composable
 fun BatteryView(
     batteryList: List<Battery>,
-    art: String = "generic"
+    art: String = "generic",
+    profileId: String? = null
 ) {
     val left = batteryList.find { it.component == BatteryComponent.LEFT }
     val right = batteryList.find { it.component == BatteryComponent.RIGHT }
@@ -79,7 +80,7 @@ fun BatteryView(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = painterResource(ProductArt.battery(art)),
+                    painter = painterResource(ProductArt.battery(art, profileId)),
                     contentDescription = stringResource(R.string.buds),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -131,7 +132,7 @@ fun BatteryView(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = painterResource(ProductArt.CASE),
+                    painter = painterResource(ProductArt.case(profileId)),
                     contentDescription = stringResource(R.string.case_alt),
                     modifier = Modifier
                         .fillMaxWidth()
