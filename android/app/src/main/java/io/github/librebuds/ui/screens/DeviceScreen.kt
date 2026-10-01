@@ -113,13 +113,16 @@ fun DeviceScreen(
                 )
             }
             if (!current) {
-                LinkBanner(takenOver = false, updatedAtMillis = null, onTakeOver = {})
+                LinkBanner(takenOver = false, updatedAtMillis = null, showHint = true, onTakeOver = {})
                 return@Column
             }
             if (!ui.state.isConnected) {
                 LinkBanner(
                     takenOver = ui.state.link == LinkState.TAKEN_OVER,
                     updatedAtMillis = ui.state.updatedAtMillis,
+                    // Only when nothing is known yet this session (no battery either); once there is a
+                    // stale value to show, "Last updated" below is the useful line, not this hint.
+                    showHint = batteries.isEmpty(),
                     onTakeOver = viewModel::takeOver
                 )
             }
@@ -158,9 +161,13 @@ fun DeviceScreen(
     }
 }
 
-/** Shown while the earbuds are not connected; the last known values stay visible below it. */
+/**
+ * Shown while the earbuds are not connected; the last known values stay visible below it. [showHint]
+ * adds a line explaining what to do, for when there is nothing else to show yet (no stale value, not
+ * taken over by another device).
+ */
 @Composable
-private fun LinkBanner(takenOver: Boolean, updatedAtMillis: Long?, onTakeOver: () -> Unit) {
+private fun LinkBanner(takenOver: Boolean, updatedAtMillis: Long?, showHint: Boolean, onTakeOver: () -> Unit) {
     val context = LocalContext.current
     Column(
         modifier = Modifier
@@ -177,6 +184,13 @@ private fun LinkBanner(takenOver: Boolean, updatedAtMillis: Long?, onTakeOver: (
         updatedAtMillis?.let { millis ->
             Text(
                 text = stringResource(R.string.last_updated, formatUpdatedAt(context, millis)),
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        if (showHint && !takenOver && updatedAtMillis == null) {
+            Text(
+                text = stringResource(R.string.open_case_near_phone),
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 style = MaterialTheme.typography.bodySmall
             )

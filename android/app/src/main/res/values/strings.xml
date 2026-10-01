@@ -57,6 +57,7 @@
     <string name="controlled_by_other">Controlled by another device</string>
     <string name="take_over">Take over</string>
     <string name="last_updated">Last updated %1$s</string>
+    <string name="open_case_near_phone">Open the case near your phone. LibreBuds connects when the earbuds connect to this phone.</string>
     <string name="connecting">Connecting…</string>
     <string name="notification_channel_connection">Earbud connection</string>
     <string name="show_island">Show connection island</string>
