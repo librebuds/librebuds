@@ -63,6 +63,8 @@
     <string name="show_island">Show connection island</string>
     <string name="demo_mode">Demo mode (restart app)</string>
     <string name="export_diagnostics">Export diagnostics</string>
+    <string name="share_diagnostics">Share diagnostics</string>
+    <string name="save_diagnostics_to_file">Save diagnostics to file</string>
     <string name="diagnostics_subject">LibreBuds diagnostics</string>
     <string name="island_connected_text">Connected</string>
     <string name="island_taking_over_text">Connected</string>

@@ -42,7 +42,8 @@ import io.github.librebuds.ui.theme.LibreBudsTheme
  * root, with a device screen per pair and settings and multipoint on top. Back pops one screen and
  * leaves the app from home. [onOpenEarbuds] links the earbuds a device screen shows to the app and
  * starts their connection (the Bluetooth side lives in the activity); [onExportDiagnostics] shares
- * the diagnostics file (header, recent events, frame log).
+ * the diagnostics file (header, recent events, frame log) and [onSaveDiagnostics] writes the same
+ * export to a file the person picks.
  */
 @Composable
 fun AppRoot(
@@ -50,7 +51,8 @@ fun AppRoot(
     settingsViewModel: SettingsViewModel,
     preferences: AppPreferences,
     onOpenEarbuds: (address: String, name: String, onResult: (associated: Boolean) -> Unit) -> Unit = { _, _, _ -> },
-    onExportDiagnostics: () -> Unit = {}
+    onExportDiagnostics: () -> Unit = {},
+    onSaveDiagnostics: () -> Unit = {}
 ) {
     var stack by rememberSaveable(stateSaver = BackStackSaver) { mutableStateOf(BackStack.initial(preferences.onboardingDone)) }
     var designSystem by remember { mutableStateOf(preferences.designSystem) }
@@ -163,6 +165,7 @@ fun AppRoot(
                             }
                         },
                         onExportDiagnostics = onExportDiagnostics,
+                        onSaveDiagnostics = onSaveDiagnostics,
                         onNavigateBack = goBack
                     )
                 }

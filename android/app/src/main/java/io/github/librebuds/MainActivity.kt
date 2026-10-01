@@ -8,6 +8,7 @@ import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -15,6 +16,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -39,9 +41,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private lateinit var associationStore: AssociationStore
+
+    // Registered before onCreate's content is set, as the contract API requires.
+    private val saveDiagnosticsLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        result.data?.data?.let(::writeDiagnosticsTo)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,7 +77,8 @@ class MainActivity : ComponentActivity() {
                 settingsViewModel,
                 preferences,
                 onOpenEarbuds = ::openEarbuds,
-                onExportDiagnostics = ::exportDiagnostics
+                onExportDiagnostics = ::exportDiagnostics,
+                onSaveDiagnostics = ::saveDiagnosticsToFile
             )
         }
     }
@@ -127,7 +138,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             val uri = withContext(Dispatchers.IO) {
                 // Redacting a full frame log takes a while; keep it off the main thread.
-                val text = DiagnosticsExport.build(header, app.eventLog, app.frameLog)
+                val text = diagnosticsText(app, header)
                 val dir = File(cacheDir, DIAGNOSTICS_DIR).apply { mkdirs() }
                 val file = File(dir, "librebuds-diagnostics.jsonl").apply { writeText(text) }
                 FileProvider.getUriForFile(this@MainActivity, "$packageName.diagnostics", file)
@@ -145,6 +156,39 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    /**
+     * Opens the system document picker for a new file named with the current time, so the same
+     * redacted export [exportDiagnostics] shares can also be kept as a file the person chose.
+     */
+    private fun saveDiagnosticsToFile() {
+        val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
+        val create = Intent(Intent.ACTION_CREATE_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType(DIAGNOSTICS_MIME_TYPE)
+            .putExtra(Intent.EXTRA_TITLE, "librebuds-diagnostics-$stamp.jsonl")
+        try {
+            saveDiagnosticsLauncher.launch(create)
+        } catch (e: ActivityNotFoundException) {
+            Log.w(TAG, "No document picker available", e)
+        }
+    }
+
+    /** Writes the same redacted export [exportDiagnostics] shares into the file [uri] now points at. */
+    private fun writeDiagnosticsTo(uri: Uri) {
+        val app = LibreBudsApp.from(this)
+        val header = diagnosticsHeader(app)
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                val text = diagnosticsText(app, header)
+                // "wt" truncates an existing file; plain "w" appends on some document providers.
+                contentResolver.openOutputStream(uri, "wt")?.use { it.write(text.toByteArray()) }
+            }
+        }
+    }
+
+    private fun diagnosticsText(app: LibreBudsApp, header: DiagnosticsHeader): String =
+        DiagnosticsExport.build(header, app.eventLog, app.frameLog)
 
     private fun diagnosticsHeader(app: LibreBudsApp): DiagnosticsHeader {
         fun granted(permission: String) = checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
@@ -184,5 +228,8 @@ class MainActivity : ComponentActivity() {
     private companion object {
         const val TAG = "MainActivity"
         const val DIAGNOSTICS_DIR = "diagnostics"
+        // Not a registered IANA type, but exactly that keeps providers like DocumentsUI from guessing a
+        // different extension (e.g. appending .txt to a text/plain name) for the suggested .jsonl name.
+        const val DIAGNOSTICS_MIME_TYPE = "application/json-lines"
     }
 }

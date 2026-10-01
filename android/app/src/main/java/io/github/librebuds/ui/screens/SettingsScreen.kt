@@ -46,6 +46,7 @@ fun SettingsScreen(
     lastBeacon: LastBeacon?,
     onShowTestPopup: () -> Unit,
     onExportDiagnostics: () -> Unit,
+    onSaveDiagnostics: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     StyledScaffold(
@@ -130,9 +131,14 @@ fun SettingsScreen(
                         } ?: stringResource(R.string.last_beacon_empty)
                     )
                 }
+                // Share hands the redacted export to another app; save keeps it as a file the person picks.
                 StyledListItem(
-                    name = stringResource(R.string.export_diagnostics),
+                    name = stringResource(R.string.share_diagnostics),
                     onClick = onExportDiagnostics
+                )
+                StyledListItem(
+                    name = stringResource(R.string.save_diagnostics_to_file),
+                    onClick = onSaveDiagnostics
                 )
                 StyledListItem(
                     name = stringResource(R.string.app_version, BuildConfig.VERSION_NAME),
