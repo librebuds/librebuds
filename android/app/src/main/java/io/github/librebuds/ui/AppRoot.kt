@@ -196,16 +196,21 @@ private fun deviceArt(address: String, detection: Detection, state: BudsState, p
  * the demo earbuds first when [showDemo]. [profileOf] maps a profile id to its profile. Two
  * detected pairs with the same name (two physical units of the same model) get the row label, not
  * the routing name, suffixed with their address so they are tellable apart; the demo row never collides.
+ * Internal so [homeRows] itself can be unit tested without going through Compose.
  */
-private fun homeRows(detection: Detection, state: BudsState, showDemo: Boolean, profileOf: (String) -> Profile?): List<HomeRow> {
+internal fun homeRows(detection: Detection, state: BudsState, showDemo: Boolean, profileOf: (String) -> Profile?): List<HomeRow> {
     fun row(address: String, name: String, model: String?, audioUp: Boolean, label: String = name, art: String = "generic"): HomeRow {
         val current = address.equals(state.address, ignoreCase = true)
+        val connected = audioUp || (current && state.isConnected)
         return HomeRow(
             address = address,
             name = name,
             model = model,
-            connected = audioUp || (current && state.isConnected),
-            battery = state.battery?.takeIf { current }?.let(::batterySummaryNoBreak),
+            connected = connected,
+            // Only while actually connected is the battery still live; once the link drops it is the
+            // last known reading, not something to show as if current (see lastSeenMillis for that).
+            battery = state.battery?.takeIf { current && connected }?.let(::batterySummaryNoBreak),
+            lastSeenMillis = state.updatedAtMillis?.takeIf { current && !connected },
             label = label,
             art = art,
         )

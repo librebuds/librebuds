@@ -5,6 +5,7 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,6 +45,8 @@ import io.github.librebuds.ui.screens.onboarding.openAppDetailsSettings
  * One line of the home list: the earbuds and what is known about them right now. [label] is what the
  * row shows (it may add the address to [name] when another row shares the same name); [name] is the
  * plain Bluetooth name, used for routing and association so it stays the one the rest of the app knows.
+ * [battery] is only set while [connected] is true, so the row never shows a reading as if it were
+ * live; [lastSeenMillis], set only while not connected, is when that stale state was last updated.
  */
 data class HomeRow(
     val address: String,
@@ -51,6 +54,7 @@ data class HomeRow(
     val model: String?,
     val connected: Boolean,
     val battery: String?,
+    val lastSeenMillis: Long? = null,
     val label: String = name,
     /** The profile's `art` shape, which picks the row's thumbnail. */
     val art: String = "generic"
@@ -116,16 +120,21 @@ fun HomeScreen(
 }
 
 /**
- * The earbuds render on a rounded tile: light grey in the light theme, dark grey in the dark theme,
- * so the white product stays visible on the row's surface.
+ * The earbuds render on a rounded tile: darker neutral grey in the light theme, dark grey in the
+ * dark theme, with a hairline outline, so a white product render stays clearly visible against the
+ * near-white card behind it in light theme too.
  */
 @Composable
 private fun ProductThumbnail(art: String) {
-    val tile = if (isSystemInDarkTheme()) Color(0xFF2C2C2E) else Color(0xFFE3E3E8)
+    val dark = isSystemInDarkTheme()
+    val tile = if (dark) Color(0xFF2C2C2E) else Color(0xFFD1D1D8)
+    val outline = if (dark) Color(0x33FFFFFF) else Color(0x33000000)
+    val shape = RoundedCornerShape(12.dp)
     Box(
         modifier = Modifier
             .size(52.dp)
-            .background(tile, RoundedCornerShape(12.dp)),
+            .background(tile, shape)
+            .border(1.dp, outline, shape),
         contentAlignment = Alignment.Center
     ) {
         Image(
@@ -137,11 +146,24 @@ private fun ProductThumbnail(art: String) {
 }
 
 @Composable
-private fun rowDescription(row: HomeRow): String = listOfNotNull(
-    row.model ?: stringResource(R.string.unknown_model),
-    stringResource(if (row.connected) R.string.buds_connected else R.string.not_connected),
-    row.battery,
-).joinToString(" · ")
+private fun rowDescription(row: HomeRow): String {
+    val context = LocalContext.current
+    val lastSeenText = row.lastSeenMillis?.let { stringResource(R.string.last_seen, formatUpdatedAt(context, it)) }
+    return rowDescriptionText(
+        model = row.model ?: stringResource(R.string.unknown_model),
+        connectedLabel = stringResource(if (row.connected) R.string.buds_connected else R.string.not_connected),
+        battery = row.battery,
+        lastSeenText = lastSeenText,
+    )
+}
+
+/**
+ * The row's subtitle: model, connection state, and whichever one of [battery] (while connected) or
+ * [lastSeenText] (while not, when a last known update time exists) fits; neither when there is no
+ * last known state at all yet. Kept as a plain function (no [stringResource]) so it is unit testable.
+ */
+internal fun rowDescriptionText(model: String, connectedLabel: String, battery: String?, lastSeenText: String?): String =
+    listOfNotNull(model, connectedLabel, battery ?: lastSeenText).joinToString(" · ")
 
 @Composable
 private fun Hint(text: String, action: String, onAction: () -> Unit) {

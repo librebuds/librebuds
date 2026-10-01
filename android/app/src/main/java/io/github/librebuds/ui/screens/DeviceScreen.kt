@@ -210,8 +210,8 @@ private fun LinkBanner(takenOver: Boolean, updatedAtMillis: Long?, showHint: Boo
     }
 }
 
-/** Localized short time, with the date added when it was not today. */
-private fun formatUpdatedAt(context: Context, millis: Long): String {
+/** Localized short time, with the date added when it was not today. Shared with the home list. */
+internal fun formatUpdatedAt(context: Context, millis: Long): String {
     val dateFlags = if (DateUtils.isToday(millis)) 0 else DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_ABBREV_MONTH
     return DateUtils.formatDateTime(context, millis, DateUtils.FORMAT_SHOW_TIME or dateFlags)
 }
