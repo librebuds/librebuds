@@ -47,7 +47,7 @@ object FdeeBeacon {
     private const val CUSTOM = 0xFF
 
     // SPEC-GAP: business type 1 is assumed to mean "proximity"/close range; not confirmed
-    // against a captured beacon. See docs/protocol/open-questions.md.
+    // against a captured beacon.
     private const val BUSINESS_CLOSE_RANGE = 1
 
     private val VALUE_LENGTHS = mapOf(

@@ -9,7 +9,7 @@ Third-party references:
   Article 6). No vendor code is included.
 - LibrePods (https://github.com/librepods-org/librepods, GPL-3.0, commit
   929a5358c62ce1fc66fa63200d77eab872a07507): Android UI components, theme and
-  quick-settings patterns, imported by tools/import_librepods_ui.sh and modified.
+  quick-settings patterns, imported and modified.
   No LibrePods media (videos, images, AirPods artwork) or fonts are included.
   The connection island is also imported from LibrePods and modified:
   android/app/src/main/java/io/github/librebuds/overlay/IslandWindow.kt,
@@ -24,6 +24,4 @@ Third-party references:
 - Popup video clips in android/app/src/debug/res/raw/popup_*.mp4 (debug builds only) are derived from
   "HUAWEI FreeBuds 6.jpg" by Kyu3a (Wikimedia Commons, CC BY-SA 4.0,
   https://commons.wikimedia.org/wiki/File:HUAWEI_FreeBuds_6.jpg), animated with an
-  image-to-video model; licensed CC BY-SA 4.0. The photo, the intermediate images and the raw
-  model output are in art/sources/, art/inputs/ and art/generated/ under the same licence; see
-  art/sources/README.md.
+  image-to-video model; the clips are licensed CC BY-SA 4.0.

@@ -8,3 +8,6 @@ __pycache__/
 .superpowers/
 keystore.properties
 *.jks
+# Internal planning, protocol notes and analysis stay private.
+docs/
+art/
