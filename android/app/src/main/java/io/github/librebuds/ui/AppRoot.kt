@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.librebuds.BuildConfig
 import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.beacon.BeaconScanner
+import io.github.librebuds.companion.disambiguatedLabels
 import io.github.librebuds.popup.PopupPresenter
 import io.github.librebuds.popup.PopupVideos
 import io.github.librebuds.popup.artFor
@@ -177,10 +178,12 @@ private val BackStackSaver = Saver<BackStack, ArrayList<String>>(
 
 /**
  * The home list: the detected earbuds (battery from the controller when it holds that pair), plus
- * the demo earbuds first when [showDemo]. [modelName] maps a profile id to its product name.
+ * the demo earbuds first when [showDemo]. [modelName] maps a profile id to its product name. Two
+ * detected pairs with the same name (two physical units of the same model) get the row label, not
+ * the routing name, suffixed with their address so they are tellable apart; the demo row never collides.
  */
 private fun homeRows(detection: Detection, state: BudsState, showDemo: Boolean, modelName: (String) -> String?): List<HomeRow> {
-    fun row(address: String, name: String, model: String?, audioUp: Boolean): HomeRow {
+    fun row(address: String, name: String, model: String?, audioUp: Boolean, label: String = name): HomeRow {
         val current = address.equals(state.address, ignoreCase = true)
         return HomeRow(
             address = address,
@@ -188,8 +191,10 @@ private fun homeRows(detection: Detection, state: BudsState, showDemo: Boolean, 
             model = model,
             connected = audioUp || (current && state.isConnected),
             battery = state.battery?.takeIf { current }?.let(::batterySummaryNoBreak),
+            label = label,
         )
     }
     val demo = if (showDemo) listOf(row(DEMO_ADDRESS, DEMO_NAME, modelName(state.profileId), audioUp = false)) else emptyList()
-    return demo + detection.buds.map { row(it.address, it.name, it.model, detection.isConnected(it.address)) }
+    val labels = disambiguatedLabels(detection.buds)
+    return demo + detection.buds.map { row(it.address, it.name, it.model, detection.isConnected(it.address), labels.getValue(it.address)) }
 }

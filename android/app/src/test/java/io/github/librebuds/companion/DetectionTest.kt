@@ -52,4 +52,39 @@ class DetectionTest {
     fun nothingPairedMeansNothingDetected() {
         assertTrue(detectFreeBuds(emptyList(), registry, emptySet()).isEmpty())
     }
+
+    @Test
+    fun disambiguatesOnlyCollidingNames() {
+        val first = DetectedBuds("HUAWEI FreeBuds 5", "11:22:33:44:55:66", "freebuds-5", "FreeBuds 5", "HUAWEI FreeBuds 5")
+        val second = DetectedBuds("HUAWEI FreeBuds 5", "aa:bb:cc:dd:77:88", "freebuds-5", "FreeBuds 5", "HUAWEI FreeBuds 5")
+        val unique = DetectedBuds("HUAWEI FreeBuds Pro 4", "99:88:77:66:55:44", "freebuds-pro-4", "FreeBuds Pro 4", "HUAWEI FreeBuds Pro 4")
+
+        val labels = disambiguatedLabels(listOf(first, second, unique))
+
+        assertEquals("HUAWEI FreeBuds 5 (…55:66)", labels.getValue("11:22:33:44:55:66"))
+        assertEquals("HUAWEI FreeBuds 5 (…77:88)", labels.getValue("aa:bb:cc:dd:77:88"))
+        assertEquals("HUAWEI FreeBuds Pro 4", labels.getValue("99:88:77:66:55:44"))
+    }
+
+    @Test
+    fun caseInsensitiveCollisionStillGetsSuffixed() {
+        val lower = DetectedBuds("huawei freebuds 5", "11:11:11:11:55:66", "freebuds-5", "FreeBuds 5", "huawei freebuds 5")
+        val upper = DetectedBuds("HUAWEI FREEBUDS 5", "22:22:22:22:55:66", "freebuds-5", "FreeBuds 5", "HUAWEI FREEBUDS 5")
+
+        val labels = disambiguatedLabels(listOf(lower, upper))
+
+        assertEquals("huawei freebuds 5 (…55:66)", labels.getValue("11:11:11:11:55:66"))
+        assertEquals("HUAWEI FREEBUDS 5 (…55:66)", labels.getValue("22:22:22:22:55:66"))
+    }
+
+    @Test
+    fun noCollisionsMeansNoLabelsChange() {
+        val result = detectFreeBuds(
+            listOf(BondedDevice("HUAWEI FreeBuds 6", "33:33:33:33:33:33", listOf(a2dp, SPP_UUID))),
+            registry,
+            emptySet(),
+        )
+        val labels = disambiguatedLabels(result)
+        assertEquals("HUAWEI FreeBuds 6", labels.getValue("33:33:33:33:33:33"))
+    }
 }

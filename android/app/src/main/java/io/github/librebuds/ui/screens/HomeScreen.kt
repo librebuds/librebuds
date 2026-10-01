@@ -30,8 +30,19 @@ import io.github.librebuds.ui.components.StyledListItem
 import io.github.librebuds.ui.components.StyledScaffold
 import io.github.librebuds.ui.screens.onboarding.openAppDetailsSettings
 
-/** One line of the home list: the earbuds and what is known about them right now. */
-data class HomeRow(val address: String, val name: String, val model: String?, val connected: Boolean, val battery: String?)
+/**
+ * One line of the home list: the earbuds and what is known about them right now. [label] is what the
+ * row shows (it may add the address to [name] when another row shares the same name); [name] is the
+ * plain Bluetooth name, used for routing and association so it stays the one the rest of the app knows.
+ */
+data class HomeRow(
+    val address: String,
+    val name: String,
+    val model: String?,
+    val connected: Boolean,
+    val battery: String?,
+    val label: String = name
+)
 
 /**
  * The root screen: the paired FreeBuds the app detected, with the settings gear. Without the
@@ -66,7 +77,7 @@ fun HomeScreen(
                 StyledList {
                     rows.forEach { row ->
                         StyledListItem(
-                            name = row.name,
+                            name = row.label,
                             description = rowDescription(row),
                             orientation = ListItemOrientation.Vertical,
                             onClick = { onOpenDevice(row) }
