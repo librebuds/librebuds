@@ -268,11 +268,14 @@ class BudsController(
 
     override suspend fun setAnc(mode: AncMode): Result<AncState> {
         val current = session ?: return Result.failure(NotConnectedException())
-        sendWrite(current, Anc.writeRequest(mode, levelFor(mode, mutable.value.anc, profile))).getOrElse { return Result.failure(it) }
+        val level = levelFor(mode, mutable.value.anc, profile)
+        event("anc write mode=${mode.code} level=$level")
+        sendWrite(current, Anc.writeRequest(mode, level)).getOrElse { event("anc write failed: ${it.javaClass.simpleName}"); return Result.failure(it) }
         delay(settleMillis)
-        val reply = current.request(Anc.readRequest()).getOrElse { return Result.failure(it) }
+        val reply = current.request(Anc.readRequest()).getOrElse { event("anc read-back failed: ${it.javaClass.simpleName}"); return Result.failure(it) }
         applyPacket(reply)
         val applied = Anc.parseState(reply) ?: return Result.failure(AncRejectedException())
+        event("anc read-back mode=${applied.modeCode} level=${applied.level}")
         return if (Anc.confirms(applied, mode)) Result.success(applied) else Result.failure(AncRejectedException())
     }
 
@@ -536,6 +539,8 @@ class BudsController(
 
     private fun event(msg: String) {
         eventLog?.record(TAG, msg)
+        // Same line in logcat, so a release build can be followed with `adb logcat -s BudsController`.
+        try { android.util.Log.i(TAG, EventLog.maskMacs(msg)) } catch (_: RuntimeException) { }
     }
 
     private fun closeSession() {

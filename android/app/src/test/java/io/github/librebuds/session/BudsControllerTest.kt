@@ -75,7 +75,7 @@ class BudsControllerTest {
         c.connect("AA", "x")
         val result = c.setAnc(AncMode.CANCELLATION)
         assertEquals(AncMode.CANCELLATION, result.getOrThrow().mode)
-        assertEquals(3, earbuds.ancLevel)
+        assertEquals(0xFF, earbuds.ancLevel) // switching mode lets the earbuds pick the level
         assertEquals(AncMode.CANCELLATION, c.state.value.anc?.mode)
     }
 

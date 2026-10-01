@@ -17,15 +17,11 @@ class AncLevelsTest {
     }
 
     @Test
-    fun cancellationUsesDynamicWhenProfileSupportsIt() {
-        assertEquals(3, levelFor(AncMode.CANCELLATION, AncState(modeCode = 0, level = 0), dynamic))
-        assertEquals(0, levelFor(AncMode.CANCELLATION, AncState(modeCode = 0, level = 0), plain))
-    }
-
-    @Test
-    fun awarenessSendsZeroAndOffKeepsRememberedLevel() {
-        assertEquals(0, levelFor(AncMode.AWARENESS, AncState(modeCode = 1, level = 3), dynamic))
-        assertEquals(3, levelFor(AncMode.OFF, AncState(modeCode = 1, level = 3), dynamic))
-        assertEquals(0, levelFor(AncMode.OFF, null, dynamic))
+    fun switchingModeLetsTheEarbudsPickTheLevel() {
+        assertEquals(0xFF, levelFor(AncMode.CANCELLATION, AncState(modeCode = 0, level = 0), dynamic))
+        assertEquals(0xFF, levelFor(AncMode.CANCELLATION, AncState(modeCode = 0, level = 0), plain))
+        assertEquals(0xFF, levelFor(AncMode.AWARENESS, AncState(modeCode = 1, level = 3), dynamic))
+        assertEquals(0xFF, levelFor(AncMode.OFF, AncState(modeCode = 1, level = 3), dynamic))
+        assertEquals(0xFF, levelFor(AncMode.OFF, null, dynamic))
     }
 }
