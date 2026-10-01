@@ -3,7 +3,7 @@
   "name": "FreeBuds Pro 5",
   "match": {
     "sku": [],
-    "modelId": [],
+    "modelId": ["00016B"],
     "productId": [],
     "btName": [
       "HUAWEI FreeBuds Pro 5"
