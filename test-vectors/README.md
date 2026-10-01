@@ -18,3 +18,11 @@ Shared by the Android `:protocol` tests and the Windows fork. One JSON object pe
 
 Every vector must decode to exactly one payload. Raw captures from later test rounds go in
 `roundN/` with `"synthetic": false`.
+
+## Beacons (`beacon/`)
+
+BLE service data under UUID 0xFDEE, checked by `BeaconVectorsTest` (not by the link-frame test).
+Only the payload is kept: no Bluetooth addresses, device names or capture notes. `hex` is the service
+data; `expect` is `null` when the parser must reject it, otherwise the decoded fields (`format`,
+`modelId`, `subModelId`, `caseOpen`, and for the compact format `flags`, `lid`, `state` and the
+`case`/`left`/`right` batteries as `{"percent","charging"}` or `null`).

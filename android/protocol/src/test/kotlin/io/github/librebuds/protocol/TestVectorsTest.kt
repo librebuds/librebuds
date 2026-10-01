@@ -18,7 +18,8 @@ import java.io.File
 class TestVectorsTest {
     private fun vectors(): List<JsonObject> =
         File(repoRoot(), "test-vectors").walkTopDown()
-            .filter { it.isFile && it.extension == "jsonl" }
+            // beacon/ holds BLE advertisement payloads, not link frames (see BeaconVectorsTest).
+            .filter { it.isFile && it.extension == "jsonl" && it.parentFile.name != "beacon" }
             .sortedBy { it.path }
             .flatMap { file -> file.readLines().filter { it.isNotBlank() }.map { Json.parseToJsonElement(it).jsonObject } }
             .toList()
