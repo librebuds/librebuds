@@ -45,7 +45,7 @@ class DeviceSession(
     private val maxConsecutiveFailures: Int = 3,
     private val onFrame: (FrameDirection, ByteArray) -> Unit = { _, _ -> },
 ) {
-    private class Waiter(val reply: CommandId, val result: CompletableDeferred<Packet>)
+    private class Waiter(val reply: CommandId, val accept: (Packet) -> Boolean, val result: CompletableDeferred<Packet>)
 
     private val reassembler = FrameReassembler()
     private val resetRequested = AtomicBoolean(false)
@@ -86,7 +86,7 @@ class DeviceSession(
                     // collector observes the packet before the resumed request() call returns.
                     // It is not a guarantee across real threads/dispatchers.
                     mutablePackets.emit(packet)
-                    waiter?.let { if (it.reply == packet.id) it.result.complete(packet) }
+                    waiter?.let { if (it.reply == packet.id && it.accept(packet)) it.result.complete(packet) }
                 }
             }
         } catch (e: CancellationException) {
@@ -104,8 +104,9 @@ class DeviceSession(
     }
 
     /**
-     * Sends [packet] and waits for the reply with id [reply]. [timeoutMillis] and [retries] default
-     * to the session's. With [countsTowardGiveUp] = false an unanswered request (for example an
+     * Sends [packet] and waits for the reply with id [reply] that [accept] takes (commands that answer
+     * many logical reads under one id, or push unsolicited frames with it, narrow the match this way;
+     * every packet still reaches [packets]). [timeoutMillis] and [retries] default to the session's. With [countsTowardGiveUp] = false an unanswered request (for example an
      * optional, unverified setting read) neither adds to nor trips the give-up counter; any answered
      * request still resets it.
      */
@@ -115,10 +116,11 @@ class DeviceSession(
         timeoutMillis: Long = this.timeoutMillis,
         retries: Int = this.retries,
         countsTowardGiveUp: Boolean = true,
+        accept: (Packet) -> Boolean = { true },
     ): Result<Packet> = requestLock.withLock {
         repeat(retries + 1) {
             if (closedSignal.isCompleted) return Result.failure(SessionClosedException())
-            val current = Waiter(reply, CompletableDeferred())
+            val current = Waiter(reply, accept, CompletableDeferred())
             waiter = current
             if (closedSignal.isCompleted) {
                 waiter = null
