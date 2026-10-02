@@ -198,35 +198,17 @@ class PairsTest {
     @Test
     fun startOpensTheLaunchPairWhenItIsKnown() {
         val pairs = listOf(row(a, connected = true), row(b, connected = false))
-        assertEquals(b, startPair(pairs, emptyMap(), BudsState(), launchAddress = b.lowercase())?.address)
-        // An unknown launch pair is ignored and the usual rule applies.
-        assertEquals(a, startPair(pairs, emptyMap(), BudsState(), launchAddress = "DD:DD:DD:DD:DD:DD")?.address)
+        assertEquals(b, startPair(pairs, launchAddress = b.lowercase())?.address)
+        // An unknown launch pair is ignored and the list shows.
+        assertNull(startPair(pairs, launchAddress = "DD:DD:DD:DD:DD:DD"))
     }
 
     @Test
-    fun startOpensTheConnectedPair() {
-        val pairs = listOf(row(a, connected = false), row(b, connected = true), row(c, connected = true))
-        assertEquals(c, startPair(pairs, mapOf(b to 1L, c to 2L), BudsState())?.address)
-    }
-
-    @Test
-    fun startOpensThePairTheControllerIsConnectingTo() {
-        val pairs = listOf(row(a, connected = false), row(b, connected = false))
-        assertEquals(b, startPair(pairs, mapOf(a to 9L), BudsState(link = LinkState.CONNECTING, address = b))?.address)
-        // A controller without a link to it does not count.
-        assertNull(startPair(pairs, mapOf(a to 9L), BudsState(link = LinkState.DISCONNECTED, address = b)))
-    }
-
-    @Test
-    fun startOpensTheOnlyKnownPairEvenWhenNotConnected() {
-        assertEquals(a, startPair(listOf(row(a, connected = false)), emptyMap(), BudsState())?.address)
-    }
-
-    @Test
-    fun startStaysOnTheListWithSeveralPairsAndNoneConnected() {
-        val pairs = listOf(row(a, connected = false), row(b, connected = false))
-        assertNull(startPair(pairs, mapOf(a to 1L), BudsState(link = LinkState.DISCONNECTED, address = a)))
-        assertNull(startPair(emptyList(), emptyMap(), BudsState()))
+    fun plainStartAlwaysShowsTheList() {
+        // Connected, connecting or a single known pair: the app still starts on the list.
+        assertNull(startPair(listOf(row(a, connected = false), row(b, connected = true))))
+        assertNull(startPair(listOf(row(a, connected = false))))
+        assertNull(startPair(emptyList()))
     }
 
     @Test

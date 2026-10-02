@@ -37,9 +37,8 @@ import io.github.librebuds.ui.theme.LibreBudsTheme
 /**
  * Top-level navigation over a [BackStack]: onboarding once, then the list of known pairs as the root,
  * with a pair's device screen, settings and multipoint on top. Back pops one screen and leaves the
- * app from the list. On start the app opens straight into a pair ([startPair]: the one in
- * [launchAddress] when opened from the notification or island, else the connected one, else the only
- * one) with the list below it, so Back from there always shows the list.
+ * app from the list. The app starts on the list; only when opened for a pair from the notification
+ * or island ([launchAddress]) does it open that pair, with the list below it.
  * [onShowEarbuds] tells the activity which pair is on screen (the service may switch to it);
  * [onLinkCompanion] runs the optional companion association; [onExportDiagnostics] shares the
  * diagnostics file (header, recent events, frame log) and [onSaveDiagnostics] writes the same export
@@ -92,7 +91,7 @@ fun AppRoot(
     // The one-time start jump, once detection has seen the links (the first read may not have).
     LaunchedEffect(detection.settled, stack.startPending, stack.top) {
         if (!detection.settled || !stack.startPending) return@LaunchedEffect
-        val start = startPair(pairs, detection.lastConnectedAt, ui.state)
+        val start = startPair(pairs)
         stack = stack.openStart(start?.let { Route.Device(it.address, it.name) })
     }
     // A pair that is gone (unpaired, demo mode turned off) closes its screen when it is on top.

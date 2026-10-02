@@ -109,18 +109,12 @@ fun chooseStartPair(pairs: List<PairRow>, lastConnectedAt: Map<String, Long>, st
 }
 
 /**
- * The pair to open on top of the list when the app starts, or null to stay on the list:
- * [launchAddress] when the app was opened for a pair that is still known; else, when a pair is
- * connected to the phone or held by the controller, the one [chooseStartPair] picks; else the only
- * known pair, if there is just one. With several pairs and none connected the list shows.
+ * The pair to open on top of the list when the app starts, or null to stay on the list: only
+ * [launchAddress], when the app was opened for a pair (notification, island) that is still known.
+ * A plain start always shows the list.
  */
-fun startPair(pairs: List<PairRow>, lastConnectedAt: Map<String, Long>, state: BudsState, launchAddress: String? = null): PairRow? {
-    launchAddress?.let { address -> pairs.firstOrNull { it.address.equals(address, ignoreCase = true) }?.let { return it } }
-    val held = state.address?.takeIf { state.link != LinkState.DISCONNECTED }
-    val active = pairs.any { it.connected || it.address.equals(held, ignoreCase = true) }
-    if (active) return chooseStartPair(pairs, lastConnectedAt, state)?.let { address -> pairs.first { it.address == address } }
-    return pairs.singleOrNull()
-}
+fun startPair(pairs: List<PairRow>, launchAddress: String? = null): PairRow? =
+    launchAddress?.let { address -> pairs.firstOrNull { it.address.equals(address, ignoreCase = true) } }
 
 /** The entry with the newest connect time; the first listed among equals (and among never connected). */
 private fun List<PairRow>.newest(lastConnectedAt: Map<String, Long>): PairRow {
