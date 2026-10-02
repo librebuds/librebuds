@@ -25,11 +25,12 @@
     "anc": {
       "modes": [
         "off",
-        "cancellation",
-        "awareness"
+        "cancellation"
       ],
       "cancellationLevels": [
-        3
+        3,
+        1,
+        0
       ],
       "verified": "2026-09-29"
     },
@@ -101,7 +102,9 @@
         "17": "adaptive",
         "18": "natural",
         "19": "concert",
-        "25": "shooter"
+        "25": "shooter",
+        "200": "symphony",
+        "201": "hifi_live"
       },
       "offered": [
         0,
@@ -110,7 +113,34 @@
         9,
         11,
         12
-      ]
+      ],
+      "custom": true,
+      "extended": {
+        "200": [
+          15,
+          15,
+          10,
+          -5,
+          15,
+          25,
+          15,
+          -5,
+          50,
+          45
+        ],
+        "201": [
+          -5,
+          20,
+          30,
+          10,
+          0,
+          0,
+          -25,
+          -10,
+          10,
+          0
+        ]
+      }
     },
     "lowLatency": {
       "verified": null
@@ -127,6 +157,32 @@
     },
     "language": {
       "verified": "2026-09-29"
+    },
+    "singleBudAnc": {
+      "verified": null
+    },
+    "dropDetection": {
+      "verified": null
+    },
+    "adaptiveVolume": {
+      "verified": null
+    },
+    "headControl": {
+      "verified": null,
+      "actions": {
+        "1": "answer",
+        "2": "reject",
+        "0": "off"
+      }
+    },
+    "findEarbuds": {
+      "verified": null
+    },
+    "restReminder": {
+      "verified": null
+    },
+    "pickupMode": {
+      "verified": null
     }
   }
 }

@@ -106,13 +106,14 @@
         2,
         3,
         9
-      ]
+      ],
+      "custom": true
     },
     "lowLatency": {
       "verified": null
     },
     "soundQuality": {
-      "verified": null,
+      "verified": "2026-10-02",
       "options": {
         "0": "connectivity",
         "1": "quality"
@@ -123,6 +124,15 @@
     },
     "language": {
       "verified": "2026-09-29"
+    },
+    "findEarbuds": {
+      "verified": null
+    },
+    "restReminder": {
+      "verified": null
+    },
+    "hdCall": {
+      "verified": null
     }
   }
 }

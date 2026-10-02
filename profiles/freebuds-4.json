@@ -19,7 +19,15 @@
       "verified": null
     },
     "anc": {
-      "verified": null
+      "verified": null,
+      "modes": [
+        "off",
+        "cancellation"
+      ],
+      "cancellationLevels": [
+        1,
+        0
+      ]
     },
     "wear": {
       "verified": null
@@ -67,6 +75,18 @@
         "19": "concert",
         "25": "shooter"
       }
+    },
+    "findEarbuds": {
+      "verified": null
+    },
+    "restReminder": {
+      "verified": null
+    },
+    "hdCall": {
+      "verified": null
+    },
+    "pickupMode": {
+      "verified": null
     }
   }
 }
