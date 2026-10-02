@@ -214,9 +214,12 @@ class Fb5ReplayTest {
         assertEquals("freebuds-5", s.controller.state.value.profileId)
         assertEquals("01 07", s.earbuds.requests.first().take(5))
         assertTrue("no session hello", s.earbuds.requests.none { it.startsWith("2B 70") })
-        // Every read the app sends is one the earbuds answered in the capture (the host list has no rows there).
-        assertEquals(emptyList<String>(), s.earbuds.unanswered.filterNot { it.startsWith("2B 31") })
-        assertEquals(emptySet<String>(), s.controller.state.value.settings.unanswered)
+        // Every read the app sends is one the earbuds answered in the capture (the host list has no rows there),
+        // except the probes added after it was taken (rest reminder, HD calls, find-earbuds state), which
+        // the replay leaves unanswered and which then stay hidden.
+        val newProbes = listOf("2B 61 01 00", "2B 46 01 01", "2B 5E 01 01 00", "2B 5E 01 01 01")
+        assertEquals(newProbes, s.earbuds.unanswered.filterNot { it.startsWith("2B 31") })
+        assertEquals(setOf("restReminder", "hdCall", "findEarbuds"), s.controller.state.value.settings.unanswered)
         assertEquals(emptySet<String>(), s.controller.state.value.settings.unsupported)
 
         val m = s.model

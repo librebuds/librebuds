@@ -11,24 +11,41 @@ import io.github.librebuds.protocol.command.AncMode
 import io.github.librebuds.protocol.command.AncState
 import io.github.librebuds.protocol.command.Battery
 import io.github.librebuds.protocol.command.DeviceInfoCommand
+import io.github.librebuds.protocol.command.EqOperation
 import io.github.librebuds.protocol.command.Equalizer
+import io.github.librebuds.protocol.command.Feature
+import io.github.librebuds.protocol.command.FeatureState
+import io.github.librebuds.protocol.command.FeatureSwitch
+import io.github.librebuds.protocol.command.FindEarbuds
 import io.github.librebuds.protocol.command.Gesture
 import io.github.librebuds.protocol.command.GestureAck
 import io.github.librebuds.protocol.command.GestureSetting
 import io.github.librebuds.protocol.command.Gestures
+import io.github.librebuds.protocol.command.HdCall
 import io.github.librebuds.protocol.command.HostAction
 import io.github.librebuds.protocol.command.HostCollector
 import io.github.librebuds.protocol.command.HostRow
 import io.github.librebuds.protocol.command.LowLatency
 import io.github.librebuds.protocol.command.Multipoint
+import io.github.librebuds.protocol.command.PickupMode
+import io.github.librebuds.protocol.command.Pinch
+import io.github.librebuds.protocol.command.PinchSetting
+import io.github.librebuds.protocol.command.RestReminder
+import io.github.librebuds.protocol.command.Side
 import io.github.librebuds.protocol.command.SoundQuality
 import io.github.librebuds.protocol.command.Status
 import io.github.librebuds.protocol.command.VoiceLanguage
 import io.github.librebuds.protocol.command.WearDetection
 import io.github.librebuds.protocol.profile.Profile
+import io.github.librebuds.protocol.profile.FEATURE_CAPABILITIES
 import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.protocol.profile.ancModes
+import io.github.librebuds.protocol.profile.awarenessModes
 import io.github.librebuds.protocol.profile.cancellationLevels
+import io.github.librebuds.protocol.profile.extendedPresets
+import io.github.librebuds.protocol.profile.features
+import io.github.librebuds.protocol.profile.hasAwarenessLevel
+import io.github.librebuds.protocol.profile.pinchSlots
 import io.github.librebuds.state.BudsRepository
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.DeviceSettings
@@ -216,8 +233,8 @@ class BudsController(
      */
     private suspend fun readSettings(current: DeviceSession, myGeneration: Int) {
         // Null when [current] went stale (stop), else the reply (null inside the result on a failed read).
-        suspend fun request(key: String, packet: Packet): Result<Packet>? {
-            val result = current.request(packet, timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
+        suspend fun request(key: String, packet: Packet, accept: (Packet) -> Boolean = { true }): Result<Packet>? {
+            val result = current.request(packet, timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false, accept = accept)
             if (!isCurrent(current, myGeneration)) return null
             result.onSuccess(::applyPacket)
             if (result.exceptionOrNull() is RequestTimeoutException) updateSettings { it.copy(unanswered = it.unanswered + key) }
@@ -250,6 +267,46 @@ class BudsController(
         if (profile.supports("multipoint")) {
             if (!read("multipoint", Multipoint.readToggle())) return
             if ("multipoint" !in mutable.value.settings.unanswered) refreshHosts()
+        }
+        readFeatures(current, ::request)
+    }
+
+    /**
+     * The read-only probe round for the per-model extras, each sent only when the profile lists the
+     * feature: the feature-switch ability query, then the state of every feature it offers (and the
+     * ear tip type, which has no ability entry); every pinch slot; the extended equalizer presets;
+     * rest reminder, HD calls and pickup mode; each side's find-earbuds sound state. [request]
+     * returns null once [current] went stale.
+     */
+    private suspend fun readFeatures(
+        current: DeviceSession,
+        request: suspend (String, Packet, (Packet) -> Boolean) -> Result<Packet>?,
+    ) {
+        val features = profile.features()
+        if (features.any { it.capability != null }) {
+            val reply = request("abilities", FeatureSwitch.abilityQuery()) { true } ?: return
+            val abilities = reply.getOrNull()?.let(FeatureSwitch::parseAbilities)
+            event("feature abilities ${abilities?.capabilities?.keys?.sorted()?.joinToString(",") { "%02X".format(it) } ?: "not answered"}")
+            // The earbuds ask to be queried again; the vendor app then sends the query with TLV 1 = 0.
+            if (abilities?.needsReply == true) sendWrite(current, FeatureSwitch.abilityQuery(first = false))
+        }
+        for (feature in features) {
+            if (feature.capability != null && mutable.value.settings.abilities?.offers(feature) != true) continue
+            request("feature.${feature.name}", FeatureSwitch.read(feature)) { FeatureSwitch.answers(feature, it) } ?: return
+        }
+        for (spec in profile.pinchSlots()) {
+            request("pinch.${spec.slot}", Pinch.read(spec.slot)) { Pinch.answers(spec.slot, it) } ?: return
+        }
+        if (profile.supports("equalizer") && profile.extendedPresets().isNotEmpty()) {
+            request("equalizerExtended", Equalizer.extendedQuery()) { true } ?: return
+        }
+        if (profile.supports("restReminder")) request("restReminder", RestReminder.read()) { true } ?: return
+        if (profile.supports("hdCall")) request("hdCall", HdCall.read()) { true } ?: return
+        if (profile.supports("pickupMode")) request("pickupMode", PickupMode.read()) { true } ?: return
+        if (profile.supports("findEarbuds")) {
+            for (side in Side.entries) {
+                request("findEarbuds", FindEarbuds.query(side)) { FindEarbuds.parseState(it)?.first == side } ?: return
+            }
         }
     }
 
@@ -362,6 +419,23 @@ class BudsController(
                 writeAndCheckHosts(current, hostPacket { Multipoint.setPreferred(change.mac) } ?: return malformedMac(), attempts = 1) { hosts ->
                     hosts.any { it.mac.equals(change.mac, ignoreCase = true) && it.preferred }
                 }
+            is SettingChange.FeatureValue -> writeFeature(current, change)
+            is SettingChange.PinchChange -> writePinch(current, change)
+            is SettingChange.AwarenessMode -> {
+                if (change.subMode !in profile.awarenessModes()) return Result.failure(UnsupportedOperationException())
+                writeAnc(current, AncMode.AWARENESS, change.subMode) { Anc.confirmsAwareness(it, change.subMode) }.map { }
+            }
+            is SettingChange.AwarenessLevel -> writeAwarenessLevel(current, change.level)
+            is SettingChange.CustomEqualizer -> writeCustomEqualizer(current, change)
+            is SettingChange.RestReminderChange ->
+                writeAndConfirm(current, RestReminder.write(if (change.enabled) 1 else 0), RestReminder.read(), ack = RestReminder::parseAck,
+                    onAccepted = { updateSettings("restReminder") { it.copy(restReminder = change.enabled) } }) { RestReminder.parse(it) == (if (change.enabled) 1 else 0) }
+            is SettingChange.HdCallChange ->
+                writeAndConfirm(current, HdCall.write(if (change.enabled) 1 else 0), HdCall.read(), ack = HdCall::parseAck,
+                    onAccepted = { updateSettings("hdCall") { it.copy(hdCall = change.enabled) } }) { HdCall.parse(it) == (if (change.enabled) 1 else 0) }
+            is SettingChange.PickupModeChange ->
+                writeAndConfirm(current, PickupMode.write(change.mode), PickupMode.read(), ack = PickupMode::parseAck,
+                    onAccepted = { updateSettings("pickupMode") { it.copy(pickupMode = change.mode) } }) { PickupMode.parse(it) == change.mode }
             is SettingChange.HostCommand -> {
                 // A (dis)connection can take a few seconds on the device, so poll it; flags apply at once.
                 val attempts = when (change.action) {
@@ -420,6 +494,14 @@ class BudsController(
             is SettingChange.LowLatencyChange -> "lowLatency"
             is SettingChange.SoundQualityChange -> "soundQuality"
             is SettingChange.MultipointEnabled, is SettingChange.PreferredHost, is SettingChange.HostCommand -> "multipoint"
+            is SettingChange.FeatureValue -> FEATURE_CAPABILITIES.getValue(change.feature)
+            is SettingChange.PinchChange -> "pinch"
+            is SettingChange.AwarenessMode -> "anc"
+            is SettingChange.AwarenessLevel -> return "anc".takeIf { profile.hasAwarenessLevel() }
+            is SettingChange.CustomEqualizer -> "equalizer"
+            is SettingChange.RestReminderChange -> "restReminder"
+            is SettingChange.HdCallChange -> "hdCall"
+            is SettingChange.PickupModeChange -> "pickupMode"
         }
         return key.takeIf { profile.supports(it) }
     }
@@ -497,7 +579,12 @@ class BudsController(
      * [AncRejectedException]; with no status at all the read-back decides.
      */
     private suspend fun writeEqualizer(current: DeviceSession, preset: Int): Result<Unit> {
-        val reply = current.request(Equalizer.select(preset), timeoutMillis = EQUALIZER_ACK_MILLIS, retries = 0, countsTowardGiveUp = false)
+        // Extended presets and custom slots are selected with the full write, as the vendor app does.
+        val custom = mutableSettingsValue().equalizer?.custom?.firstOrNull { it.id == preset }
+        val frame = profile.extendedPresets()[preset]?.let { Equalizer.selectExtended(preset, it) }
+            ?: custom?.let { Equalizer.writeCustom(it.id, it.gains, it.name.ifEmpty { it.id.toString() }, EqOperation.SAVE) }
+            ?: Equalizer.select(preset)
+        val reply = current.request(frame, timeoutMillis = EQUALIZER_ACK_MILLIS, retries = 0, countsTowardGiveUp = false)
         reply.exceptionOrNull()?.let { if (it !is RequestTimeoutException) return Result.failure(it) }
         val ack = reply.getOrNull()?.let(Equalizer::parseAck)
         if (ack == false) {
@@ -518,6 +605,148 @@ class BudsController(
         applyPacket(packet)
         return if (Equalizer.parse(packet)?.active == preset) Result.success(Unit) else Result.failure(AncRejectedException())
     }
+
+    /**
+     * A feature switch write (2B/B4). The earbuds answer with the feature's new state, which decides;
+     * without a matching answer a read-back does.
+     */
+    private suspend fun writeFeature(current: DeviceSession, change: SettingChange.FeatureValue): Result<Unit> {
+        val feature = change.feature
+        val settings = mutableSettingsValue()
+        val available = if (feature.capability != null) settings.abilities?.offers(feature) == true else settings.features[feature]?.state != null
+        if (!available) return Result.failure(SettingUnavailableException())
+        fun applied(state: FeatureState?): Boolean? = when (change.field) {
+            2 -> state?.state
+            FeatureSwitch.NOD -> state?.first
+            else -> state?.second
+        }?.let { it == change.value }
+        event("feature ${feature.name} field ${change.field} write ${change.value}")
+        val reply = current.request(
+            FeatureSwitch.writeField(feature, change.field, change.value),
+            timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false,
+        ) { FeatureSwitch.answers(feature, it) }
+        reply.exceptionOrNull()?.let { if (it !is RequestTimeoutException) return Result.failure(it) }
+        if (reply.getOrNull()?.let { applied(FeatureSwitch.parseState(it)) } == true) return Result.success(Unit)
+        delay(settleMillis)
+        val read = current.request(FeatureSwitch.read(feature), timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false) {
+            FeatureSwitch.answers(feature, it)
+        }.getOrElse { return Result.failure(it) }
+        val ok = applied(FeatureSwitch.parseState(read)) == true
+        event("feature ${feature.name} read-back ${if (ok) "confirms" else "differs"}")
+        return if (ok) Result.success(Unit) else Result.failure(AncRejectedException())
+    }
+
+    /**
+     * A pinch write. Tap slots send one frame with the same action for both earbuds; pinch and hold
+     * one frame per side. The vendor app does not judge the reply, so a re-read of the slot confirms
+     * it (a reply with a non-success status still fails the change).
+     */
+    private suspend fun writePinch(current: DeviceSession, change: SettingChange.PinchChange): Result<Unit> {
+        val slot = change.slot
+        if (profile.pinchSlots().none { it.slot == slot }) return Result.failure(UnsupportedOperationException())
+        if (mutableSettingsValue().pinch[slot] == null) return Result.failure(SettingUnavailableException())
+        val frames = if (slot.type == PINCH_AND_HOLD) {
+            listOfNotNull(change.left?.let { Pinch.write(slot, it, null) }, change.right?.let { Pinch.write(slot, null, it) })
+        } else {
+            listOfNotNull(change.left?.let { Pinch.write(slot, it, it) })
+        }
+        if (frames.isEmpty()) return Result.failure(IllegalArgumentException("Pinch change without a value"))
+        event("pinch $slot write left=${change.left} right=${change.right}")
+        for (frame in frames) {
+            val reply = current.request(frame, timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
+            reply.exceptionOrNull()?.let { if (it !is RequestTimeoutException) return Result.failure(it) }
+            val status = reply.getOrNull()?.let(Status::of)
+            if (status != null && status != Status.SUCCESS) {
+                event("pinch $slot write refused (status $status)")
+                return Result.failure(AncRejectedException())
+            }
+        }
+        delay(settleMillis)
+        val read = current.request(Pinch.read(slot), timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false) {
+            Pinch.answers(slot, it)
+        }.getOrElse { return Result.failure(it) }
+        val applied = Pinch.parse(read)
+        val ok = applied != null && (change.left == null || applied.left == change.left) &&
+            (change.right == null || applied.right == change.right) &&
+            (slot.type == PINCH_AND_HOLD || applied.right == change.left)
+        event("pinch $slot read-back left=${applied?.left} right=${applied?.right}")
+        return if (ok) Result.success(Unit) else Result.failure(AncRejectedException())
+    }
+
+    /** The adaptive awareness slider: the write's acknowledgement first, then a read-back of TLV 2. */
+    private suspend fun writeAwarenessLevel(current: DeviceSession, level: Int): Result<Unit> {
+        if (level !in 0..Anc.AWARENESS_LEVEL_MAX) return Result.failure(IllegalArgumentException("Awareness level out of range"))
+        event("awareness level write $level")
+        val reply = current.request(Anc.awarenessLevelRequest(level), timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
+        reply.exceptionOrNull()?.let { if (it !is RequestTimeoutException) return Result.failure(it) }
+        if (reply.getOrNull()?.let(Anc::isWriteAccepted) == false) return Result.failure(AncRejectedException())
+        delay(settleMillis)
+        val read = current.request(Anc.readRequest()).getOrElse { return Result.failure(it) }
+        applyPacket(read)
+        val applied = Anc.parseState(read)
+        event("awareness level read-back ${applied?.awarenessLevel}")
+        return if (applied?.awarenessLevel == level) Result.success(Unit) else Result.failure(AncRejectedException())
+    }
+
+    /**
+     * A custom preset write. The earbuds' status decides as for a preset select; a save or delete is
+     * then checked against the re-read list of custom presets.
+     */
+    private suspend fun writeCustomEqualizer(current: DeviceSession, change: SettingChange.CustomEqualizer): Result<Unit> {
+        if (change.id !in Equalizer.CUSTOM_IDS) return Result.failure(IllegalArgumentException("Not a custom preset slot"))
+        val frame = try {
+            Equalizer.writeCustom(change.id, change.gains, change.name, change.operation)
+        } catch (e: IllegalArgumentException) {
+            return Result.failure(e)
+        }
+        event("custom equalizer ${change.id} ${change.operation.name}")
+        val reply = current.request(frame, timeoutMillis = EQUALIZER_ACK_MILLIS, retries = 0, countsTowardGiveUp = false)
+        reply.exceptionOrNull()?.let { if (it !is RequestTimeoutException) return Result.failure(it) }
+        val ack = reply.getOrNull()?.let(Equalizer::parseAck)
+        if (ack == false) {
+            event("custom equalizer ${change.id} refused (status ${reply.getOrNull()?.let(Status::of)})")
+            return Result.failure(AncRejectedException())
+        }
+        if (change.operation == EqOperation.PREVIEW) return Result.success(Unit)
+        delay(settleMillis)
+        val read = current.request(Equalizer.read(), timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
+            .getOrElse { return if (ack == true) Result.success(Unit) else Result.failure(it) }
+        val listed = Equalizer.parse(read)?.custom?.any { it.id == change.id }
+        val ok = if (change.operation == EqOperation.SAVE) listed == true else listed == false
+        event("custom equalizer ${change.id} read-back ${if (ok) "confirms" else "differs"}")
+        return if (ok || ack == true) Result.success(Unit) else Result.failure(AncRejectedException())
+    }
+
+    /**
+     * Rings or silences one earbud. The earbuds answer on 2B/5D with [side, result] (0 = done) and
+     * report the sound state on 2B/5E; without an answer a state query decides.
+     */
+    override suspend fun ring(side: Side, ring: Boolean): Result<Unit> {
+        val current = session ?: return Result.failure(NotConnectedException())
+        if (!profile.supports("findEarbuds")) return Result.failure(UnsupportedOperationException())
+        event("find earbuds ${side.name} ${if (ring) "ring" else "stop"}")
+        val frame = if (ring) FindEarbuds.ring(side) else FindEarbuds.stop(side)
+        val reply = current.request(frame, timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false) { FindEarbuds.answers(side, it) }
+        reply.exceptionOrNull()?.let { if (it !is RequestTimeoutException) return Result.failure(it) }
+        val packet = reply.getOrNull()
+        val status = packet?.let(Status::of)
+        if (status != null && status != Status.SUCCESS) return Result.failure(AncRejectedException())
+        val result = packet?.let(FindEarbuds::parseResult)?.result
+        if (result == 0) {
+            updateSettings("findEarbuds") { it.copy(ringing = it.ringing + (side to ring)) }
+            return Result.success(Unit)
+        }
+        if (result != null) {
+            event("find earbuds ${side.name} refused (result $result)")
+            return Result.failure(AncRejectedException())
+        }
+        val state = current.request(FindEarbuds.query(side), timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false) {
+            FindEarbuds.parseState(it)?.first == side
+        }.getOrElse { return Result.failure(it) }
+        return if (FindEarbuds.parseState(state)?.second == ring) Result.success(Unit) else Result.failure(AncRejectedException())
+    }
+
+    private fun mutableSettingsValue() = mutable.value.settings
 
     /**
      * Write, let the device settle, read back; the read-back updates state either way. With
@@ -619,6 +848,23 @@ class BudsController(
         LowLatency.parse(packet)?.let { on -> updateSettings("lowLatency") { it.copy(lowLatency = on) } }
         SoundQuality.parse(packet)?.let { value -> updateSettings("soundQuality") { it.copy(soundQuality = value) } }
         VoiceLanguage.parse(packet)?.let { language -> updateSettings("language") { it.copy(language = language) } }
+        FeatureSwitch.parseAbilities(packet)?.let { abilities -> updateSettings("abilities") { it.copy(abilities = abilities) } }
+        FeatureSwitch.parseState(packet)?.let { state ->
+            Feature.ofKey(state.key)?.let { feature ->
+                updateSettings("feature.${feature.name}") { s -> s.copy(features = s.features + (feature to merge(s.features[feature], state))) }
+            }
+        }
+        Pinch.parse(packet)?.let { pinch ->
+            updateSettings("pinch.${pinch.slot}") { s ->
+                val old = s.pinch[pinch.slot]
+                s.copy(pinch = s.pinch + (pinch.slot to PinchSetting(pinch.slot, pinch.left ?: old?.left, pinch.right ?: old?.right)))
+            }
+        }
+        Equalizer.parseExtended(packet)?.let { on -> updateSettings("equalizerExtended") { it.copy(equalizerExtended = on) } }
+        RestReminder.parse(packet)?.let { value -> updateSettings("restReminder") { it.copy(restReminder = value == 1) } }
+        HdCall.parse(packet)?.let { value -> updateSettings("hdCall") { it.copy(hdCall = value == 1) } }
+        PickupMode.parse(packet)?.let { value -> updateSettings("pickupMode") { it.copy(pickupMode = value) } }
+        FindEarbuds.parseState(packet)?.let { (side, ringing) -> updateSettings("findEarbuds") { it.copy(ringing = it.ringing + (side to ringing)) } }
         Multipoint.parseToggle(packet)?.let { on ->
             mutable.update {
                 it.copy(multipointEnabled = on, settings = it.settings.answered("multipoint"), updatedAtMillis = clock())
@@ -648,6 +894,10 @@ class BudsController(
     }
 
     private fun DeviceSettings.answered(key: String) = if (key in unanswered) copy(unanswered = unanswered - key) else this
+
+    /** A feature answer may carry only some fields (a write's reply, say); the others keep their last value. */
+    private fun merge(old: FeatureState?, new: FeatureState): FeatureState =
+        FeatureState(new.key, new.state ?: old?.state, new.first ?: old?.first, new.second ?: old?.second)
 
     /** True while [current] is still the session [connect] should be allowed to publish state for. */
     private fun isCurrent(current: DeviceSession, myGeneration: Int): Boolean =
@@ -702,6 +952,9 @@ class BudsController(
 
         /** Pause before the second link open when the first failed while audio was up. */
         const val OPEN_RETRY_MILLIS = 1000L
+
+        /** Pinch type of pinch and hold, which is written one side per frame. */
+        const val PINCH_AND_HOLD = 3
     }
 }
 

@@ -5,6 +5,7 @@ import io.github.librebuds.protocol.command.AncMode
 import io.github.librebuds.protocol.command.AncState
 import io.github.librebuds.protocol.command.BatteryState
 import io.github.librebuds.protocol.command.HostRow
+import io.github.librebuds.protocol.command.Side
 import kotlinx.coroutines.flow.StateFlow
 
 enum class LinkState { DISCONNECTED, CONNECTING, CONNECTED, TAKEN_OVER }
@@ -65,4 +66,7 @@ interface BudsRepository {
 
     /** Re-enumerates the multipoint hosts; a list that stays incomplete is returned as far as it got. */
     suspend fun refreshHosts(): Result<List<HostRow>> = Result.failure(UnsupportedOperationException())
+
+    /** Makes one earbud play its find sound ([ring] true) or stops it; succeeds once the earbuds accepted it. */
+    suspend fun ring(side: Side, ring: Boolean): Result<Unit> = Result.failure(UnsupportedOperationException())
 }

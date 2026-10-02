@@ -3,10 +3,29 @@ package io.github.librebuds.ui.model
 
 import androidx.annotation.StringRes
 import io.github.librebuds.R
+import io.github.librebuds.protocol.command.Anc
+import io.github.librebuds.protocol.command.AncMode
+import io.github.librebuds.protocol.command.CustomPreset
+import io.github.librebuds.protocol.command.EqOperation
+import io.github.librebuds.protocol.command.Equalizer
+import io.github.librebuds.protocol.command.Feature
+import io.github.librebuds.protocol.command.FeatureState
+import io.github.librebuds.protocol.command.FeatureSwitch
 import io.github.librebuds.protocol.command.Gesture
 import io.github.librebuds.protocol.command.HostAction
+import io.github.librebuds.protocol.command.PinchSetting
+import io.github.librebuds.protocol.command.PinchSlot
+import io.github.librebuds.protocol.command.Side
+import io.github.librebuds.protocol.profile.FEATURE_CAPABILITIES
 import io.github.librebuds.protocol.profile.Profile
 import io.github.librebuds.protocol.profile.ancModes
+import io.github.librebuds.protocol.profile.awarenessModes
+import io.github.librebuds.protocol.profile.customEqualizer
+import io.github.librebuds.protocol.profile.extendedPresets
+import io.github.librebuds.protocol.profile.features
+import io.github.librebuds.protocol.profile.hasAwarenessLevel
+import io.github.librebuds.protocol.profile.headActions
+import io.github.librebuds.protocol.profile.pinchSlots
 import io.github.librebuds.session.GESTURE_SUB_KEYS
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.SettingChange
@@ -16,10 +35,13 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 
 /** Which string family an option's semantic key belongs to. */
-enum class OptionGroup { GESTURE, NOISE_CYCLE, EQUALIZER, SOUND_QUALITY, CANCELLATION_LEVEL }
+enum class OptionGroup { GESTURE, NOISE_CYCLE, EQUALIZER, SOUND_QUALITY, CANCELLATION_LEVEL, AWARENESS, EAR_TIP, PICKUP }
 
-/** One selectable device value. [key] is the profile's semantic name, or null when the profile does not name it. */
-data class SettingOption(val code: Int, val key: String?)
+/**
+ * One selectable device value. [key] is the profile's semantic name, or null when the profile does
+ * not name it; [label] is a literal name the earbuds report (a custom equalizer preset's name).
+ */
+data class SettingOption(val code: Int, val key: String?, val label: String? = null)
 
 /**
  * A picker: the current device value (null = not reported) and what can be chosen. [labels] name
@@ -41,6 +63,15 @@ data class GestureControl(
     val inCall: Picker?,
 )
 
+/** One pinch slot's pickers: [left] carries the single value of a tap slot; [right] only for pinch and hold. */
+data class PinchControl(val slot: PinchSlot, val left: Picker?, val right: Picker?)
+
+/** Head control: on/off and, while on, the nod and shake actions. */
+data class HeadControl(val enabled: Boolean, val nod: Picker?, val shake: Picker?)
+
+/** Custom equalizer presets: the ones saved, and the slot a new one would take (null when all three are used). */
+data class CustomEqualizerModel(val presets: List<CustomPreset>, val freeSlot: Int?)
+
 /**
  * The settings controls to show for one profile and state. A control is present only when the
  * profile lists its capability, the device reported a value and its read did not go unanswered.
@@ -58,6 +89,21 @@ data class SettingsModel(
     val language: LanguageRow? = null,
     val multipointEnabled: Boolean? = null,
     val experimental: Set<String> = emptySet(),
+    /** Awareness sub-mode, shown while awareness is on. */
+    val awareness: Picker? = null,
+    /** The adaptive awareness slider (0..10), shown while the adaptive sub-mode is on. */
+    val awarenessLevel: Int? = null,
+    /** On/off feature switches the earbuds offer (single-bud noise cancelling, adaptive volume, ...). */
+    val switches: Map<Feature, Boolean> = emptyMap(),
+    val headControl: HeadControl? = null,
+    val earTip: Picker? = null,
+    val pinch: List<PinchControl> = emptyList(),
+    val customEqualizer: CustomEqualizerModel? = null,
+    val restReminder: Boolean? = null,
+    val hdCall: Boolean? = null,
+    val pickupMode: Picker? = null,
+    /** Each side's sound state while the earbuds answer find requests; null when not offered. */
+    val findEarbuds: Map<Side, Boolean>? = null,
 ) {
     val hasSound: Boolean get() = lowLatency != null || soundQuality != null || language != null
 }
@@ -72,7 +118,12 @@ fun settingsModel(profile: Profile, state: BudsState): SettingsModel {
         wear = settings.wearDetection?.takeIf { shown("wear") },
         gestures = gestureControls(profile, state),
         equalizer = settings.equalizer?.takeIf { shown("equalizer") }?.let { eq ->
-            picker(eq.active, equalizerOptions(profile.capabilities["equalizer"], eq.available), OptionGroup.EQUALIZER)
+            val names = options(profile.capabilities["equalizer"]?.table("presets"), emptyList()).associate { it.code to it.key }
+            // Extended presets once the earbuds said they have them; custom presets by their own names.
+            val extended = profile.extendedPresets().keys.takeIf { settings.equalizerExtended == true }.orEmpty()
+                .filter { id -> eq.available.none { it == id } }.map { SettingOption(it, names[it]) }
+            val custom = eq.custom.takeIf { profile.customEqualizer() }.orEmpty().map { SettingOption(it.id, null, it.name.ifEmpty { null }) }
+            picker(eq.active, equalizerOptions(profile.capabilities["equalizer"], eq.available) + extended + custom, OptionGroup.EQUALIZER)
         },
         lowLatency = settings.lowLatency?.takeIf { shown("lowLatency") },
         dynamicLatency = settings.lowLatencyDynamic == true,
@@ -82,8 +133,79 @@ fun settingsModel(profile: Profile, state: BudsState): SettingsModel {
         language = settings.language?.takeIf { shown("language") }?.let { LanguageRow(it.current) },
         multipointEnabled = state.multipointEnabled?.takeIf { shown("multipoint") },
         experimental = profile.capabilities.keys.filterTo(mutableSetOf()) { profile.verifiedOn(it) == null },
+        awareness = awarenessPicker(profile, state),
+        awarenessLevel = state.anc?.takeIf { profile.hasAwarenessLevel() && it.mode == AncMode.AWARENESS && it.level == Anc.AWARENESS_ADAPTIVE }?.awarenessLevel,
+        switches = profile.features().filter { it in SWITCH_FEATURES }.mapNotNull { feature ->
+            featureState(feature, state)?.let { feature to (it == 1) }
+        }.toMap(),
+        headControl = headControl(profile, state),
+        earTip = featureState(Feature.EAR_TIP, state)?.takeIf { Feature.EAR_TIP in profile.features() }?.let {
+            picker(it, listOf(SettingOption(EAR_TIP_SILICONE, "silicone"), SettingOption(EAR_TIP_FOAM, "foam")), OptionGroup.EAR_TIP)
+        },
+        pinch = pinchControls(profile, state),
+        customEqualizer = settings.equalizer?.takeIf { shown("equalizer") && profile.customEqualizer() }?.let {
+            CustomEqualizerModel(it.custom, Equalizer.freeSlot(it.custom))
+        },
+        restReminder = settings.restReminder?.takeIf { profile.supports("restReminder") },
+        hdCall = settings.hdCall?.takeIf { profile.supports("hdCall") },
+        pickupMode = settings.pickupMode?.takeIf { profile.supports("pickupMode") }?.let {
+            picker(it, listOf(SettingOption(PICKUP_VOICES, "voices"), SettingOption(PICKUP_SURROUNDINGS, "surroundings")), OptionGroup.PICKUP)
+        },
+        findEarbuds = settings.ringing.takeIf { profile.supports("findEarbuds") && it.isNotEmpty() },
     )
 }
+
+/** Feature switches shown as plain on/off rows. */
+private val SWITCH_FEATURES = setOf(Feature.SINGLE_BUD_ANC, Feature.ADAPTIVE_VOLUME, Feature.AI_CONVERSATION, Feature.DROP_DETECTION)
+
+private const val EAR_TIP_SILICONE = 1
+private const val EAR_TIP_FOAM = 2
+private const val PICKUP_VOICES = 1
+private const val PICKUP_SURROUNDINGS = 0
+
+/**
+ * A feature switch's state when the earbuds offer it: listed in the ability answer (features that
+ * have an entry there) and with a state from its read or, until that arrives, the ability answer.
+ */
+private fun featureState(feature: Feature, state: BudsState): Int? {
+    val settings = state.settings
+    val read = settings.features[feature]?.state
+    val capability = feature.capability ?: return read
+    val offered = settings.abilities?.capabilities?.get(capability) ?: return null
+    return read ?: offered
+}
+
+private fun headControl(profile: Profile, state: BudsState): HeadControl? {
+    if (Feature.HEAD_CONTROL !in profile.features()) return null
+    val on = featureState(Feature.HEAD_CONTROL, state) ?: return null
+    val read: FeatureState? = state.settings.features[Feature.HEAD_CONTROL]
+    val actions = profile.headActions().map { SettingOption(it.code, it.key) }
+    return HeadControl(
+        enabled = on == 1,
+        nod = read?.first?.let { picker(it, actions, OptionGroup.GESTURE) },
+        shake = read?.second?.let { picker(it, actions, OptionGroup.GESTURE) },
+    )
+}
+
+private fun awarenessPicker(profile: Profile, state: BudsState): Picker? {
+    val anc = state.anc?.takeIf { it.mode == AncMode.AWARENESS } ?: return null
+    val modes = profile.awarenessModes().takeIf { it.size >= 2 } ?: return null
+    return picker(anc.level, modes.map { SettingOption(it, AWARENESS_KEYS[it]) }, OptionGroup.AWARENESS)
+}
+
+private val AWARENESS_KEYS = mapOf(Anc.AWARENESS_STANDARD to "standard", Anc.AWARENESS_VOICE to "voice", Anc.AWARENESS_ADAPTIVE to "adaptive")
+
+private fun pinchControls(profile: Profile, state: BudsState): List<PinchControl> =
+    profile.pinchSlots().mapNotNull { spec ->
+        val setting = state.settings.pinch[spec.slot] ?: return@mapNotNull null
+        val options = spec.options.map { SettingOption(it.code, it.key) }
+        val hold = spec.slot.type == 3
+        PinchControl(
+            slot = spec.slot,
+            left = setting.left?.let { picker(it, options, OptionGroup.GESTURE) },
+            right = setting.right?.takeIf { hold }?.let { picker(it, options, OptionGroup.GESTURE) },
+        ).takeIf { it.left != null || it.right != null }
+    }
 
 private fun gestureControls(profile: Profile, state: BudsState): List<GestureControl> {
     val listed = profile.capabilities["gestures"] ?: return emptyList()
@@ -161,6 +283,9 @@ private fun options(table: JsonObject?, fallback: List<Int>): List<SettingOption
     return named.ifEmpty { fallback.map { SettingOption(it, null) } }
 }
 
+/** The literal name the picker's options give [code] (a custom preset's), or null. */
+fun Picker.labelOf(code: Int): String? = (options.firstOrNull { it.code == code } ?: labels.firstOrNull { it.code == code })?.label
+
 /** The semantic name the picker's options give [code], or null when none does. */
 fun Picker.keyOf(code: Int): String? = (options.firstOrNull { it.code == code } ?: labels.firstOrNull { it.code == code })?.key
 
@@ -181,6 +306,7 @@ fun optionLabelRes(group: OptionGroup, key: String?): Int? = when (group) {
         "song_id" -> R.string.gesture_song_id
         "record" -> R.string.gesture_record
         "volume" -> R.string.gesture_volume
+        "answer_end" -> R.string.gesture_answer_end
         else -> null
     }
     OptionGroup.NOISE_CYCLE -> when (key) {
@@ -206,6 +332,12 @@ fun optionLabelRes(group: OptionGroup, key: String?): Int? = when (group) {
         "natural" -> R.string.eq_natural
         "concert" -> R.string.eq_concert
         "shooter" -> R.string.eq_shooter
+        "symphony" -> R.string.eq_symphony
+        "hifi_live" -> R.string.eq_hifi_live
+        "sound_bass" -> R.string.eq_sound_bass
+        "sound_balanced" -> R.string.eq_sound_balanced
+        "sound_voice" -> R.string.eq_sound_voice
+        "sound_classical" -> R.string.eq_sound_classical
         else -> null
     }
     OptionGroup.SOUND_QUALITY -> when (key) {
@@ -218,6 +350,23 @@ fun optionLabelRes(group: OptionGroup, key: String?): Int? = when (group) {
         "cozy" -> R.string.cancellation_level_cozy
         "general" -> R.string.cancellation_level_general
         "ultra" -> R.string.cancellation_level_ultra
+        "dual_engine" -> R.string.cancellation_level_dual_engine
+        else -> null
+    }
+    OptionGroup.AWARENESS -> when (key) {
+        "standard" -> R.string.awareness_standard
+        "voice" -> R.string.awareness_voice
+        "adaptive" -> R.string.awareness_adaptive
+        else -> null
+    }
+    OptionGroup.EAR_TIP -> when (key) {
+        "silicone" -> R.string.ear_tip_silicone
+        "foam" -> R.string.ear_tip_foam
+        else -> null
+    }
+    OptionGroup.PICKUP -> when (key) {
+        "voices" -> R.string.pickup_voices
+        "surroundings" -> R.string.pickup_surroundings
         else -> null
     }
 }
@@ -239,6 +388,14 @@ fun SettingChange.controlKey(): String = when (this) {
     // Choosing one preferred host changes the others too, so all preferred-host changes share a key.
     is SettingChange.PreferredHost -> "preferredHost"
     is SettingChange.HostCommand -> "host.${mac.uppercase()}"
+    is SettingChange.FeatureValue -> "feature.${feature.name}.$field"
+    is SettingChange.PinchChange -> "pinch.$slot.${listOfNotNull(left?.let { "left" }, right?.let { "right" }).joinToString("+")}"
+    is SettingChange.AwarenessMode -> "awarenessMode"
+    is SettingChange.AwarenessLevel -> "awarenessLevel"
+    is SettingChange.CustomEqualizer -> "customEqualizer.$id"
+    is SettingChange.RestReminderChange -> "restReminder"
+    is SettingChange.HdCallChange -> "hdCall"
+    is SettingChange.PickupModeChange -> "pickupMode"
 }
 
 /** [state] as it will look once the device accepted this change; the optimistic value the UI shows. */
@@ -274,5 +431,39 @@ fun SettingChange.applyTo(state: BudsState): BudsState {
                 }
             },
         )
+        is SettingChange.FeatureValue -> {
+            val old = settings.features[feature] ?: FeatureState(feature.key, null)
+            val next = when (field) {
+                2 -> old.copy(state = value)
+                FeatureSwitch.NOD -> old.copy(first = value)
+                else -> old.copy(second = value)
+            }
+            state.copy(settings = settings.copy(features = settings.features + (feature to next)))
+        }
+        is SettingChange.PinchChange -> {
+            val old = settings.pinch[slot] ?: return state
+            val next = if (slot.type == 3) {
+                old.copy(left = left ?: old.left, right = right ?: old.right)
+            } else {
+                PinchSetting(slot, left ?: old.left, left ?: old.right)
+            }
+            state.copy(settings = settings.copy(pinch = settings.pinch + (slot to next)))
+        }
+        is SettingChange.AwarenessMode -> state.anc?.let { state.copy(anc = it.copy(modeCode = AncMode.AWARENESS.code, level = subMode)) } ?: state
+        is SettingChange.AwarenessLevel -> state.anc?.let { state.copy(anc = it.copy(awarenessLevel = level)) } ?: state
+        is SettingChange.CustomEqualizer -> settings.equalizer?.let { eq ->
+            val others = eq.custom.filter { it.id != id }
+            when (operation) {
+                EqOperation.PREVIEW -> state
+                EqOperation.SAVE -> state.copy(settings = settings.copy(equalizer = eq.copy(active = id, custom = (others + CustomPreset(id, gains, name)).sortedBy { it.id })))
+                EqOperation.DELETE -> state.copy(settings = settings.copy(equalizer = eq.copy(custom = others)))
+            }
+        } ?: state
+        is SettingChange.RestReminderChange -> state.copy(settings = settings.copy(restReminder = enabled))
+        is SettingChange.HdCallChange -> state.copy(settings = settings.copy(hdCall = enabled))
+        is SettingChange.PickupModeChange -> state.copy(settings = settings.copy(pickupMode = mode))
     }
 }
+
+/** The profile capability key a feature switch is listed under. */
+fun Feature.capabilityKey(): String = FEATURE_CAPABILITIES.getValue(this)
