@@ -5,8 +5,9 @@ import io.github.librebuds.R
 
 /**
  * Case-opening clips (LibreBuds original artwork, see NOTICE) as profile id to light/dark clip for
- * [artFor]. Each clip is 720x720, about 3.5 s, and ends on a held frame of the open case; the light
- * clips have a #FFFFFF background and the dark ones #1C1C1E, the colours of `popup_video_background`.
+ * [artFor]. Each clip is 720x720 at 60 fps (interpolated from the 24 fps originals), about 3.5 s,
+ * and ends on a held frame of the open case; the light clips have a #FFFFFF background and the dark
+ * ones #1C1C1E, the colours of `popup_video_background`.
  * Profiles without a clip get the vector drawing of their shape.
  */
 object PopupVideos {
