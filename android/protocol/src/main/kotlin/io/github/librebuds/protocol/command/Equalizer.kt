@@ -9,8 +9,9 @@ import io.github.librebuds.protocol.tlv.Tlv
 data class EqualizerState(val active: Int?, val available: List<Int>)
 
 /**
- * Equalizer presets. Read with 2B/4A (TLV 1..8 requested; reply TLV 2 = active preset,
- * TLV 3 = list of available preset ids). Write (select only, no custom preset editing)
+ * Equalizer presets. Read with 2B/4A requesting TLV 2 only (the vendor app's exact request;
+ * FreeBuds 5 does not answer a request for TLV 1..8). The reply carries TLV 2 = active preset and
+ * TLV 3 = list of available preset ids, and the earbuds push the same frame after every select. Write (select only, no custom preset editing)
  * with 2B/49 TLV 1 = preset id. The earbuds answer a select later with their own 2B/49 frame
  * carrying a [Status] record; [Status.SUCCESS] means the preset is applied (see [parseAck]).
  */
@@ -18,7 +19,7 @@ object Equalizer {
     val GET = CommandId(0x2B, 0x4A)
     val SET = CommandId(0x2B, 0x49)
 
-    fun read(): Packet = Packet.read(GET, 1, 2, 3, 4, 5, 6, 7, 8)
+    fun read(): Packet = Packet.read(GET, 2)
 
     fun parse(packet: Packet): EqualizerState? {
         if (packet.id != GET) return null

@@ -4,6 +4,7 @@ package io.github.librebuds.protocol.command
 import io.github.librebuds.protocol.CommandId
 import io.github.librebuds.protocol.Packet
 import io.github.librebuds.protocol.tlv.Tlv
+import io.github.librebuds.protocol.util.hexToBytes
 import io.github.librebuds.protocol.util.toHex
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -90,7 +91,7 @@ class SettingsCodecsTest {
 
     @Test
     fun equalizerParseAndSelect() {
-        assertEquals("2B 4A 01 00 02 00 03 00 04 00 05 00 06 00 07 00 08 00", Equalizer.read().toPayload().toHex())
+        assertEquals("2B 4A 02 00", Equalizer.read().toPayload().toHex()) // vendor app request; FreeBuds 5 ignores TLV 1..8
         val reply = Packet(CommandId(0x2B, 0x4A), listOf(Tlv.of(2, 5), Tlv.of(3, 5, 1, 2, 9)))
         assertEquals(EqualizerState(active = 5, available = listOf(5, 1, 2, 9)), Equalizer.parse(reply))
         assertEquals("2B 49 01 01 09", Equalizer.select(9).toPayload().toHex())
@@ -146,5 +147,14 @@ class SettingsCodecsTest {
         assertEquals("0C 02 01 00 02 00 03 00", VoiceLanguage.read().toPayload().toHex())
         val reply = Packet(CommandId(0x0C, 0x02), listOf(Tlv(1, "en-GB".toByteArray()), Tlv(3, "en-GB,pl-PL,de-DE".toByteArray())))
         assertEquals(LanguageInfo("en-GB", listOf("en-GB", "pl-PL", "de-DE")), VoiceLanguage.parse(reply))
+    }
+
+    @Test
+    fun freebuds5EqualizerReplyFromTheVendorAppSession() {
+        // 2B/4A as FreeBuds 5 sends it after selecting preset 2 (captured on a phone).
+        val frame = "5A 00 14 00 2B 4A 01 01 01 02 01 02 03 04 01 02 03 09 04 01 01 08 00 71 B2"
+        val event = io.github.librebuds.protocol.frame.FrameReassembler().feed(frame.hexToBytes()).single()
+        val packet = Packet.fromPayload((event as io.github.librebuds.protocol.frame.RxEvent.Payload).bytes)!!
+        assertEquals(EqualizerState(active = 2, available = listOf(1, 2, 3, 9)), Equalizer.parse(packet))
     }
 }

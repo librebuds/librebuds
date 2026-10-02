@@ -16,6 +16,12 @@ class FrameLog(private val capacity: Int = 2000, private val clock: () -> Long =
 
     @Synchronized
     fun record(direction: FrameDirection, bytes: ByteArray) {
+        // Raw frames to logcat for live debugging with `adb logcat -s LibreBudsFrames`; device info
+        // (01/07, which carries serial numbers) and multipoint host rows (MACs, names) are left out.
+        val hex = bytes.toHex()
+        if (!hex.startsWith("5A") || (!hex.contains("01 07") && !hex.contains("2B 31") && !hex.contains("2B 36"))) {
+            try { android.util.Log.d("LibreBudsFrames", "${direction.name} $hex") } catch (_: RuntimeException) { }
+        }
         if (entries.size == capacity) entries.removeFirst()
         entries.addLast(Entry(clock(), direction, bytes.copyOf()))
     }
