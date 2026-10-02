@@ -484,7 +484,8 @@ class BudsController(
         updateSettings(gestureKey(subKey)) { settings ->
             val old = settings.gestures[g] ?: return@updateSettings settings
             val left = value(1) ?: old.left
-            val next = old.copy(left = left, right = if (both) old.right else value(2) ?: old.right, inCall = value(4) ?: old.inCall)
+            // A single-value frame told both earbuds the same value.
+            val next = old.copy(left = left, right = if (both) left else value(2) ?: old.right, inCall = value(4) ?: old.inCall)
             settings.copy(gestures = settings.gestures + (g to next))
         }
     }

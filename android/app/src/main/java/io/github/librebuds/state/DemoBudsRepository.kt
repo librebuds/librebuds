@@ -47,7 +47,7 @@ class DemoBudsRepository(
                 gestures = mapOf(
                     Gesture.DOUBLE_TAP to GestureSetting(left = 1, right = 2, inCall = 0, supported = listOf(-1, 0, 1, 2, 7)),
                     Gesture.TRIPLE_TAP to GestureSetting(left = 2, right = 7, inCall = null, supported = listOf(-1, 0, 1, 2, 7)),
-                    Gesture.LONG_PRESS to GestureSetting(left = 10, right = 10, inCall = null, supported = listOf(-1, 10)),
+                    Gesture.LONG_PRESS to GestureSetting(left = 3, right = 3, inCall = 0, supported = listOf(-1, 0, 3, 15), inCallSupported = listOf(0, -1)),
                     Gesture.NOISE_CYCLE to GestureSetting(left = 2, right = 2, inCall = null, supported = listOf(1, 2, 3, 4)),
                     Gesture.SWIPE to GestureSetting(left = 0, right = 0, inCall = null, supported = listOf(-1, 0)),
                 ),

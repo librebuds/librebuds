@@ -98,14 +98,18 @@ fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, on
         }
         // Its own group so the note about switching sits right under it.
         model.soundQuality?.let { picker ->
-            StyledList(
-                title = stringResource(R.string.section_sound).takeIf { model.lowLatency == null && model.language == null },
-                description = stringResource(R.string.sound_quality_hint),
-            ) {
+            StyledList(title = stringResource(R.string.section_sound).takeIf { model.lowLatency == null && model.language == null }) {
                 PickerRow(stringResource(R.string.audio_priority), picker, open, describe = { described("soundQuality", it) }) {
                     onChange(SettingChange.SoundQualityChange(it))
                 }
             }
+            // Below the row in both design systems (a list description sits above the items in Material).
+            Text(
+                text = stringResource(R.string.sound_quality_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
         }
     }
     model.multipointEnabled?.let { enabled ->
