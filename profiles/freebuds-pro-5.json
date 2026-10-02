@@ -4,9 +4,13 @@
   "match": {
     "sku": [],
     "modelId": [
-      "00016B"
+      "00016B",
+      "00016D"
     ],
-    "productId": [],
+    "productId": [
+      "ZAAW",
+      "ZAAV"
+    ],
     "btName": [
       "HUAWEI FreeBuds Pro 5"
     ]
@@ -17,7 +21,22 @@
       "verified": null
     },
     "anc": {
-      "verified": null
+      "verified": null,
+      "cancellationLevels": [
+        3,
+        1,
+        0,
+        2
+      ],
+      "awarenessModes": [
+        2,
+        1,
+        4
+      ],
+      "awarenessLevel": true,
+      "cancellationLevelNames": {
+        "3": "dual_engine"
+      }
     },
     "wear": {
       "verified": null
@@ -77,10 +96,10 @@
       "presets": {
         "0": "default",
         "1": "default",
-        "5": "default",
-        "2": "bass",
+        "5": "sound_balanced",
+        "2": "sound_bass",
         "3": "treble",
-        "9": "voice",
+        "9": "sound_voice",
         "10": "lively",
         "11": "balanced",
         "12": "classical",
@@ -91,7 +110,23 @@
         "17": "adaptive",
         "18": "natural",
         "19": "concert",
-        "25": "shooter"
+        "25": "shooter",
+        "201": "sound_classical"
+      },
+      "custom": true,
+      "extended": {
+        "201": [
+          -5,
+          20,
+          30,
+          10,
+          0,
+          0,
+          -25,
+          -10,
+          10,
+          0
+        ]
       }
     },
     "lowLatency": {
@@ -108,6 +143,89 @@
       "verified": null
     },
     "language": {
+      "verified": null
+    },
+    "pinch": {
+      "verified": null,
+      "slots": [
+        {
+          "type": 0,
+          "scene": 1,
+          "options": {
+            "0": "answer_end",
+            "255": "off"
+          }
+        },
+        {
+          "type": 1,
+          "scene": 1,
+          "options": {
+            "1": "reject",
+            "255": "off"
+          }
+        },
+        {
+          "type": 0,
+          "scene": 2,
+          "options": {
+            "2": "pause",
+            "255": "off"
+          }
+        },
+        {
+          "type": 1,
+          "scene": 2,
+          "options": {
+            "4": "next",
+            "255": "off"
+          }
+        },
+        {
+          "type": 2,
+          "scene": 2,
+          "options": {
+            "3": "previous",
+            "255": "off"
+          }
+        },
+        {
+          "type": 3,
+          "scene": 0,
+          "options": {
+            "6": "switch_anc",
+            "5": "assistant",
+            "255": "off"
+          }
+        }
+      ]
+    },
+    "singleBudAnc": {
+      "verified": null
+    },
+    "adaptiveVolume": {
+      "verified": null
+    },
+    "aiConversation": {
+      "verified": null
+    },
+    "earTip": {
+      "verified": null
+    },
+    "headControl": {
+      "verified": null,
+      "actions": {
+        "1": "answer",
+        "2": "reject",
+        "0": "off"
+      }
+    },
+    "findEarbuds": {
+      "verified": null
+    },
+    "restReminder": {
+      "verified": null
+    },
+    "pickupMode": {
       "verified": null
     }
   }

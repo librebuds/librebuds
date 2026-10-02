@@ -117,7 +117,10 @@ class ProfileRegistryTest {
             val confirmed = sweptInRound2[id].orEmpty()
             for (capability in newCapabilities) {
                 if (!profile.supports(capability)) continue
-                if (capability in confirmed) {
+                if (id == "freebuds-5" && capability == "soundQuality") {
+                    // Smart HD writes confirmed on FreeBuds 5 (2B/A2 status 100000, 2B/A3 TLV 2 followed).
+                    assertEquals("2026-10-02", profile.verifiedOn(capability), "$id: $capability was confirmed on 2026-10-02")
+                } else if (capability in confirmed) {
                     assertEquals("2026-09-29", profile.verifiedOn(capability), "$id: $capability was confirmed in round 2")
                 } else {
                     assertNull(profile.verifiedOn(capability), "$id: $capability should be unverified")

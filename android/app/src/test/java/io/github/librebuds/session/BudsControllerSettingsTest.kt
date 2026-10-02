@@ -196,8 +196,9 @@ class BudsControllerSettingsTest {
         val s = c.state.value
         assertEquals(LinkState.CONNECTED, s.link)
         assertNull(s.lastError)
+        // Three silent settings plus the ability query, which this fake (like a model without it) leaves unanswered.
         assertTrue("connect took ${testScheduler.currentTime} ms", testScheduler.currentTime <= 4 * 1200)
-        assertEquals(setOf("wear", "gestures.doubleTap", "equalizer"), s.settings.unanswered)
+        assertEquals(setOf("wear", "gestures.doubleTap", "equalizer", "abilities"), s.settings.unanswered)
         assertNull(s.settings.wearDetection)
         assertEquals(setOf(Gesture.SWIPE), s.settings.gestures.keys)
         assertTrue(c.refresh().isSuccess)
@@ -215,14 +216,14 @@ class BudsControllerSettingsTest {
         val links = mutableListOf<FakeLink>()
         val c = controller(earbuds, links)
         c.connect("AA", "x")
-        assertEquals(setOf("wear", "gestures.doubleTap"), c.state.value.settings.unanswered)
+        assertEquals(setOf("wear", "gestures.doubleTap", "abilities"), c.state.value.settings.unanswered)
 
         val link = links.single()
         link.deliver(Packet(CommandId(0x2B, 0x11), listOf(Tlv.of(1, 1))).toFrame())
         link.deliver(Packet(CommandId(0x01, 0x20), listOf(Tlv.of(1, 2), Tlv.of(2, 1))).toFrame())
         runCurrent()
         val settings = c.state.value.settings
-        assertEquals(emptySet<String>(), settings.unanswered)
+        assertEquals(setOf("abilities"), settings.unanswered)
         assertEquals(true, settings.wearDetection)
         assertEquals(2, settings.gestures.getValue(Gesture.DOUBLE_TAP).left)
         // The write is sent now (its read-back stays silent on this fake, so it is not confirmed).

@@ -4,6 +4,7 @@ package io.github.librebuds.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.librebuds.protocol.command.HostRow
+import io.github.librebuds.protocol.command.Side
 import io.github.librebuds.protocol.profile.Profile
 import io.github.librebuds.state.BudsRepository
 import io.github.librebuds.state.BudsState
@@ -94,6 +95,16 @@ class SettingsViewModel(
             pending.update { it - key }
             jobs.remove(key)
             result.onFailure { failure.value = SettingsFailure(it.toUiError(), repository.state.value.settingsScope()) }
+        }
+    }
+
+    /** Rings ([ring] true) or silences one earbud; a failure shows like a settings error. */
+    fun ring(side: Side, ring: Boolean) {
+        failure.value = null
+        viewModelScope.launch {
+            repository.ring(side, ring).onFailure {
+                failure.value = SettingsFailure(it.toUiError(), repository.state.value.settingsScope())
+            }
         }
     }
 

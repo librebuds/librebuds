@@ -171,4 +171,24 @@ class DeviceSessionTest {
         job.cancelAndJoin()
         assertTrue(link.closed)
     }
+
+    @Test
+    fun acceptSkipsAnotherAnswerUnderTheSameCommand() = runTest {
+        // The earbuds answer a feature read with a push for another feature first, then the right one.
+        val other = io.github.librebuds.protocol.Packet(
+            io.github.librebuds.protocol.command.FeatureSwitch.SWITCH,
+            listOf(io.github.librebuds.protocol.tlv.Tlv.of(1, 0x0B), io.github.librebuds.protocol.tlv.Tlv.of(2, 1)),
+        ).toFrame()
+        val right = io.github.librebuds.protocol.Packet(
+            io.github.librebuds.protocol.command.FeatureSwitch.SWITCH,
+            listOf(io.github.librebuds.protocol.tlv.Tlv.of(1, 0x05), io.github.librebuds.protocol.tlv.Tlv.of(2, 0)),
+        ).toFrame()
+        val link = FakeLink { deliver(other + right) }
+        val session = DeviceSession(link, backgroundScope)
+        val feature = io.github.librebuds.protocol.command.Feature.SINGLE_BUD_ANC
+        val reply = session.request(io.github.librebuds.protocol.command.FeatureSwitch.read(feature)) {
+            io.github.librebuds.protocol.command.FeatureSwitch.answers(feature, it)
+        }.getOrThrow()
+        assertEquals(0x05, io.github.librebuds.protocol.command.FeatureSwitch.parseState(reply)?.key)
+    }
 }

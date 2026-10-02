@@ -28,12 +28,21 @@ class AncProfileTest {
     }
 
     @Test
-    fun otherSweptModelsKeepAllModesAndDynamicOnly() {
-        for (id in listOf("freebuds-6", "freebuds-pro-2", "freebuds-pro-3")) {
+    fun levelListsFollowTheVendorAppPerModel() {
+        // Pro 2-5: dynamic, cozy, general, ultra; FreeBuds 6: no ultra; FreeBuds 4: cozy and general.
+        for (id in listOf("freebuds-pro-2", "freebuds-pro-3", "freebuds-pro-4", "freebuds-pro-5")) {
             val p = registry.profiles.first { it.id == id }
             assertEquals(AncMode.entries.toList(), p.ancModes(), id)
-            assertEquals(listOf(3), p.cancellationLevels(), id)
+            assertEquals(listOf(3, 1, 0, 2), p.cancellationLevels(), id)
         }
+        val fb6 = registry.profiles.first { it.id == "freebuds-6" }
+        assertEquals(listOf(AncMode.OFF, AncMode.CANCELLATION), fb6.ancModes())
+        assertEquals(listOf(3, 1, 0), fb6.cancellationLevels())
+        val fb4 = registry.profiles.first { it.id == "freebuds-4" }
+        assertEquals(listOf(AncMode.OFF, AncMode.CANCELLATION), fb4.ancModes())
+        assertEquals(listOf(1, 0), fb4.cancellationLevels())
+        assertEquals("dual_engine", registry.profiles.first { it.id == "freebuds-pro-5" }.cancellationLevelKey(3))
+        assertEquals("dynamic", registry.profiles.first { it.id == "freebuds-pro-4" }.cancellationLevelKey(3))
     }
 
     @Test

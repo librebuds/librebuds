@@ -9,6 +9,7 @@ import io.github.librebuds.protocol.frame.FrameReassembler
 import io.github.librebuds.protocol.frame.LinkFrame
 import io.github.librebuds.protocol.frame.RxEvent
 import io.github.librebuds.protocol.tlv.Tlv
+import io.github.librebuds.protocol.util.toHex
 
 /** One gesture's assignment on the fake: action codes (-1 = off) and the supported code list. */
 data class FakeGesture(var left: Int, var right: Int, var inCall: Int = -1, val supported: List<Int> = listOf(-1, 0, 1, 2))
@@ -34,6 +35,8 @@ data class FakeHost(val mac: String, val name: String, var state: Int, var prefe
  * [rawReplies] answers a command id with these exact payload bytes (service, command, TLVs) instead
  * of the scripted reply; a write is still applied first.
  * [onRequest] sees every decoded request id, in order.
+ * [extra] answers a request first when it returns non-null (see [FeatureEarbuds]); a write it handles is
+ * still subject to [ignoreReads].
  */
 class FakeEarbuds(
     var sku: String = "BTFT0020",
@@ -62,8 +65,13 @@ class FakeEarbuds(
     val rawReplies: Map<String, ByteArray> = emptyMap(),
     var reportAutoConnect: Boolean = true,
     var onRequest: (String) -> Unit = {},
+    var extra: (Packet) -> List<Packet>? = { null },
 ) {
     private val reassembler = FrameReassembler()
+
+    /** The payload of the request being answered, as sent (a re-encoded [Packet] can differ, see bare reads). */
+    var lastRequestHex: String = ""
+        private set
 
     fun link(): FakeLink = FakeLink { bytes -> answer(bytes).forEach { deliver(it) } }
 
@@ -78,7 +86,9 @@ class FakeEarbuds(
 
     private fun answer(bytes: ByteArray): List<ByteArray> {
         if (silent) return emptyList()
-        return reassembler.feed(bytes).filterIsInstance<RxEvent.Payload>().mapNotNull { Packet.fromPayload(it.bytes) }.flatMap { request ->
+        return reassembler.feed(bytes).filterIsInstance<RxEvent.Payload>().mapNotNull { event ->
+            Packet.fromPayload(event.bytes)?.also { lastRequestHex = event.bytes.toHex() }
+        }.flatMap { request ->
             val id = request.id.toString()
             onRequest(id)
             if (id in ignoreReads) return@flatMap emptyList()
@@ -89,6 +99,7 @@ class FakeEarbuds(
     }
 
     private fun answerOne(request: Packet, id: String, apply: Boolean): List<Packet> {
+        extra(request)?.let { return it }
         Gesture.entries.firstOrNull { it.get == request.id }?.let { g ->
             val s = gestures.getValue(g)
             val tlvs = mutableListOf(Tlv.of(1, s.left), Tlv.of(2, s.right), Tlv.of(3, *s.supported.toIntArray()))

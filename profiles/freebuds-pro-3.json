@@ -27,9 +27,16 @@
         "awareness"
       ],
       "cancellationLevels": [
-        3
+        3,
+        1,
+        0,
+        2
       ],
-      "verified": "2026-09-29"
+      "verified": "2026-09-29",
+      "awarenessModes": [
+        2,
+        1
+      ]
     },
     "wear": {
       "verified": "2026-09-29"
@@ -81,14 +88,43 @@
         "17": "adaptive",
         "18": "natural",
         "19": "concert",
-        "25": "shooter"
+        "25": "shooter",
+        "200": "symphony",
+        "201": "hifi_live"
       },
       "offered": [
         2,
         3,
         5,
         9
-      ]
+      ],
+      "custom": true,
+      "extended": {
+        "200": [
+          15,
+          15,
+          10,
+          -5,
+          15,
+          25,
+          15,
+          -5,
+          50,
+          45
+        ],
+        "201": [
+          -5,
+          20,
+          30,
+          10,
+          0,
+          0,
+          -25,
+          -10,
+          10,
+          0
+        ]
+      }
     },
     "lowLatency": {
       "verified": null
@@ -105,6 +141,60 @@
     },
     "language": {
       "verified": "2026-09-29"
+    },
+    "pinch": {
+      "verified": null,
+      "slots": [
+        {
+          "type": 0,
+          "scene": 1,
+          "options": {
+            "0": "answer_end",
+            "255": "off"
+          }
+        },
+        {
+          "type": 1,
+          "scene": 1,
+          "options": {
+            "1": "reject",
+            "255": "off"
+          }
+        },
+        {
+          "type": 0,
+          "scene": 2,
+          "options": {
+            "2": "pause",
+            "255": "off"
+          }
+        },
+        {
+          "type": 1,
+          "scene": 2,
+          "options": {
+            "4": "next",
+            "255": "off"
+          }
+        },
+        {
+          "type": 2,
+          "scene": 2,
+          "options": {
+            "3": "previous",
+            "255": "off"
+          }
+        }
+      ]
+    },
+    "findEarbuds": {
+      "verified": null
+    },
+    "restReminder": {
+      "verified": null
+    },
+    "pickupMode": {
+      "verified": null
     }
   }
 }

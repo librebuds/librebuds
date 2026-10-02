@@ -154,7 +154,7 @@ fun DeviceScreen(
             }
             // Like noise control, settings only show while connected: a change could not be sent otherwise.
             if (ui.state.isConnected) {
-                DeviceSettingsSections(settings, onChange = settingsViewModel::apply, onOpenMultipoint = onOpenMultipoint)
+                DeviceSettingsSections(settings, onChange = settingsViewModel::apply, onOpenMultipoint = onOpenMultipoint, onRing = settingsViewModel::ring)
                 settings.error?.let { error ->
                     Text(
                         text = stringResource(error.messageRes()),
