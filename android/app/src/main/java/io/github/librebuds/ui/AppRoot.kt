@@ -3,6 +3,7 @@ package io.github.librebuds.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -11,9 +12,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.librebuds.BuildConfig
 import io.github.librebuds.LibreBudsApp
+import io.github.librebuds.R
 import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.companion.AssociationStore
 import io.github.librebuds.popup.PopupPresenter
@@ -22,8 +25,8 @@ import io.github.librebuds.popup.demoPopupModel
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.DEMO_ADDRESS
 import io.github.librebuds.ui.screens.DeviceScreen
+import io.github.librebuds.ui.screens.HomeScreen
 import io.github.librebuds.ui.screens.MultipointScreen
-import io.github.librebuds.ui.screens.NoBudsScreen
 import io.github.librebuds.ui.screens.SettingsScreen
 import io.github.librebuds.ui.screens.onboarding.OnboardingScreen
 import io.github.librebuds.ui.screens.onboarding.openAppDetailsSettings
@@ -32,10 +35,11 @@ import io.github.librebuds.ui.theme.DesignSystem
 import io.github.librebuds.ui.theme.LibreBudsTheme
 
 /**
- * Top-level navigation over a [BackStack]: onboarding once, then the root, which is the device screen
- * of the chosen pair ([chooseStartPair]) or, with no FreeBuds paired, what to do about it. Settings
- * and multipoint open on top; Back pops one screen and leaves the app from the root. Which pair the
- * root shows follows the automatic choice until the user picks one in the switcher.
+ * Top-level navigation over a [BackStack]: onboarding once, then the list of known pairs as the root,
+ * with a pair's device screen, settings and multipoint on top. Back pops one screen and leaves the
+ * app from the list. On start the app opens straight into a pair ([startPair]: the one in
+ * [launchAddress] when opened from the notification or island, else the connected one, else the only
+ * one) with the list below it, so Back from there always shows the list.
  * [onShowEarbuds] tells the activity which pair is on screen (the service may switch to it);
  * [onLinkCompanion] runs the optional companion association; [onExportDiagnostics] shares the
  * diagnostics file (header, recent events, frame log) and [onSaveDiagnostics] writes the same export
@@ -46,12 +50,12 @@ fun AppRoot(
     viewModel: DeviceViewModel,
     settingsViewModel: SettingsViewModel,
     preferences: AppPreferences,
+    launchAddress: String? = null,
     onShowEarbuds: (address: String) -> Unit = {},
     onLinkCompanion: (address: String, name: String, onResult: (linked: Boolean) -> Unit) -> Unit = { _, _, _ -> },
     onExportDiagnostics: () -> Unit = {},
     onSaveDiagnostics: () -> Unit = {}
 ) {
-    var stack by rememberSaveable(stateSaver = BackStackSaver) { mutableStateOf(BackStack.initial(preferences.onboardingDone)) }
     var designSystem by remember { mutableStateOf(preferences.designSystem) }
     var showOffMode by remember { mutableStateOf(preferences.showOffMode) }
     var showIsland by remember { mutableStateOf(preferences.showIsland) }
@@ -64,13 +68,16 @@ fun AppRoot(
     val registry = remember { LibreBudsApp.from(context).registry }
     val showDemo = BuildConfig.DEBUG && demoMode
     val profileOf = { id: String -> registry.profiles.firstOrNull { it.id == id } }
-    // The pair the user picked in the switcher this session; until then the automatic choice applies.
-    var picked by rememberSaveable { mutableStateOf<String?>(null) }
-    val unmarked = pairRows(detection, ui.state, showDemo, profileOf)
-    val selectedAddress = picked?.takeIf { address -> unmarked.any { it.address.equals(address, ignoreCase = true) } }
-        ?: chooseStartPair(unmarked, detection.lastConnectedAt, ui.state)
-    val pairs = unmarked.map { it.copy(selected = it.address.equals(selectedAddress, ignoreCase = true)) }
-    val selected = pairs.firstOrNull { it.selected }
+    val pairs = pairRows(detection, ui.state, showDemo, profileOf)
+    val rowOf = { address: String -> pairs.firstOrNull { it.address.equals(address, ignoreCase = true) } }
+    var stack by rememberSaveable(stateSaver = BackStackSaver) {
+        // Opened for a pair (notification, island): straight into it, with the list below.
+        val launched = launchAddress?.let(rowOf)?.let { Route.Device(it.address, it.name) }
+        mutableStateOf(BackStack.initial(preferences.onboardingDone, launched))
+    }
+    // The pair of the open device screen, else the one the app would start on (Settings' companion row).
+    val selected = stack.device?.let { rowOf(it.address) }
+        ?: chooseStartPair(pairs, detection.lastConnectedAt, ui.state)?.let(rowOf)
     var companionLinked by remember { mutableStateOf(AssociationStore(context).known()) }
     // Keeps each open screen's saved state (scroll position) while a screen above it shows; dropped
     // once the screen is popped.
@@ -82,32 +89,57 @@ fun AppRoot(
         }
     }
 
-    // Disabled on the root, so Back there falls through to the activity and leaves the app.
+    // The one-time start jump, once detection has seen the links (the first read may not have).
+    LaunchedEffect(detection.settled, stack.startPending, stack.top) {
+        if (!detection.settled || !stack.startPending) return@LaunchedEffect
+        val start = startPair(pairs, detection.lastConnectedAt, ui.state)
+        stack = stack.openStart(start?.let { Route.Device(it.address, it.name) })
+    }
+    // A pair that is gone (unpaired, demo mode turned off) closes its screen when it is on top.
+    val shownDevice = stack.top as? Route.Device
+    val shownGone = shownDevice != null && detection.settled && rowOf(shownDevice.address) == null
+    LaunchedEffect(shownGone) {
+        if (shownGone) goBack()
+    }
+    // Disabled on the root (the list), so Back there falls through to the activity and leaves the app.
     BackHandler(enabled = stack.canGoBack, onBack = goBack)
+    val homeTitle = stringResource(R.string.app_name)
+    val titleOf: @Composable (Route) -> String = { route ->
+        when (route) {
+            Route.Home, Route.Onboarding -> homeTitle
+            is Route.Device -> rowOf(route.address)?.label ?: route.name
+            Route.Settings -> stringResource(R.string.settings)
+            Route.Multipoint -> stringResource(R.string.section_multipoint)
+        }
+    }
+    val backLabel: @Composable () -> String? = { stack.entries.getOrNull(stack.entries.lastIndex - 1)?.let { titleOf(it) } }
 
     LibreBudsTheme(m3eEnabled = designSystem == DesignSystem.Material) {
         screenStates.SaveableStateProvider(stack.topKey()) {
-            when (stack.top) {
+            when (val top = stack.top) {
                 Route.Onboarding -> OnboardingScreen(preferences = preferences, onDone = { stack = stack.finishOnboarding() })
-                Route.Buds -> if (selected == null) {
-                    NoBudsScreen(
-                        permissionMissing = detection.permissionMissing,
-                        onOpenSettings = { stack = stack.push(Route.Settings) }
-                    )
-                } else {
+                Route.Home -> HomeScreen(
+                    pairs = pairs,
+                    permissionMissing = detection.permissionMissing,
+                    onOpen = { pair -> stack = stack.push(Route.Device(pair.address, pair.name)) },
+                    onOpenSettings = { stack = stack.push(Route.Settings) }
+                )
+                is Route.Device -> {
+                    // Before detection read the pair again (or for the frame before a gone pair closes).
+                    val pair = rowOf(top.address) ?: PairRow(top.address, top.name, model = null, connected = false, battery = null)
                     DeviceScreen(
                         viewModel = viewModel,
                         settingsViewModel = settingsViewModel,
                         showOffMode = showOffMode,
-                        pair = selected,
-                        pairs = pairs,
-                        onShown = { if (selected.address != DEMO_ADDRESS) onShowEarbuds(selected.address) },
-                        onPick = { picked = it.address },
+                        pair = pair,
+                        backLabel = backLabel() ?: homeTitle,
+                        onShown = { if (pair.address != DEMO_ADDRESS) onShowEarbuds(pair.address) },
+                        onNavigateBack = goBack,
                         onOpenSettings = { stack = stack.push(Route.Settings) },
                         onOpenMultipoint = { stack = stack.push(Route.Multipoint) }
                     )
                 }
-                Route.Multipoint -> MultipointScreen(viewModel = settingsViewModel, onNavigateBack = goBack)
+                Route.Multipoint -> MultipointScreen(viewModel = settingsViewModel, onNavigateBack = goBack, backLabel = backLabel())
                 Route.Settings -> {
                     val overlay = rememberOverlayAccess(preferences)
                     SettingsScreen(
@@ -168,7 +200,8 @@ fun AppRoot(
                         },
                         onExportDiagnostics = onExportDiagnostics,
                         onSaveDiagnostics = onSaveDiagnostics,
-                        onNavigateBack = goBack
+                        onNavigateBack = goBack,
+                        backLabel = backLabel()
                     )
                 }
             }

@@ -47,12 +47,15 @@ fun SettingsScreen(
     onLinkCompanion: () -> Unit,
     onExportDiagnostics: () -> Unit,
     onSaveDiagnostics: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    /** The previous screen's title, shown on the Apple-style back button. */
+    backLabel: String? = null
 ) {
     StyledScaffold(
         title = stringResource(R.string.settings),
         showBackButton = true,
-        onNavigateBack = onNavigateBack
+        onNavigateBack = onNavigateBack,
+        backLabel = backLabel
     ) {
         Column(
             modifier = Modifier

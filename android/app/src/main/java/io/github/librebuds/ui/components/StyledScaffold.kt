@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
-    Modified for LibreBuds (2026): adapted to FreeBuds, tappable title; see NOTICE.
+    Modified for LibreBuds (2026): adapted to FreeBuds, labelled back button; see NOTICE.
 */
 
 package io.github.librebuds.ui.components
@@ -29,10 +29,6 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.ui.semantics.Role
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,6 +42,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -59,21 +56,30 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.kyant.backdrop.backdrops.LayerBackdrop
+import io.github.librebuds.R
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.HazeTint
@@ -84,6 +90,12 @@ import io.github.librebuds.ui.theme.DesignSystem
 import io.github.librebuds.ui.theme.LocalDesignSystem
 import io.github.librebuds.ui.theme.interFamily
 
+/**
+ * The screen frame with the top bar. With [showBackButton] the bar gets a back button calling
+ * [onNavigateBack]: Material shows its usual arrow; the Apple style shows a round glass button, or,
+ * when [backLabel] (the previous screen's title) is set, an iOS-style capsule with a chevron and that
+ * label.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StyledScaffold(
@@ -92,8 +104,7 @@ fun StyledScaffold(
     title: String,
     showBackButton: Boolean = false,
     onNavigateBack: () -> Unit = {},
-    onTitleClick: (() -> Unit)? = null,
-    titleClickLabel: String? = null,
+    backLabel: String? = null,
     actionButtons: List<@Composable (backdrop: LayerBackdrop) -> Unit> = emptyList(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     content: @Composable () -> Unit
@@ -126,7 +137,7 @@ fun StyledScaffold(
                                         ) {
                                             Icon(
                                                 Icons.AutoMirrored.Default.ArrowBack,
-                                                contentDescription = "",
+                                                contentDescription = stringResource(R.string.navigate_back),
                                                 modifier = Modifier.size(IconButtonDefaults.mediumIconSize),
                                             )
                                         }
@@ -135,23 +146,13 @@ fun StyledScaffold(
                             },
                             title = {
                                 Crossfade(targetState = title) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .padding(start = if (showBackButton) 8.dp else 12.dp, end = 12.dp)
-                                            .titleClickable(onTitleClick, titleClickLabel)
-                                    ) {
-                                        Text(
-                                            text = it,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.weight(1f, fill = false),
-                                            style = MaterialTheme.typography.titleSmall
-                                        )
-                                        if (onTitleClick != null) {
-                                            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.padding(start = 4.dp).size(20.dp))
-                                        }
-                                    }
+                                    Text(
+                                        text = it,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(start = if (showBackButton) 8.dp else 12.dp, end = 12.dp),
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
                                 }
                             },
                             actions = {
@@ -201,6 +202,13 @@ fun StyledScaffold(
                 ) {
                     val backdrop = rememberLayerBackdrop()
                     val bgColor = MaterialTheme.colorScheme.surfaceContainer
+                    // The title stays clear of the back button and the actions, which can be wider
+                    // than the round buttons (a labelled back capsule), so they are measured.
+                    val density = LocalDensity.current
+                    var backWidth by remember { mutableIntStateOf(0) }
+                    var actionsWidth by remember { mutableIntStateOf(0) }
+                    val titleStart = maxOf(72.dp, with(density) { backWidth.toDp() } + 8.dp)
+                    val titleEnd = maxOf(72.dp, with(density) { actionsWidth.toDp() } + 8.dp)
                     AnimatedVisibility(
                         visible = showBackButton,
                         enter = fadeIn() + scaleIn(
@@ -215,11 +223,14 @@ fun StyledScaffold(
                             .zIndex(3f)
                             .padding(top = topPadding, start = 8.dp)
                             .align(Alignment.TopStart)
+                            .onSizeChanged { backWidth = it.width }
                     ) {
                         StyledIconButton(
                             onClick = onNavigateBack,
-                            icon = Icons.AutoMirrored.Filled.ArrowBack,
-                            backdrop = backdrop
+                            icon = if (backLabel != null) Icons.AutoMirrored.Filled.KeyboardArrowLeft else Icons.AutoMirrored.Filled.ArrowBack,
+                            backdrop = backdrop,
+                            label = backLabel,
+                            contentDescription = stringResource(R.string.navigate_back)
                         )
                     }
 
@@ -259,40 +270,24 @@ fun StyledScaffold(
                                 Spacer(modifier = Modifier.height(topPadding + 12.dp))
                                 Crossfade(targetState = title) {
                                     val textColor = if (isDarkTheme) Color.White else Color.Black
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
+                                    // Centred on the bar when it fits between the back button and the
+                                    // actions; otherwise moved clear of them, and a long name ellipsizes.
+                                    CenteredTitle(
+                                        start = if (showBackButton) titleStart else 72.dp,
+                                        end = if (actionButtons.isNotEmpty()) titleEnd else 72.dp
                                     ) {
-                                        // Clear of the back and action buttons on either side; a long name ellipsizes.
-                                        Row(
-                                            modifier = Modifier
-                                                .padding(horizontal = 72.dp)
-                                                .titleClickable(onTitleClick, titleClickLabel),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = it,
-                                                style = TextStyle(
-                                                    fontSize = 20.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = textColor,
-                                                    fontFamily = interFamily
-                                                ),
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier.weight(1f, fill = false),
-                                                textAlign = TextAlign.Center
-                                            )
-                                            if (onTitleClick != null) {
-                                                Icon(
-                                                    Icons.Filled.KeyboardArrowDown,
-                                                    contentDescription = null,
-                                                    tint = textColor,
-                                                    modifier = Modifier.padding(start = 4.dp).size(22.dp)
-                                                )
-                                            }
-                                        }
+                                        Text(
+                                            text = it,
+                                            style = TextStyle(
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = textColor,
+                                                fontFamily = interFamily
+                                            ),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            textAlign = TextAlign.Center
+                                        )
                                     }
                                 }
                             }
@@ -313,6 +308,7 @@ fun StyledScaffold(
                             .zIndex(3f)
                             .padding(top = topPadding, end = 8.dp)
                             .align(Alignment.TopEnd)
+                            .onSizeChanged { actionsWidth = it.width }
                     ) {
                         Row{
                             actionButtons.forEach { actionButton ->
@@ -334,9 +330,20 @@ fun StyledScaffold(
     }
 }
 
-/** Makes the title a button when [onClick] is set, with a rounded touch area around the text. */
-private fun Modifier.titleClickable(onClick: (() -> Unit)?, label: String?): Modifier =
-    if (onClick == null) this else this
-        .clip(RoundedCornerShape(12.dp))
-        .clickable(onClickLabel = label, role = Role.Button, onClick = onClick)
-        .padding(horizontal = 8.dp, vertical = 4.dp)
+/**
+ * Places [content] centred on the full width, but never over the [start] and [end] insets (the back
+ * button and the actions): when centring would overlap one of them, it moves towards the other side,
+ * and it is never wider than the space between them.
+ */
+@Composable
+private fun CenteredTitle(start: Dp, end: Dp, content: @Composable () -> Unit) {
+    Layout(content = content, modifier = Modifier.fillMaxWidth()) { measurables, constraints ->
+        val width = constraints.maxWidth
+        val startPx = start.roundToPx()
+        val endPx = end.roundToPx()
+        val room = (width - startPx - endPx).coerceAtLeast(0)
+        val placeable = measurables.first().measure(constraints.copy(minWidth = 0, maxWidth = room))
+        val x = ((width - placeable.width) / 2).coerceIn(startPx, (width - endPx - placeable.width).coerceAtLeast(startPx))
+        layout(width, placeable.height) { placeable.placeRelative(x, 0) }
+    }
+}

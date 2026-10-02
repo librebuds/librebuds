@@ -24,9 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -78,11 +75,11 @@ fun linkNotice(current: Boolean, phoneConnected: Boolean, link: LinkState): Link
 }
 
 /**
- * The root screen: one pair of earbuds, [pair]. Its title opens the pair switcher over [pairs];
- * [onPick] switches to another pair. [onShown] runs once per pair shown and again when the phone connects
- * it, so the service may switch the controller to it when it is connected to the phone. The controller holds one pair at a time: for a
- * pair it does not hold, this screen only shows its connection state toward the phone. There is no
- * back button: Back leaves the app from here.
+ * One pair of earbuds, [pair], opened from the list. The back button (labelled [backLabel], the
+ * list's title) and the system Back return to the list. [onShown] runs once per pair shown and again
+ * when the phone connects it, so the service may switch the controller to it when it is connected to
+ * the phone. The controller holds one pair at a time: for a pair it does not hold, this screen only
+ * shows its connection state toward the phone.
  */
 @Composable
 fun DeviceScreen(
@@ -90,9 +87,9 @@ fun DeviceScreen(
     settingsViewModel: SettingsViewModel,
     showOffMode: Boolean,
     pair: PairRow,
-    pairs: List<PairRow>,
+    backLabel: String,
     onShown: () -> Unit,
-    onPick: (PairRow) -> Unit,
+    onNavigateBack: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenMultipoint: () -> Unit
 ) {
@@ -100,7 +97,6 @@ fun DeviceScreen(
     val settings by settingsViewModel.ui.collectAsStateWithLifecycle()
     val batteries = ui.state.battery.toUiBatteries()
     val address = pair.address
-    var switcherOpen by rememberSaveable { mutableStateOf(false) }
     // Again once the phone has the pair: picked while still in its case, it then becomes the service's choice.
     LaunchedEffect(address, pair.connected) { onShown() }
     val current = address.equals(ui.state.address, ignoreCase = true)
@@ -108,8 +104,9 @@ fun DeviceScreen(
 
     StyledScaffold(
         title = pair.label,
-        onTitleClick = { switcherOpen = true },
-        titleClickLabel = stringResource(R.string.switch_earbuds),
+        showBackButton = true,
+        onNavigateBack = onNavigateBack,
+        backLabel = backLabel,
         actionButtons = listOf { backdrop ->
             StyledIconButton(
                 icon = Icons.Filled.Settings,
@@ -170,16 +167,6 @@ fun DeviceScreen(
             AboutCard(ui.state.device.model, ui.state.device.firmware, ui.state.device.serial)
         }
     }
-
-    PairSwitcherSheet(
-        visible = switcherOpen,
-        pairs = pairs,
-        onPick = {
-            switcherOpen = false
-            onPick(it)
-        },
-        onDismiss = { switcherOpen = false }
-    )
 }
 
 /**
@@ -232,7 +219,7 @@ private fun LinkBanner(notice: LinkNotice, lastSeenMillis: Long?, onTakeOver: ()
     }
 }
 
-/** Localized short time, with the date added when it was not today. Shared with the pair switcher. */
+/** Localized short time, with the date added when it was not today. */
 internal fun formatUpdatedAt(context: Context, millis: Long): String {
     val dateFlags = if (DateUtils.isToday(millis)) 0 else DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_ABBREV_MONTH
     return DateUtils.formatDateTime(context, millis, DateUtils.FORMAT_SHOW_TIME or dateFlags)

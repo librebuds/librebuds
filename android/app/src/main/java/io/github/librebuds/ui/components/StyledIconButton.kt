@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
-    Modified for LibreBuds (2026): adapted to FreeBuds; see NOTICE.
+    Modified for LibreBuds (2026): adapted to FreeBuds, optional label (back capsule); see NOTICE.
 */
 
 package io.github.librebuds.ui.components
@@ -30,16 +30,20 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedIconButton
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -69,6 +73,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,6 +90,7 @@ import com.kyant.backdrop.shadow.InnerShadow
 import io.github.librebuds.ui.icons.MaterialIcons
 import io.github.librebuds.ui.theme.DesignSystem
 import io.github.librebuds.ui.theme.LocalDesignSystem
+import io.github.librebuds.ui.theme.interFamily
 import io.github.librebuds.ui.util.inspectDragGestures
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -101,7 +108,10 @@ fun StyledIconButton(
     backdrop: LayerBackdrop = rememberLayerBackdrop(),
     onClick: () -> Unit,
     enabled: Boolean = true,
-    materialButtonStyle: MaterialButtonStyle = MaterialButtonStyle.Normal
+    materialButtonStyle: MaterialButtonStyle = MaterialButtonStyle.Normal,
+    /** Apple style only: text after the icon, which turns the round button into a capsule (iOS back button). */
+    label: String? = null,
+    contentDescription: String? = null,
 ) {
     when (LocalDesignSystem.current) {
         DesignSystem.Material -> {
@@ -114,7 +124,7 @@ fun StyledIconButton(
                     ) {
                         Icon(
                             imageVector = icon,
-                            contentDescription = null,
+                            contentDescription = contentDescription,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -127,7 +137,7 @@ fun StyledIconButton(
                     ) {
                         Icon(
                             imageVector = icon,
-                            contentDescription = null,
+                            contentDescription = contentDescription,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -140,7 +150,7 @@ fun StyledIconButton(
                     ) {
                         Icon(
                             imageVector = icon,
-                            contentDescription = null,
+                            contentDescription = contentDescription,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -153,7 +163,7 @@ fun StyledIconButton(
                     ) {
                         Icon(
                             imageVector = icon,
-                            contentDescription = null,
+                            contentDescription = contentDescription,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -204,7 +214,7 @@ half4 main(float2 coord) {
                 },
                 shape = RoundedCornerShape(56.dp),
                 modifier = modifier
-                    .padding(horizontal = 12.dp)
+                    .padding(horizontal = if (label == null) 12.dp else 8.dp)
                     .drawBackdrop(
                         backdrop = backdrop,
                         shape = { RoundedCornerShape(56.dp) },
@@ -392,14 +402,30 @@ half4 main(float2 coord) {
                             }
                         }
                     }
-                    .size(with(density) { 48.sp.toDp() }),
+                    .then(
+                        if (label == null) Modifier.size(with(density) { 48.sp.toDp() })
+                        else Modifier.height(with(density) { 48.sp.toDp() }).widthIn(max = 160.dp)
+                    ),
+                contentPadding = if (label == null) ButtonDefaults.TextButtonContentPadding else PaddingValues(start = 4.dp, end = 12.dp),
             ) {
+                val tint = if (iconTint.isSpecified) iconTint else if (darkMode) Color.White else Color.Black
                 Icon(
                     imageVector = icon,
-                    contentDescription = null,
-                    tint = if (iconTint.isSpecified) iconTint else if (darkMode) Color.White else Color.Black,
-                    modifier = Modifier.size(20.dp)
+                    contentDescription = contentDescription,
+                    tint = tint,
+                    modifier = Modifier.size(if (label == null) 20.dp else 26.dp)
                 )
+                if (label != null) {
+                    Text(
+                        text = label,
+                        color = tint,
+                        fontSize = 15.sp,
+                        fontFamily = interFamily,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

@@ -57,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -135,11 +136,14 @@ fun StyledListScope.StyledListItem(
     enabled: Boolean = onClick != null,
     orientation: ListItemOrientation = ListItemOrientation.Horizontal,
     selected: Boolean? = null,
+    /** Below 1 the row's content (not its card) is faded, e.g. for earbuds that are not connected. */
+    contentAlpha: Float = 1f,
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null
 ) {
     item { index, count ->
         StyledListItemContent(
+            contentAlpha = contentAlpha,
             name = name,
             onClick = onClick,
             description = description,
@@ -173,6 +177,7 @@ private fun StyledListItemContent(
     count: Int,
     orientation: ListItemOrientation = ListItemOrientation.Horizontal,
     selected: Boolean? = null,
+    contentAlpha: Float = 1f,
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null
 ) {
@@ -282,6 +287,7 @@ private fun StyledListItemContent(
                 Row(
                     modifier = Modifier
                         .heightIn(min = height)
+                        .alpha(contentAlpha)
                         .padding(vertical = if (orientation == ListItemOrientation.Vertical) 12.dp else 0.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -379,8 +385,9 @@ private fun StyledListItemContent(
                         hoveredShape = RoundedCornerShape(24.dp),
                     ),
                     onClick = onClick ?: {},
-                    leadingContent = leadingContent,
+                    leadingContent = leadingContent?.let { leading -> { Box(Modifier.alpha(contentAlpha)) { leading() } } },
                     trailingContent = {
+                        Box(Modifier.alpha(contentAlpha)) {
                         if (trailingContent == null) {
                             if (onClick != null) {
                                 if (selected == true) {
@@ -395,19 +402,20 @@ private fun StyledListItemContent(
                         } else {
                             trailingContent()
                         }
+                        }
                     },
                     supportingContent = {
                         if (description != null) Text(
                             description,
                             style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                            modifier = Modifier.alpha(contentAlpha).padding(bottom = 4.dp)
                         )
                     },
                     content = {
                         Text(
                             text = name,
                             style = MaterialTheme.typography.labelMediumEmphasized,
-                            modifier = Modifier.padding(
+                            modifier = Modifier.alpha(contentAlpha).padding(
                                 top = 4.dp,
                                 bottom = if (description != null) 0.dp else 4.dp
                             )

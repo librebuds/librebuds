@@ -11,11 +11,11 @@ import io.github.librebuds.state.batterySummaryNoBreak
 
 /**
  * One pair of FreeBuds the app can show, with what is known about it right now. [label] is what the
- * pair switcher shows (it may add the address to [name] when another pair shares the same name);
- * [name] is the plain Bluetooth name, used as the device screen title. [connected] is the real
- * Bluetooth state toward the phone (ACL, A2DP or headset), or the controller's link for the pair it
- * holds. [battery] is only set while [connected], so a reading never passes for live;
- * [lastSeenMillis], set only while not connected, is when the last known values were updated.
+ * list shows (it may add the address to [name] when another pair shares the same name); [name] is the
+ * plain Bluetooth name, used as the device screen title. [connected] is the real Bluetooth state
+ * toward the phone (ACL, A2DP or headset), or the controller's link for the pair it holds; the list
+ * shows connected pairs on top in full colour and greys out the rest. [battery] is only set while
+ * [connected], so a reading never passes for live.
  */
 data class PairRow(
     val address: String,
@@ -23,27 +23,28 @@ data class PairRow(
     val model: String?,
     val connected: Boolean,
     val battery: String?,
-    val lastSeenMillis: Long? = null,
     val label: String = name,
     /** The profile's `art` shape, which picks the product image when there is no [profileId] override. */
     val art: String = "generic",
     /** The profile id, which picks a model-specific product image when one exists (see ProductArt). */
     val profileId: String? = null,
-    val selected: Boolean = false,
-)
+) {
+    /** Shown greyed out in the list: known, still tappable, but not connected to the phone. */
+    val greyed: Boolean get() = !connected
+}
 
 /**
- * The pairs to choose from: the detected FreeBuds (battery from the controller when it holds that
- * pair), plus the demo earbuds first when [showDemo]. Connected pairs come first, then by name, the
- * order the switcher lists them in. [selected] marks the pair on screen. Two detected pairs with the
- * same name get the address appended to their label so they are tellable apart.
+ * The pairs in list order: the demo earbuds first when [showDemo], then the connected pairs, then all
+ * other known pairs (greyed out in the list). Within each group the most recently connected comes
+ * first ([Detection.lastConnectedAt]), then by name, then by address, so the order never jumps
+ * around between reads. Two detected pairs with the same name get the address appended to their
+ * label so they are tellable apart.
  */
 fun pairRows(
     detection: Detection,
     state: BudsState,
     showDemo: Boolean,
     profileOf: (String) -> Profile?,
-    selected: String? = null,
 ): List<PairRow> {
     fun row(
         address: String,
@@ -62,11 +63,9 @@ fun pairRows(
             model = model,
             connected = connected,
             battery = state.battery?.takeIf { current && state.isConnected }?.let(::batterySummaryNoBreak),
-            lastSeenMillis = state.updatedAtMillis?.takeIf { current && !connected },
             label = label,
             art = art,
             profileId = profileId,
-            selected = address.equals(selected, ignoreCase = true),
         )
     }
     val demoProfile = profileOf(state.profileId)
@@ -76,10 +75,16 @@ fun pairRows(
         emptyList()
     }
     val labels = disambiguatedLabels(detection.buds)
+    val lastConnectedAt = detection.lastConnectedAt
     val detected = detection.buds.map {
         val profile = profileOf(it.profileId)
         row(it.address, it.name, it.model, detection.isConnected(it.address), labels.getValue(it.address), profile?.art ?: "generic", profile?.id)
-    }.sortedWith(compareByDescending<PairRow> { it.connected }.thenBy { it.label.lowercase() })
+    }.sortedWith(
+        compareByDescending<PairRow> { it.connected }
+            .thenByDescending { lastConnectedAt[it.address.uppercase()] ?: Long.MIN_VALUE }
+            .thenBy { it.label.lowercase() }
+            .thenBy { it.address.uppercase() }
+    )
     return demo + detected
 }
 
@@ -103,6 +108,20 @@ fun chooseStartPair(pairs: List<PairRow>, lastConnectedAt: Map<String, Long>, st
     return pairs.newest(lastConnectedAt).address
 }
 
+/**
+ * The pair to open on top of the list when the app starts, or null to stay on the list:
+ * [launchAddress] when the app was opened for a pair that is still known; else, when a pair is
+ * connected to the phone or held by the controller, the one [chooseStartPair] picks; else the only
+ * known pair, if there is just one. With several pairs and none connected the list shows.
+ */
+fun startPair(pairs: List<PairRow>, lastConnectedAt: Map<String, Long>, state: BudsState, launchAddress: String? = null): PairRow? {
+    launchAddress?.let { address -> pairs.firstOrNull { it.address.equals(address, ignoreCase = true) }?.let { return it } }
+    val held = state.address?.takeIf { state.link != LinkState.DISCONNECTED }
+    val active = pairs.any { it.connected || it.address.equals(held, ignoreCase = true) }
+    if (active) return chooseStartPair(pairs, lastConnectedAt, state)?.let { address -> pairs.first { it.address == address } }
+    return pairs.singleOrNull()
+}
+
 /** The entry with the newest connect time; the first listed among equals (and among never connected). */
 private fun List<PairRow>.newest(lastConnectedAt: Map<String, Long>): PairRow {
     var best = first()
@@ -118,9 +137,8 @@ private fun List<PairRow>.newest(lastConnectedAt: Map<String, Long>): PairRow {
 }
 
 /**
- * The pair switcher row's subtitle: model, connection state, and whichever one of [battery] (while
- * connected) or [lastSeenText] (while not, when a last known update time exists) fits. Kept as a
- * plain function so it is unit testable.
+ * The list row's subtitle: the model, plus the battery while connected. A greyed-out row says nothing
+ * more; its grey already tells it is not connected. Kept as a plain function so it is unit testable.
  */
-fun pairDescriptionText(model: String, connectedLabel: String, battery: String?, lastSeenText: String?): String =
-    listOfNotNull(model, connectedLabel, battery ?: lastSeenText).joinToString(" · ")
+fun pairDescriptionText(model: String, battery: String?): String =
+    listOfNotNull(model, battery).joinToString(" · ")

@@ -308,7 +308,7 @@ class BudsService : Service() {
         }
 
         override fun openApp() {
-            startActivity(Intent(this@BudsService, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP))
+            startActivity(MainActivity.openIntent(this@BudsService, LibreBudsApp.from(this@BudsService).controller.state.value.linkedAddress()))
         }
     }
 
@@ -331,7 +331,7 @@ class BudsService : Service() {
         )
         val open = PendingIntent.getActivity(
             this, 0,
-            Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            MainActivity.openIntent(this, state.linkedAddress()),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         // The service must stay in the foreground, but its notification need not show: the system lets
@@ -441,3 +441,6 @@ fun notificationContent(state: BudsState, appName: String, connected: String, co
         LinkState.DISCONNECTED -> NotificationContent(appName, waiting)
     }
 }
+
+/** The pair the controller holds a link to (live, connecting or taken over), for opening its screen. */
+internal fun BudsState.linkedAddress(): String? = address?.takeIf { link != LinkState.DISCONNECTED }
