@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothManager
 import android.companion.CompanionDeviceManager
 import android.content.ActivityNotFoundException
 import android.content.ClipData
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -72,6 +73,7 @@ class MainActivity : ComponentActivity() {
                 viewModel,
                 settingsViewModel,
                 preferences,
+                launchAddress = intent?.getStringExtra(EXTRA_ADDRESS),
                 onShowEarbuds = ::showEarbuds,
                 onLinkCompanion = ::linkCompanion,
                 onExportDiagnostics = ::exportDiagnostics,
@@ -204,11 +206,24 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private companion object {
-        const val TAG = "MainActivity"
-        const val DIAGNOSTICS_DIR = "diagnostics"
+    companion object {
+        private const val TAG = "MainActivity"
+        private const val DIAGNOSTICS_DIR = "diagnostics"
+
+        /** The pair to open straight away, with the list below it so Back shows the list. */
+        const val EXTRA_ADDRESS = "io.github.librebuds.extra.ADDRESS"
+
+        /**
+         * Opens the app from outside it (notification, island), on [address]'s screen when given. CLEAR_TOP
+         * on this standard activity recreates it, so the new start applies even when the app was open.
+         */
+        fun openIntent(context: Context, address: String? = null): Intent =
+            Intent(context, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .apply { if (address != null) putExtra(EXTRA_ADDRESS, address) }
+
         // Not a registered IANA type, but exactly that keeps providers like DocumentsUI from guessing a
         // different extension (e.g. appending .txt to a text/plain name) for the suggested .jsonl name.
-        const val DIAGNOSTICS_MIME_TYPE = "application/json-lines"
+        private const val DIAGNOSTICS_MIME_TYPE = "application/json-lines"
     }
 }

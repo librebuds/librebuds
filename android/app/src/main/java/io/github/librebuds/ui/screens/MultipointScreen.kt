@@ -48,7 +48,7 @@ import io.github.librebuds.ui.model.controlKey
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MultipointScreen(viewModel: SettingsViewModel, onNavigateBack: () -> Unit) {
+fun MultipointScreen(viewModel: SettingsViewModel, onNavigateBack: () -> Unit, backLabel: String? = null) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     var selectedMac by remember { mutableStateOf<String?>(null) }
     val experimental = stringResource(R.string.experimental).takeIf { "multipoint" in ui.model.experimental }
@@ -58,7 +58,8 @@ fun MultipointScreen(viewModel: SettingsViewModel, onNavigateBack: () -> Unit) {
     StyledScaffold(
         title = stringResource(R.string.section_multipoint),
         showBackButton = true,
-        onNavigateBack = onNavigateBack
+        onNavigateBack = onNavigateBack,
+        backLabel = backLabel
     ) {
         PullToRefreshBox(
             isRefreshing = ui.refreshingHosts,

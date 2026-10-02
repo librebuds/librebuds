@@ -26,25 +26,25 @@ class PairsTest {
     )
 
     @Test
-    fun connectedRowShowsLiveBatteryAndNoLastSeen() {
+    fun connectedRowShowsLiveBatteryInFullColour() {
         val state = BudsState(link = LinkState.CONNECTED, address = address, battery = battery, updatedAtMillis = 1_000L)
 
         val row = pairRows(detection(connected = false), state, showDemo = false, profileOf = noProfiles).single()
 
         assertTrue(row.connected)
         assertEquals("L 80% · R 70% · Case 60%", row.battery)
-        assertNull(row.lastSeenMillis)
+        assertFalse(row.greyed)
     }
 
     @Test
-    fun disconnectedRowShowsLastSeenAndNoBattery() {
+    fun disconnectedRowIsGreyedWithoutBattery() {
         val state = BudsState(link = LinkState.DISCONNECTED, address = address, battery = battery, updatedAtMillis = 2_000L)
 
         val row = pairRows(detection(connected = false), state, showDemo = false, profileOf = noProfiles).single()
 
         assertTrue(!row.connected)
+        assertTrue(row.greyed)
         assertNull(row.battery)
-        assertEquals(2_000L, row.lastSeenMillis)
     }
 
     @Test
@@ -54,18 +54,17 @@ class PairsTest {
         val row = pairRows(detection(connected = false), state, showDemo = false, profileOf = noProfiles).single()
 
         assertTrue(!row.connected)
+        assertTrue(row.greyed)
         assertNull(row.battery)
-        assertEquals(3_000L, row.lastSeenMillis)
     }
 
     @Test
-    fun disconnectedRowWithNothingKnownYetShowsNeitherBatteryNorLastSeen() {
+    fun disconnectedRowWithNothingKnownYetShowsNoBattery() {
         val state = BudsState(link = LinkState.DISCONNECTED, address = address, battery = null, updatedAtMillis = null)
 
         val row = pairRows(detection(connected = false), state, showDemo = false, profileOf = noProfiles).single()
 
         assertNull(row.battery)
-        assertNull(row.lastSeenMillis)
     }
 
     @Test
@@ -76,7 +75,6 @@ class PairsTest {
         val row = pairRows(detection(connected = false), state, showDemo = false, profileOf = noProfiles).single()
 
         assertNull(row.battery)
-        assertNull(row.lastSeenMillis)
     }
 
     @Test
@@ -89,7 +87,6 @@ class PairsTest {
 
         assertTrue(row.connected)
         assertNull(row.battery)
-        assertNull(row.lastSeenMillis)
     }
 
     private fun row(address: String, connected: Boolean, name: String = address) =
@@ -143,36 +140,99 @@ class PairsTest {
         assertEquals(c, chooseStartPair(pairs, mapOf(c to 2L), BudsState(address = "DD:DD:DD:DD:DD:DD")))
     }
 
+    private fun buds(vararg names: Pair<String, String>) = names.map { (address, name) -> DetectedBuds(name, address, "generic", null, name) }
+
     @Test
-    fun switcherListsConnectedPairsFirstThenByNameAndMarksTheSelectedOne() {
-        val buds = listOf(
-            DetectedBuds("Alpha", a, "generic", null, "Alpha"),
-            DetectedBuds("beta", b, "generic", null, "beta"),
-            DetectedBuds("Gamma", c, "generic", null, "Gamma"),
+    fun listShowsConnectedPairsOnTopThenTheOthersMostRecentlyConnectedFirst() {
+        val d = "DD:DD:DD:DD:DD:DD"
+        val detection = Detection(
+            buds = buds(a to "Alpha", b to "beta", c to "Gamma", d to "Delta"),
+            connected = setOf(c, d),
+            permissionMissing = false,
+            lastConnectedAt = mapOf(a to 10L, b to 30L, c to 5L, d to 7L),
         )
-        val detection = Detection(buds, connected = setOf(c), permissionMissing = false)
 
-        val rows = pairRows(detection, BudsState(), showDemo = false, profileOf = noProfiles, selected = b.lowercase())
+        val rows = pairRows(detection, BudsState(), showDemo = false, profileOf = noProfiles)
 
-        assertEquals(listOf(c, a, b), rows.map { it.address })
-        assertEquals(listOf(true, false, false), rows.map { it.connected })
-        assertEquals(listOf(false, false, true), rows.map { it.selected })
+        assertEquals(listOf(d, c, b, a), rows.map { it.address })
+        assertEquals(listOf(false, false, true, true), rows.map { it.greyed })
     }
 
     @Test
-    fun switcherShowsTheDemoPairFirstInDemoMode() {
+    fun listOrderWithinAGroupFallsBackToNameThenAddressSoItIsStable() {
+        val twin = "AB:AB:AB:AB:AB:AB"
+        val detection = Detection(
+            buds = buds(c to "Gamma", b to "beta", twin to "Alpha", a to "Alpha"),
+            connected = emptySet(),
+            permissionMissing = false,
+            lastConnectedAt = mapOf(c to 50L),
+        )
+
+        val rows = pairRows(detection, BudsState(), showDemo = false, profileOf = noProfiles)
+
+        // Gamma connected most recently; the never connected follow by name, the same name by address.
+        assertEquals(listOf(c, a, twin, b), rows.map { it.address })
+        // Reading again in another order gives the same list.
+        val shuffled = detection.copy(buds = detection.buds.reversed())
+        assertEquals(rows.map { it.address }, pairRows(shuffled, BudsState(), showDemo = false, profileOf = noProfiles).map { it.address })
+    }
+
+    @Test
+    fun thePairTheControllerHoldsCountsAsConnectedForTheList() {
+        val detection = Detection(buds = buds(a to "Alpha", b to "beta"), connected = emptySet(), permissionMissing = false, lastConnectedAt = mapOf(a to 9L))
+        val rows = pairRows(detection, BudsState(link = LinkState.CONNECTED, address = b.lowercase(), battery = battery), showDemo = false, profileOf = noProfiles)
+        assertEquals(listOf(b, a), rows.map { it.address })
+        assertEquals(listOf(false, true), rows.map { it.greyed })
+    }
+
+    @Test
+    fun theDemoPairStaysFirstInDemoMode() {
         val demoState = BudsState(link = LinkState.CONNECTED, address = DEMO_ADDRESS, battery = battery)
-        val rows = pairRows(detection(connected = false), demoState, showDemo = true, profileOf = noProfiles)
-        assertEquals(DEMO_ADDRESS, rows.first().address)
-        assertTrue(rows.first().connected)
-        assertFalse(rows[1].connected)
+        val detection = Detection(buds = buds(a to "Alpha", b to "beta"), connected = setOf(b), permissionMissing = false)
+        val rows = pairRows(detection, demoState, showDemo = true, profileOf = noProfiles)
+        assertEquals(listOf(DEMO_ADDRESS, b, a), rows.map { it.address })
+        assertEquals(listOf(false, false, true), rows.map { it.greyed })
         assertEquals(DEMO_ADDRESS, chooseStartPair(rows, emptyMap(), demoState))
     }
 
     @Test
-    fun descriptionShowsBatteryWhileConnectedAndLastSeenOtherwise() {
-        assertEquals("FreeBuds 6 · Connected · L 100%", pairDescriptionText("FreeBuds 6", "Connected", "L 100%", "last seen 14:02"))
-        assertEquals("FreeBuds 6 · Not connected · last seen 14:02", pairDescriptionText("FreeBuds 6", "Not connected", null, "last seen 14:02"))
-        assertEquals("Unknown model · Not connected", pairDescriptionText("Unknown model", "Not connected", null, null))
+    fun startOpensTheLaunchPairWhenItIsKnown() {
+        val pairs = listOf(row(a, connected = true), row(b, connected = false))
+        assertEquals(b, startPair(pairs, emptyMap(), BudsState(), launchAddress = b.lowercase())?.address)
+        // An unknown launch pair is ignored and the usual rule applies.
+        assertEquals(a, startPair(pairs, emptyMap(), BudsState(), launchAddress = "DD:DD:DD:DD:DD:DD")?.address)
+    }
+
+    @Test
+    fun startOpensTheConnectedPair() {
+        val pairs = listOf(row(a, connected = false), row(b, connected = true), row(c, connected = true))
+        assertEquals(c, startPair(pairs, mapOf(b to 1L, c to 2L), BudsState())?.address)
+    }
+
+    @Test
+    fun startOpensThePairTheControllerIsConnectingTo() {
+        val pairs = listOf(row(a, connected = false), row(b, connected = false))
+        assertEquals(b, startPair(pairs, mapOf(a to 9L), BudsState(link = LinkState.CONNECTING, address = b))?.address)
+        // A controller without a link to it does not count.
+        assertNull(startPair(pairs, mapOf(a to 9L), BudsState(link = LinkState.DISCONNECTED, address = b)))
+    }
+
+    @Test
+    fun startOpensTheOnlyKnownPairEvenWhenNotConnected() {
+        assertEquals(a, startPair(listOf(row(a, connected = false)), emptyMap(), BudsState())?.address)
+    }
+
+    @Test
+    fun startStaysOnTheListWithSeveralPairsAndNoneConnected() {
+        val pairs = listOf(row(a, connected = false), row(b, connected = false))
+        assertNull(startPair(pairs, mapOf(a to 1L), BudsState(link = LinkState.DISCONNECTED, address = a)))
+        assertNull(startPair(emptyList(), emptyMap(), BudsState()))
+    }
+
+    @Test
+    fun descriptionShowsTheBatteryOnlyWhileConnected() {
+        assertEquals("FreeBuds 6 · L 100%", pairDescriptionText("FreeBuds 6", "L 100%"))
+        // Greyed rows say nothing about not being connected; the grey does.
+        assertEquals("FreeBuds 6", pairDescriptionText("FreeBuds 6", null))
     }
 }

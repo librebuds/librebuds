@@ -2,7 +2,6 @@
 package io.github.librebuds.popup
 
 import android.content.Context
-import android.content.Intent
 import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.MainActivity
 import io.github.librebuds.overlay.IslandHost
@@ -40,7 +39,7 @@ class PopupIsland(context: Context, private val onClosed: () -> Unit) : CasePopu
         override fun takeOver() = Unit
 
         override fun openApp() {
-            context.startActivity(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP))
+            context.startActivity(MainActivity.openIntent(context))
         }
     }
 

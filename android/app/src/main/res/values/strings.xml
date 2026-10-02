@@ -19,7 +19,6 @@
     <string name="cancel">Cancel</string>
     <string name="settings">Settings</string>
     <string name="not_connected">Not connected</string>
-    <string name="last_seen">last seen %1$s</string>
     <string name="welcome">Welcome</string>
     <string name="onboarding_intro">LibreBuds shows battery and noise control for your earbuds. No root needed.</string>
     <string name="continue_action">Continue</string>
@@ -64,7 +63,7 @@
     <string name="notification_hide">Hide notification</string>
     <string name="not_connected_take_out">Not connected. Take the earbuds out of the case.</string>
     <string name="phone_connected_waiting">Connected to this phone. Waiting for the earbuds to answer.</string>
-    <string name="switch_earbuds">Switch earbuds</string>
+    <string name="navigate_back">Back</string>
     <string name="pair_new_earbuds">Pair new earbuds</string>
     <string name="background_link">Reliable background start</string>
     <string name="background_link_description">Optional. Lets Android start LibreBuds when %1$s connect, even after the system stopped the app. Android asks you to confirm.</string>

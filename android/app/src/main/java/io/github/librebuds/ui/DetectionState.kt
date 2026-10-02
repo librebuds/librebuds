@@ -32,12 +32,15 @@ import io.github.librebuds.state.PairHistory
  * The paired FreeBuds and which of them are connected to the phone, each from its own Bluetooth state
  * (ACL, A2DP or headset), not only the pair the controller holds. [permissionMissing] means the list
  * could not be read at all. [lastConnectedAt] is when each pair last connected, by uppercase address.
+ * [settled] is false only for the first read during composition, which may not see links yet (the
+ * ACL probe and the audio profiles answer later); the start jump waits for a settled read.
  */
 data class Detection(
     val buds: List<DetectedBuds>,
     val connected: Set<String>,
     val permissionMissing: Boolean,
     val lastConnectedAt: Map<String, Long> = emptyMap(),
+    val settled: Boolean = true,
 ) {
     fun isConnected(address: String): Boolean = address.uppercase() in connected
 }
@@ -63,7 +66,7 @@ private val WATCHED_ACTIONS = listOf(
 fun rememberDetection(): Detection {
     val context = LocalContext.current
     val history = remember { PairHistory(context) }
-    var detection by remember { mutableStateOf(readDetection(context, history)) }
+    var detection by remember { mutableStateOf(readDetection(context, history).let { it.copy(settled = it.permissionMissing) }) }
     val reader = remember {
         CoalescedReader(
             background = { BtWorker.execute { it.run() } },
