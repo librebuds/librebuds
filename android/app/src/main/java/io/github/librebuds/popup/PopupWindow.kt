@@ -31,16 +31,15 @@ import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.graphics.SurfaceTexture
 import android.graphics.drawable.Animatable
-import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
-import android.view.Surface
 import android.view.TextureView
 import android.view.View
+import android.view.ViewTreeObserver
 import android.view.WindowManager
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
@@ -75,7 +74,7 @@ class PopupWindow(
     private var autoCloseRunnable: Runnable? = null
     private var stateCollector: Job? = null
     private var model: PopupModel? = null
-    private var player: MediaPlayer? = null
+    private var clip: ClipPlayer? = null
 
     override val isOpen: Boolean
         get() = mView.parent != null && !isClosing
@@ -153,21 +152,11 @@ class PopupWindow(
                 showBatteries(model.batteries)
                 showArt(art)
 
-                mWindowManager.addView(mView, mParams)
-
-                val displayMetrics = mView.context.resources.displayMetrics
-                val screenHeight = displayMetrics.heightPixels
-
-                mView.translationY = screenHeight.toFloat()
+                // Off screen until the slide-in starts, so the first frame never shows the card in place.
+                mView.translationY = mView.resources.displayMetrics.heightPixels.toFloat()
                 mView.alpha = 1f
-
-                val translationY = PropertyValuesHolder.ofFloat(View.TRANSLATION_Y, screenHeight.toFloat(), 0f)
-
-                ObjectAnimator.ofPropertyValuesHolder(mView, translationY).apply {
-                    duration = 500
-                    interpolator = DecelerateInterpolator()
-                    start()
-                }
+                mWindowManager.addView(mView, mParams)
+                slideInOnFirstDraw()
 
                 collectState()
 
@@ -182,6 +171,30 @@ class PopupWindow(
             onCloseCallback()
             return false
         }
+    }
+
+    /**
+     * LibrePods' slide-in (500 ms, decelerating), started once the card is laid out and about to draw
+     * its first frame, from just below the screen edge by the card's own height. LibrePods starts at
+     * the screen height, so on a tall phone about the first third of the animation runs off screen
+     * and the card then rushes in; starting at the card height shows the whole deceleration. Starting
+     * on the first draw keeps the window's first, most expensive frame out of the animation.
+     */
+    private fun slideInOnFirstDraw() {
+        mView.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                mView.viewTreeObserver.removeOnPreDrawListener(this)
+                if (isClosing) return true
+                val from = mView.height.toFloat().takeIf { it > 0f } ?: mView.resources.displayMetrics.heightPixels.toFloat()
+                mView.translationY = from
+                ObjectAnimator.ofPropertyValuesHolder(mView, PropertyValuesHolder.ofFloat(View.TRANSLATION_Y, from, 0f)).apply {
+                    duration = SLIDE_IN_MILLIS
+                    interpolator = DecelerateInterpolator()
+                    start()
+                }
+                return true
+            }
+        })
     }
 
     /** Replaces the shown model, for example with the exact battery once the earbuds connected. */
@@ -210,8 +223,8 @@ class PopupWindow(
 
     private fun showArt(art: PopupArt) {
         val slot = mView.findViewById<FrameLayout>(R.id.popup_art)
-        val clip = if (art.variant == ArtVariant.VIDEO) videoFor(art) else null
-        if (clip != null) showVideo(slot, clip, art.avdRes) else showAnimation(slot, art.avdRes)
+        val video = if (art.variant == ArtVariant.VIDEO) videoFor(art) else null
+        if (video != null) showVideo(slot, video, art.avdRes) else showAnimation(slot, art.avdRes)
     }
 
     /** The clip matching the current light or dark mode. */
@@ -246,14 +259,22 @@ class PopupWindow(
     /**
      * Plays the clip once, muted and without audio focus, so the user's music keeps playing; the last
      * frame (the open case) stays on screen. A TextureView, unlike VideoView's SurfaceView, moves with
-     * the card's slide-in and can be read back, which [matchCardToFrame] needs. The view stays
-     * invisible until the first frame is drawn, so the slot never shows an empty or black square.
+     * the card's slide-in and can be read back, which [matchCardToFrame] needs. The player is prepared
+     * off the main thread while the window is still being added ([ClipPlayer]) and starts on the first
+     * frame the surface allows. The view stays invisible until the first frame is drawn, so the slot
+     * never shows an empty or black square.
      */
     private fun showVideo(slot: FrameLayout, videoRes: Int, fallbackAvdRes: Int) {
         releasePlayer()
         val nominal = context.getColor(R.color.popup_video_background)
         matchCardToVideo(nominal)
         slot.removeAllViews()
+        val player = ClipPlayer(context, videoRes) {
+            Log.w("PopupWindow", "Popup clip failed; showing the drawing")
+            showAnimation(slot, fallbackAvdRes)
+        }
+        clip = player
+        player.prepare()
         val texture = TextureView(context).apply {
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             isOpaque = false
@@ -263,24 +284,7 @@ class PopupWindow(
             private var sampled = false
 
             override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
-                try {
-                    player = MediaPlayer().apply {
-                        context.resources.openRawResourceFd(videoRes).use { setDataSource(it) }
-                        setSurface(Surface(surface))
-                        setVolume(0f, 0f)
-                        isLooping = false
-                        setOnErrorListener { _, what, extra ->
-                            Log.w("PopupWindow", "Popup clip failed ($what, $extra); showing the drawing")
-                            showAnimation(slot, fallbackAvdRes)
-                            true
-                        }
-                        setOnPreparedListener { it.start() }
-                        prepareAsync()
-                    }
-                } catch (e: Exception) {
-                    Log.w("PopupWindow", "Popup clip failed (${e.message}); showing the drawing")
-                    showAnimation(slot, fallbackAvdRes)
-                }
+                player.attach(surface)
             }
 
             override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
@@ -293,7 +297,9 @@ class PopupWindow(
             override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) = Unit
 
             override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
-                releasePlayer()
+                // The player owns the Surface made from this texture and releases both on its thread.
+                player.release()
+                if (clip === player) clip = null
                 return true
             }
         }
@@ -310,8 +316,8 @@ class PopupWindow(
     }
 
     private fun releasePlayer() {
-        player?.let { runCatching { it.release() } }
-        player = null
+        clip?.release()
+        clip = null
     }
 
     private fun showBatteries(batteryList: List<Battery>) {
@@ -339,7 +345,7 @@ class PopupWindow(
             stateCollector = null
 
             ObjectAnimator.ofFloat(mView, "translationY", mView.height.toFloat()).apply {
-                duration = 500
+                duration = SLIDE_IN_MILLIS
                 interpolator = AccelerateInterpolator()
                 addListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
@@ -370,5 +376,10 @@ class PopupWindow(
         } catch (e: Exception) {
             Log.e("PopupWindow", "Error removing view: ${e.message}")
         }
+    }
+
+    private companion object {
+        /** LibrePods' popup slides in and out in 500 ms. */
+        const val SLIDE_IN_MILLIS = 500L
     }
 }
