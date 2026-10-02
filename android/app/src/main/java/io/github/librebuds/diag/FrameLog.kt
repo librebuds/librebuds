@@ -1,6 +1,11 @@
 // LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.librebuds.diag
 
+import io.github.librebuds.protocol.CommandId
+import io.github.librebuds.protocol.Packet
+import io.github.librebuds.protocol.frame.FrameReassembler
+import io.github.librebuds.protocol.frame.LinkFrame
+import io.github.librebuds.protocol.frame.RxEvent
 import io.github.librebuds.protocol.util.toHex
 
 enum class FrameDirection { TX, RX }
@@ -8,23 +13,41 @@ enum class FrameDirection { TX, RX }
 /**
  * Last [capacity] raw frames, in the JSONL shape of test-vectors/ plus a `"type":"frame"` field. The
  * buffer keeps the bytes as they went over the link; [toExportJsonl] is the redacted form for sharing.
+ *
+ * Every recorded chunk also goes through a per-direction [FrameReassembler], and each complete frame
+ * is written to [logcat] as one line (`adb logcat -s LibreBudsFrames`), see [logLines].
  */
-class FrameLog(private val capacity: Int = 2000, private val clock: () -> Long = System::currentTimeMillis) {
+class FrameLog(
+    private val capacity: Int = 2000,
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val logcat: (String) -> Unit = ::logToLogcat,
+) {
     private class Entry(val ts: Long, val direction: FrameDirection, val bytes: ByteArray)
 
     private val entries = ArrayDeque<Entry>()
+    private val reassemblers = FrameDirection.entries.associateWith { FrameReassembler() }
 
     @Synchronized
     fun record(direction: FrameDirection, bytes: ByteArray) {
-        // Raw frames to logcat for live debugging with `adb logcat -s LibreBudsFrames`; device info
-        // (01/07, which carries serial numbers) and multipoint host rows (MACs, names) are left out.
-        val hex = bytes.toHex()
-        if (!hex.startsWith("5A") || (!hex.contains("01 07") && !hex.contains("2B 31") && !hex.contains("2B 36"))) {
-            try { android.util.Log.d("LibreBudsFrames", "${direction.name} $hex") } catch (_: RuntimeException) { }
-        }
+        logLines(direction, bytes).forEach(logcat)
         if (entries.size == capacity) entries.removeFirst()
         entries.addLast(Entry(clock(), direction, bytes.copyOf()))
     }
+
+    /**
+     * The logcat lines for one chunk read from (or written to) the link: one `"RX 5A .."` line per
+     * frame completed by this chunk, after reassembly (a frame split over reads is one line, a read
+     * holding several frames gives several; fragmented messages are shown as one single frame).
+     * Device info replies (01/07, serial numbers) and multipoint host rows and change pushes (2B/31,
+     * 2B/36: MACs, host names) are left out.
+     */
+    private fun logLines(direction: FrameDirection, bytes: ByteArray): List<String> =
+        reassemblers.getValue(direction).feed(bytes).mapNotNull { event ->
+            if (event !is RxEvent.Payload) return@mapNotNull null
+            val id = Packet.fromPayload(event.bytes)?.id
+            val private = id in PRIVATE_BOTH_WAYS || (direction == FrameDirection.RX && id == DEVICE_INFO)
+            if (private) null else "${direction.name} ${LinkFrame.encode(event.bytes).toHex()}"
+        }
 
     @Synchronized
     fun size(): Int = entries.size
@@ -60,4 +83,13 @@ class FrameLog(private val capacity: Int = 2000, private val clock: () -> Long =
     private fun line(entry: Entry, hex: String, redacted: Boolean): String =
         "{\"type\":\"frame\",\"ts\":${entry.ts},\"dir\":\"${entry.direction.name.lowercase()}\",\"hex\":\"$hex\"" +
             (if (redacted) ",\"redacted\":true" else "") + "}"
+
+    private companion object {
+        val DEVICE_INFO = CommandId(0x01, 0x07)
+        val PRIVATE_BOTH_WAYS = setOf(CommandId(0x2B, 0x31), CommandId(0x2B, 0x36))
+    }
+}
+
+private fun logToLogcat(line: String) {
+    try { android.util.Log.d("LibreBudsFrames", line) } catch (_: RuntimeException) { }
 }
