@@ -174,7 +174,6 @@
     <string name="experimental_short">Experimental</string>
     <string name="with_experimental">%1$s (experimental)</string>
     <string name="cancellation_level_dual_engine">Dual-engine</string>
-    <string name="section_noise_extras">Noise control</string>
     <string name="awareness_mode">Awareness mode</string>
     <string name="awareness_standard">Standard awareness</string>
     <string name="awareness_voice">Voice mode</string>

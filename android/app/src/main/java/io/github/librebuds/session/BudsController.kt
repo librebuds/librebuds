@@ -396,6 +396,15 @@ class BudsController(
         if (change is SettingChange.GestureChange && writesNothing(change)) {
             return Result.failure(IllegalArgumentException("Gesture change without a value"))
         }
+        // Host changes carry addresses; every other change is logged with its result.
+        val logged = change !is SettingChange.PreferredHost && change !is SettingChange.HostCommand
+        if (logged) event("apply $change")
+        return applyChange(current, change).also { result ->
+            if (logged) event("apply ${change.javaClass.simpleName} ${if (result.isSuccess) "ok" else "failed: ${result.exceptionOrNull()?.javaClass?.simpleName}"}")
+        }
+    }
+
+    private suspend fun applyChange(current: DeviceSession, change: SettingChange): Result<Unit> {
         return when (change) {
             is SettingChange.Wear ->
                 writeAndConfirm(current, WearDetection.write(change.enabled), WearDetection.read()) { WearDetection.parse(it) == change.enabled }
@@ -733,6 +742,7 @@ class BudsController(
         if (status != null && status != Status.SUCCESS) return Result.failure(AncRejectedException())
         val result = packet?.let(FindEarbuds::parseResult)?.result
         if (result == 0) {
+            event("find earbuds ${side.name} ${if (ring) "ringing" else "stopped"}")
             updateSettings("findEarbuds") { it.copy(ringing = it.ringing + (side to ring)) }
             return Result.success(Unit)
         }

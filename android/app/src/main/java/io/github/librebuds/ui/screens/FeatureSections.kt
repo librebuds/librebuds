@@ -61,7 +61,8 @@ import kotlin.math.roundToInt
 internal fun NoiseExtrasSection(model: SettingsModel, note: String?, open: (PickerRequest) -> Unit, onChange: (SettingChange) -> Unit) {
     val singleBud = model.switches[Feature.SINGLE_BUD_ANC]
     if (model.awareness == null && model.awarenessLevel == null && singleBud == null) return
-    StyledList(title = stringResource(R.string.section_noise_extras), description = note) {
+    // No title of its own: it continues the noise-control block above it.
+    StyledList(description = note) {
         model.awareness?.let { picker ->
             PickerRow(stringResource(R.string.awareness_mode), picker, open, live = { it.awareness }) { onChange(SettingChange.AwarenessMode(it)) }
         }
