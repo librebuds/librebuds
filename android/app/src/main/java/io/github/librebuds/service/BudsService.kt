@@ -22,6 +22,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.MainActivity
@@ -343,6 +344,7 @@ class BudsService : Service() {
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_buds)
+            .setColor(ContextCompat.getColor(this, R.color.notification_accent))
             .setContentTitle(content.title)
             .setContentText(content.text)
             .setContentIntent(open)

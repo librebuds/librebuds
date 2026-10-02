@@ -14,6 +14,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import io.github.librebuds.MainActivity
 import io.github.librebuds.R
 import io.github.librebuds.overlay.ConnectionIslandSlot
@@ -192,6 +193,7 @@ object PopupPresenter {
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_buds)
+            .setColor(ContextCompat.getColor(context, R.color.notification_accent))
             .setContentTitle(model.title)
             .setContentText(batterySummary(model.batteries.toBatteryState()))
             .setContentIntent(open)
