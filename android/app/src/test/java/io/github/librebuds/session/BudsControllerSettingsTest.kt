@@ -10,6 +10,7 @@ import io.github.librebuds.protocol.frame.FrameReassembler
 import io.github.librebuds.protocol.frame.RxEvent
 import io.github.librebuds.protocol.profile.ProfileRegistry
 import io.github.librebuds.protocol.tlv.Tlv
+import io.github.librebuds.protocol.util.toHex
 import io.github.librebuds.state.LinkState
 import io.github.librebuds.state.SettingChange
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -31,6 +32,9 @@ class BudsControllerSettingsTest {
             """{"id":"settings","name":"Settings buds","match":{"sku":["BTFT0020"]},"capabilities":{"battery":{},"anc":{"cancellationLevels":[3]},""" +
                 """"wear":{},"gestures":{"doubleTap":{},"swipe":{}},"equalizer":{},"lowLatency":{}}}""",
             """{"id":"multi","name":"Multipoint buds","match":{"sku":["BTFT0030"]},"capabilities":{"battery":{},"multipoint":{}}}""",
+            """{"id":"fb5","name":"FB5 shaped","match":{"sku":["BTFT0013"]},"capabilities":{"battery":{},""" +
+                """"gestures":{"doubleTap":{"inCall":true,"bothSides":true},"longPress":{"inCall":true},"swipe":{"bothSides":true}},""" +
+                """"equalizer":{},"lowLatency":{},"soundQuality":{}}}""",
             """{"id":"all","name":"All buds","match":{"sku":["BTFT0040"]},"capabilities":{"battery":{},"wear":{},"gestures":{"doubleTap":{}},""" +
                 """"equalizer":{},"lowLatency":{},"soundQuality":{},"multipoint":{},"language":{}}}""",
         ),
@@ -364,7 +368,9 @@ class BudsControllerSettingsTest {
 
     @Test
     fun gestureReadBackWaitsForSettle() = runTest {
-        val earbuds = FakeEarbuds()
+        // Without a result in the ack (older firmware) the read-back decides, after the settle delay.
+        val earbuds = FakeEarbuds(ignoreWrites = setOf("01/1F"))
+        earbuds.gestures.getValue(Gesture.DOUBLE_TAP).left = 0
         val c = controller(earbuds)
         c.connect("AA", "x")
         var writeAt = -1L
@@ -375,5 +381,128 @@ class BudsControllerSettingsTest {
         }
         assertTrue(c.apply(SettingChange.GestureChange(Gesture.DOUBLE_TAP, left = 0, right = null, inCall = null)).isSuccess)
         assertTrue("read-back at $readAt, write at $writeAt", writeAt >= 0 && readAt - writeAt >= 1500)
+    }
+
+    private fun FakeLink.sentPayloads(): List<String> {
+        val reassembler = FrameReassembler()
+        return written.flatMap { reassembler.feed(it) }.filterIsInstance<RxEvent.Payload>().map { it.bytes.toHex() }
+    }
+
+    @Test
+    fun gestureAckDecidesWithoutReadBack() = runTest {
+        val earbuds = FakeEarbuds()
+        val links = mutableListOf<FakeLink>()
+        val c = controller(earbuds, links)
+        c.connect("AA", "x")
+        val reads = links.single().sentIds().count { it == "01/20" }
+        val result = c.apply(SettingChange.GestureChange(Gesture.DOUBLE_TAP, left = 2, right = null, inCall = null))
+        assertTrue(result.isSuccess)
+        assertEquals(2, c.state.value.settings.gestures.getValue(Gesture.DOUBLE_TAP).left)
+        assertEquals(reads, links.single().sentIds().count { it == "01/20" })
+        assertEquals("01 1F 01 01 02", links.single().sentPayloads().last())
+    }
+
+    @Test
+    fun gestureRefusedByAckIsRejectedAndStateKept() = runTest {
+        val earbuds = FakeEarbuds(rejectWrites = setOf("01/1F"))
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        val before = c.state.value.settings.gestures.getValue(Gesture.DOUBLE_TAP)
+        val result = c.apply(SettingChange.GestureChange(Gesture.DOUBLE_TAP, left = null, right = 7, inCall = null))
+        assertTrue(result.exceptionOrNull() is AncRejectedException)
+        assertEquals(before, c.state.value.settings.gestures.getValue(Gesture.DOUBLE_TAP))
+    }
+
+    @Test
+    fun inCallPressAndHoldUsesTlv4AndItsTlv6Ack() = runTest {
+        val earbuds = FakeEarbuds(sku = "BTFT0013")
+        earbuds.gestures.getValue(Gesture.LONG_PRESS).apply { left = 3; right = 3; inCall = -1 }
+        val links = mutableListOf<FakeLink>()
+        val c = controller(earbuds, links)
+        c.connect("AA", "x")
+        assertTrue(c.apply(SettingChange.GestureChange(Gesture.LONG_PRESS, left = null, right = null, inCall = 0)).isSuccess)
+        assertEquals("2B 16 04 01 00", links.single().sentPayloads().last())
+        assertEquals(0, c.state.value.settings.gestures.getValue(Gesture.LONG_PRESS).inCall)
+        assertEquals(0, earbuds.gestures.getValue(Gesture.LONG_PRESS).inCall)
+    }
+
+    @Test
+    fun singleValueGesturesWriteTheVendorFrames() = runTest {
+        val earbuds = FakeEarbuds(sku = "BTFT0013")
+        val links = mutableListOf<FakeLink>()
+        val c = controller(earbuds, links)
+        c.connect("AA", "x")
+        assertTrue(c.apply(SettingChange.GestureChange(Gesture.SWIPE, left = -1, right = null, inCall = null)).isSuccess)
+        assertEquals("2B 1E 01 01 FF 02 02 FF", links.single().sentPayloads().last())
+        assertTrue(c.apply(SettingChange.GestureChange(Gesture.DOUBLE_TAP, left = 1, right = null, inCall = null)).isSuccess)
+        assertEquals("01 1F 01 01 01 02 01 01", links.single().sentPayloads().last())
+        assertEquals(1, earbuds.gestures.getValue(Gesture.DOUBLE_TAP).right)
+    }
+
+    @Test
+    fun equalizerAsyncStatusReplyIsSuccessEvenWhenTheReadBackLags() = runTest {
+        // The FreeBuds 5 reply to a preset select: 2B 49 7F 04 00 01 86 A0 (status 100000).
+        val reply = byteArrayOf(0x2B, 0x49, 0x7F, 0x04, 0x00, 0x01, 0x86.toByte(), 0xA0.toByte())
+        val earbuds = FakeEarbuds(equalizerPreset = 1, rawReplies = mapOf("2B/49" to reply))
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        // The read-back after the select still reports the old preset.
+        earbuds.onRequest = { id -> if (id == "2B/4A") earbuds.equalizerPreset = 1 }
+        val result = c.apply(SettingChange.EqualizerPreset(3))
+        assertTrue(result.isSuccess)
+        assertEquals(3, c.state.value.settings.equalizer?.active)
+        assertEquals(listOf(1, 2, 3), c.state.value.settings.equalizer?.available)
+    }
+
+    @Test
+    fun equalizerRefusedStatusIsRejected() = runTest {
+        val earbuds = FakeEarbuds(equalizerPreset = 1, rejectWrites = setOf("2B/49"))
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        assertTrue(c.apply(SettingChange.EqualizerPreset(3)).exceptionOrNull() is AncRejectedException)
+        assertEquals(1, c.state.value.settings.equalizer?.active)
+    }
+
+    @Test
+    fun lowLatencyProbeIsSentAloneAndGatesTheSetting() = runTest {
+        val links = mutableListOf<FakeLink>()
+        val c = controller(FakeEarbuds(lowLatencySupport = 1), links)
+        c.connect("AA", "x")
+        val sent = links.single().sentPayloads()
+        assertTrue(sent.indexOf("2B 6C 03 00") in 0 until sent.indexOf("2B 6C 02 00"))
+        assertEquals(true, c.state.value.settings.lowLatencyDynamic)
+        assertEquals(false, c.state.value.settings.lowLatency)
+    }
+
+    @Test
+    fun lowLatencyWithoutSupportIsHiddenAndRefused() = runTest {
+        val links = mutableListOf<FakeLink>()
+        val c = controller(FakeEarbuds(lowLatencySupport = null), links)
+        c.connect("AA", "x")
+        assertTrue("lowLatency" in c.state.value.settings.unsupported)
+        assertFalse(links.single().sentPayloads().contains("2B 6C 02 00"))
+        assertTrue(c.apply(SettingChange.LowLatencyChange(true)).exceptionOrNull() is SettingUnavailableException)
+    }
+
+    @Test
+    fun lowLatencyStatusAckDecides() = runTest {
+        val earbuds = FakeEarbuds()
+        val c = controller(earbuds)
+        c.connect("AA", "x")
+        assertTrue(c.apply(SettingChange.LowLatencyChange(true)).isSuccess)
+        assertEquals(true, c.state.value.settings.lowLatency)
+        val refused = FakeEarbuds(rejectWrites = setOf("2B/6C"))
+        val d = controller(refused)
+        d.connect("AA", "x")
+        assertTrue(d.apply(SettingChange.LowLatencyChange(true)).exceptionOrNull() is AncRejectedException)
+        assertEquals(false, d.state.value.settings.lowLatency)
+    }
+
+    @Test
+    fun soundQualityWithoutCapabilityIsUnsupported() = runTest {
+        val c = controller(FakeEarbuds(sku = "BTFT0040", soundQualityCapability = 0))
+        c.connect("AA", "x")
+        assertTrue("soundQuality" in c.state.value.settings.unsupported)
+        assertTrue(c.apply(SettingChange.SoundQualityChange(1)).exceptionOrNull() is SettingUnavailableException)
     }
 }

@@ -13,6 +13,7 @@ import io.github.librebuds.protocol.command.Battery
 import io.github.librebuds.protocol.command.DeviceInfoCommand
 import io.github.librebuds.protocol.command.Equalizer
 import io.github.librebuds.protocol.command.Gesture
+import io.github.librebuds.protocol.command.GestureAck
 import io.github.librebuds.protocol.command.GestureSetting
 import io.github.librebuds.protocol.command.Gestures
 import io.github.librebuds.protocol.command.HostAction
@@ -21,6 +22,7 @@ import io.github.librebuds.protocol.command.HostRow
 import io.github.librebuds.protocol.command.LowLatency
 import io.github.librebuds.protocol.command.Multipoint
 import io.github.librebuds.protocol.command.SoundQuality
+import io.github.librebuds.protocol.command.Status
 import io.github.librebuds.protocol.command.VoiceLanguage
 import io.github.librebuds.protocol.command.WearDetection
 import io.github.librebuds.protocol.profile.Profile
@@ -213,20 +215,37 @@ class BudsController(
      * timed out are recorded in [DeviceSettings.unanswered] (keys as in [settingKey]).
      */
     private suspend fun readSettings(current: DeviceSession, myGeneration: Int) {
-        suspend fun read(key: String, packet: Packet): Boolean {
+        // Null when [current] went stale (stop), else the reply (null inside the result on a failed read).
+        suspend fun request(key: String, packet: Packet): Result<Packet>? {
             val result = current.request(packet, timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
-            if (!isCurrent(current, myGeneration)) return false
+            if (!isCurrent(current, myGeneration)) return null
             result.onSuccess(::applyPacket)
             if (result.exceptionOrNull() is RequestTimeoutException) updateSettings { it.copy(unanswered = it.unanswered + key) }
-            return true
+            return result
         }
+        suspend fun read(key: String, packet: Packet): Boolean = request(key, packet) != null
+        fun unsupported(key: String) = updateSettings { it.copy(unsupported = it.unsupported + key) }
         if (profile.supports("wear") && !read("wear", WearDetection.read())) return
         for (entry in profileGestures()) {
             if (!read(gestureKey(entry.key), Gestures.read(entry.gesture, entry.inCall))) return
         }
         if (profile.supports("equalizer") && !read("equalizer", Equalizer.read())) return
-        if (profile.supports("lowLatency") && !read("lowLatency", LowLatency.read())) return
-        if (profile.supports("soundQuality") && !read("soundQuality", SoundQuality.read())) return
+        if (profile.supports("lowLatency")) {
+            // The vendor app's support query comes first, on its own: no TLV 3 means no such setting.
+            val probe = request("lowLatency", LowLatency.probe()) ?: return
+            val variant = probe.getOrNull()?.let(LowLatency::parseSupport)
+            if (variant == null) {
+                if (probe.isSuccess) unsupported("lowLatency")
+            } else {
+                updateSettings { it.copy(lowLatencyDynamic = variant == 1) }
+                if (!read("lowLatency", LowLatency.read())) return
+            }
+        }
+        if (profile.supports("soundQuality")) {
+            val reply = request("soundQuality", SoundQuality.read()) ?: return
+            // The switch exists only with a capability of 1 or more on TLV 1.
+            reply.getOrNull()?.let { packet -> if ((SoundQuality.parseCapability(packet) ?: 0) < 1) unsupported("soundQuality") }
+        }
         if (profile.supports("language") && !read("language", VoiceLanguage.read())) return
         if (profile.supports("multipoint")) {
             if (!read("multipoint", Multipoint.readToggle())) return
@@ -234,15 +253,18 @@ class BudsController(
         }
     }
 
-    private class ProfileGesture(val key: String, val gesture: Gesture, val inCall: Boolean)
+    private class ProfileGesture(val key: String, val gesture: Gesture, val inCall: Boolean, val bothSides: Boolean)
 
-    /** Gestures listed under the profile's `gestures` capability, each with whether to read its in-call action too. */
+    /**
+     * Gestures listed under the profile's `gestures` capability, each with whether to read its
+     * in-call action too and whether it has one value for both earbuds.
+     */
     private fun profileGestures(): List<ProfileGesture> {
         val listed = profile.capabilities["gestures"] ?: return emptyList()
         return GESTURE_SUB_KEYS.mapNotNull { (key, gesture) ->
-            val entry = listed[key] ?: return@mapNotNull null
-            val inCall = ((entry as? JsonObject)?.get("inCall") as? JsonPrimitive)?.booleanOrNull == true
-            ProfileGesture(key, gesture, inCall)
+            val entry = listed[key] as? JsonObject ?: return@mapNotNull null
+            fun flag(name: String) = (entry[name] as? JsonPrimitive)?.booleanOrNull == true
+            ProfileGesture(key, gesture, flag("inCall"), gesture == Gesture.SWIPE || flag("bothSides"))
         }
     }
 
@@ -312,30 +334,26 @@ class BudsController(
     override suspend fun apply(change: SettingChange): Result<Unit> {
         val current = session ?: return Result.failure(NotConnectedException())
         val key = settingKey(change) ?: return Result.failure(UnsupportedOperationException())
-        if (key in mutable.value.settings.unanswered) return Result.failure(SettingUnavailableException())
+        val settings = mutable.value.settings
+        if (key in settings.unanswered || key in settings.unsupported) return Result.failure(SettingUnavailableException())
         if (change is SettingChange.GestureChange && writesNothing(change)) {
             return Result.failure(IllegalArgumentException("Gesture change without a value"))
         }
         return when (change) {
             is SettingChange.Wear ->
                 writeAndConfirm(current, WearDetection.write(change.enabled), WearDetection.read()) { WearDetection.parse(it) == change.enabled }
-            is SettingChange.GestureChange -> {
-                val g = change.gesture
-                val withInCall = change.inCall != null || profileGestures().any { it.gesture == g && it.inCall }
-                writeAndConfirm(current, Gestures.write(g, change.left, change.right, change.inCall), Gestures.read(g, withInCall)) { reply ->
-                    Gestures.parse(g, reply)?.let { confirms(change, it) } == true
-                }
-            }
-            is SettingChange.EqualizerPreset ->
-                writeAndConfirm(current, Equalizer.select(change.preset), Equalizer.read()) { Equalizer.parse(it)?.active == change.preset }
-            // SPEC-GAP: low latency reads and writes share 2B/6C, and whether the write's ack carries
-            // the live value or a status on TLV 2 is unknown. Waiting for the ack first keeps it from
-            // being taken as the read-back's reply; a status ack may briefly show the wrong value in
-            // state until the read-back lands.
+            is SettingChange.GestureChange -> writeGesture(current, change)
+            is SettingChange.EqualizerPreset -> writeEqualizer(current, change.preset)
+            // Reads and writes share 2B/6C; the write is answered with a status record, which decides.
+            // A reply without one (an older firmware echoing the value) falls back to the read-back.
             is SettingChange.LowLatencyChange ->
-                writeAndConfirm(current, LowLatency.write(change.enabled), LowLatency.read(), awaitAck = true) {
-                    LowLatency.parse(it) == change.enabled
-                }
+                writeAndConfirm(
+                    current,
+                    LowLatency.write(change.enabled),
+                    LowLatency.read(),
+                    ack = { reply -> Status.of(reply)?.let { it == Status.SUCCESS } },
+                    onAccepted = { updateSettings("lowLatency") { it.copy(lowLatency = change.enabled) } },
+                ) { LowLatency.parse(it) == change.enabled }
             is SettingChange.SoundQualityChange ->
                 writeAndConfirm(current, SoundQuality.write(change.value), SoundQuality.read()) { SoundQuality.parse(it) == change.value }
             is SettingChange.MultipointEnabled ->
@@ -406,31 +424,125 @@ class BudsController(
         return key.takeIf { profile.supports(it) }
     }
 
-    /** Swipe writes only [SettingChange.GestureChange.left] (mirrored) and the in-call value. */
-    private fun writesNothing(change: SettingChange.GestureChange): Boolean =
-        change.left == null && change.inCall == null && (change.gesture == Gesture.SWIPE || change.right == null)
+    private fun bothSides(gesture: Gesture): Boolean =
+        gesture == Gesture.SWIPE || profileGestures().any { it.gesture == gesture && it.bothSides }
 
-    /** Requested fields (null = unchanged) all match the read-back; swipe carries a single value in [GestureSetting.left]. */
-    private fun confirms(change: SettingChange.GestureChange, applied: GestureSetting): Boolean =
+    /** A single-value gesture writes only [SettingChange.GestureChange.left] and the in-call value. */
+    private fun writesNothing(change: SettingChange.GestureChange): Boolean =
+        change.left == null && change.inCall == null && (bothSides(change.gesture) || change.right == null)
+
+    /** Requested fields (null = unchanged) all match the read-back; a single-value gesture carries it in [GestureSetting.left]. */
+    private fun confirms(change: SettingChange.GestureChange, applied: GestureSetting, both: Boolean): Boolean =
         (change.left == null || applied.left == change.left) &&
-            (change.gesture == Gesture.SWIPE || change.right == null || applied.right == change.right) &&
+            (both || change.right == null || applied.right == change.right) &&
             (change.inCall == null || applied.inCall == change.inCall)
 
     /**
+     * Gesture writes go one side per frame, as the vendor app sends them, and each frame's ack
+     * (see [Gestures.parseAck]) decides: a refused side fails the change with [AncRejectedException]
+     * and leaves the earlier frames' sides as the device reported them. Only when a frame gets no
+     * ack at all does a read-back decide.
+     */
+    private suspend fun writeGesture(current: DeviceSession, change: SettingChange.GestureChange): Result<Unit> {
+        val g = change.gesture
+        val both = bothSides(g)
+        val withInCall = change.inCall != null || profileGestures().any { it.gesture == g && it.inCall }
+        val frames = buildList {
+            if (both) {
+                change.left?.let { add(Gestures.write(g, left = it, bothSides = true)) }
+            } else {
+                change.left?.let { add(Gestures.write(g, left = it)) }
+                change.right?.let { add(Gestures.write(g, right = it)) }
+            }
+            change.inCall?.let { add(Gestures.write(g, inCall = it)) }
+        }
+        var unconfirmed = false
+        for (frame in frames) {
+            val reply = current.request(frame, timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
+            reply.exceptionOrNull()?.let { if (it !is RequestTimeoutException) return Result.failure(it) }
+            when (reply.getOrNull()?.let { Gestures.parseAck(g, it) }) {
+                GestureAck.REJECTED -> {
+                    event("gesture ${g.name} write refused by the earbuds")
+                    return Result.failure(AncRejectedException())
+                }
+                GestureAck.ACCEPTED -> applyGesture(g, frame, both)
+                null -> unconfirmed = true
+            }
+        }
+        if (!unconfirmed) return Result.success(Unit)
+        delay(settleMillis)
+        val reply = current.request(Gestures.read(g, withInCall), timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
+            .getOrElse { return Result.failure(it) }
+        applyPacket(reply)
+        return if (Gestures.parse(g, reply)?.let { confirms(change, it, both) } == true) Result.success(Unit) else Result.failure(AncRejectedException())
+    }
+
+    /** Puts the values of an acknowledged write [frame] into state. */
+    private fun applyGesture(g: Gesture, frame: Packet, both: Boolean) {
+        val subKey = GESTURE_SUB_KEYS.firstOrNull { it.second == g }?.first ?: return
+        fun value(type: Int) = frame.find(type)?.takeIf { it.size == 1 }?.get(0)?.toInt()
+        updateSettings(gestureKey(subKey)) { settings ->
+            val old = settings.gestures[g] ?: return@updateSettings settings
+            val left = value(1) ?: old.left
+            val next = old.copy(left = left, right = if (both) old.right else value(2) ?: old.right, inCall = value(4) ?: old.inCall)
+            settings.copy(gestures = settings.gestures + (g to next))
+        }
+    }
+
+    /**
+     * Selects a preset. The earbuds answer later with their own 2B/49 frame carrying a status;
+     * success there is the confirmation (the vendor app goes by it alone), so the read-back that
+     * follows only refreshes the list and never reverts the preset. A refusal fails with
+     * [AncRejectedException]; with no status at all the read-back decides.
+     */
+    private suspend fun writeEqualizer(current: DeviceSession, preset: Int): Result<Unit> {
+        val reply = current.request(Equalizer.select(preset), timeoutMillis = EQUALIZER_ACK_MILLIS, retries = 0, countsTowardGiveUp = false)
+        reply.exceptionOrNull()?.let { if (it !is RequestTimeoutException) return Result.failure(it) }
+        val ack = reply.getOrNull()?.let(Equalizer::parseAck)
+        if (ack == false) {
+            event("equalizer preset $preset refused (status ${reply.getOrNull()?.let(Status::of)})")
+            return Result.failure(AncRejectedException())
+        }
+        if (ack == true) updateSettings("equalizer") { s -> s.copy(equalizer = s.equalizer?.copy(active = preset)) }
+        delay(settleMillis)
+        val read = current.request(Equalizer.read(), timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
+        if (ack == true) {
+            read.getOrNull()?.let(Equalizer::parse)?.let { fresh ->
+                if (fresh.active != preset) event("equalizer read-back reports ${fresh.active} after preset $preset was acknowledged")
+                updateSettings("equalizer") { s -> s.copy(equalizer = fresh.copy(active = preset)) }
+            }
+            return Result.success(Unit)
+        }
+        val packet = read.getOrElse { return Result.failure(it) }
+        applyPacket(packet)
+        return if (Equalizer.parse(packet)?.active == preset) Result.success(Unit) else Result.failure(AncRejectedException())
+    }
+
+    /**
      * Write, let the device settle, read back; the read-back updates state either way. With
-     * [awaitAck] the write is sent as a request so its ack is consumed first (a missing ack is not
-     * an error). The read-back is a short, uncounted request like the connect-time reads.
+     * [ack] the write is sent as a request and its reply judged first: true means applied
+     * ([onAccepted] runs, no read-back), false refused, null (or no reply) leaves it to the read-back.
+     * The read-back is a short, uncounted request like the connect-time reads.
      */
     private suspend fun writeAndConfirm(
         current: DeviceSession,
         write: Packet,
         read: Packet,
-        awaitAck: Boolean = false,
+        ack: ((Packet) -> Boolean?)? = null,
+        onAccepted: () -> Unit = {},
         confirmed: (Packet) -> Boolean,
     ): Result<Unit> {
-        if (awaitAck) {
-            val ack = current.request(write, timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
-            ack.exceptionOrNull()?.let { if (it !is RequestTimeoutException) return Result.failure(it) }
+        if (ack != null) {
+            val reply = current.request(write, timeoutMillis = OPTIONAL_READ_MILLIS, retries = 0, countsTowardGiveUp = false)
+            reply.exceptionOrNull()?.let { if (it !is RequestTimeoutException) return Result.failure(it) }
+            when (reply.getOrNull()?.let(ack)) {
+                true -> {
+                    onAccepted()
+                    return Result.success(Unit)
+                }
+                false -> return Result.failure(AncRejectedException())
+                null -> Unit
+            }
         } else {
             sendWrite(current, write).getOrElse { return Result.failure(it) }
         }
@@ -581,6 +693,9 @@ class BudsController(
 
         /** Timeout for unverified setting reads and read-backs: one try, not counted toward give-up. */
         const val OPTIONAL_READ_MILLIS = 1200L
+
+        /** The equalizer's select reply comes asynchronously, so it gets a longer wait. */
+        const val EQUALIZER_ACK_MILLIS = 3000L
         const val HOST_POLL_ATTEMPTS = 3
         const val HOST_POLL_MILLIS = 2000L
 
