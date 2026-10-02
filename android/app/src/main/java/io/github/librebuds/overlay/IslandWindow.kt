@@ -14,8 +14,9 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
-    Modified for LibreBuds (2026): adapted to FreeBuds, adds the case-open island, and restarts
-    the auto-close timer on every release that leaves the island on screen; see NOTICE.
+    Modified for LibreBuds (2026): adapted to FreeBuds, adds the case-open island, restarts the
+    auto-close timer on every release that leaves the island on screen, and shows the model's
+    product render where LibrePods plays its AirPods clip; see NOTICE.
 */
 
 package io.github.librebuds.overlay
@@ -27,6 +28,7 @@ import android.animation.PropertyValuesHolder
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.Configuration
 import android.content.res.Resources
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
@@ -47,6 +49,7 @@ import android.view.animation.AccelerateInterpolator
 import android.view.animation.AnticipateOvershootInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
+import androidx.annotation.DrawableRes
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ImageButton
@@ -93,7 +96,7 @@ class IslandWindow(private val context: Context) {
     private var initialConnectedTextY = 0f
     private var initialDeviceTextY = 0f
     private var initialBatteryViewY = 0f
-    private var initialIconViewY = 0f
+    private var initialProductViewY = 0f
     private var initialTextSeparation = 0f
 
     private val containerView = FrameLayout(context)
@@ -173,8 +176,13 @@ class IslandWindow(private val context: Context) {
         }
     }
 
+    /**
+     * [productArt] is the earbuds render shown on the left, where LibrePods plays its AirPods clip
+     * (see ProductArt.thumbnail). The island is black in both themes, so the render's dark-theme
+     * variant is used even when the phone is in light mode.
+     */
     @SuppressLint("ClickableViewAccessibility", "SetTextI18n")
-    fun show(name: String, batteryPercentage: Int, host: IslandHost, type: IslandType = IslandType.CONNECTED, reversed: Boolean = false, otherDeviceName: String? = null, autoCloseMillis: Long = 4500L) {
+    fun show(name: String, batteryPercentage: Int, host: IslandHost, @DrawableRes productArt: Int, type: IslandType = IslandType.CONNECTED, reversed: Boolean = false, otherDeviceName: String? = null, autoCloseMillis: Long = 4500L) {
         if (host.islandOpen) return
         else host.islandOpen = true
         this.host = host
@@ -217,6 +225,7 @@ class IslandWindow(private val context: Context) {
 
         batteryProgressBar.isIndeterminate = false
         islandView.findViewById<TextView>(R.id.island_device_name).text = name
+        showProductArt(productArt)
 
         val actionButton = islandView.findViewById<ImageButton>(R.id.island_action_button)
         val batteryBg = islandView.findViewById<ProgressBar>(R.id.island_battery_bg)
@@ -409,11 +418,21 @@ class IslandWindow(private val context: Context) {
         resetAutoCloseTimer()
     }
 
+    private fun showProductArt(@DrawableRes productArt: Int) {
+        val night = Configuration(context.resources.configuration).apply {
+            uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or Configuration.UI_MODE_NIGHT_YES
+        }
+        islandView.findViewById<ImageView>(R.id.island_product_view).apply {
+            setImageDrawable(context.createConfigurationContext(night).getDrawable(productArt))
+            visibility = View.VISIBLE
+        }
+    }
+
     private fun captureInitialPositions() {
         val connectedText = islandView.findViewById<TextView>(R.id.island_connected_text)
         val deviceText = islandView.findViewById<TextView>(R.id.island_device_name)
         val batteryView = islandView.findViewById<FrameLayout>(R.id.island_battery_container)
-        val iconView = islandView.findViewById<ImageView>(R.id.island_icon_view)
+        val productView = islandView.findViewById<ImageView>(R.id.island_product_view)
 
         connectedText.post {
             initialConnectedTextY = connectedText.y
@@ -421,7 +440,7 @@ class IslandWindow(private val context: Context) {
             initialTextSeparation = deviceText.y - (connectedText.y + connectedText.height)
 
             if (batteryView != null) initialBatteryViewY = batteryView.y
-            initialIconViewY = iconView.y
+            initialProductViewY = productView.y
         }
     }
 
@@ -431,7 +450,7 @@ class IslandWindow(private val context: Context) {
             islandView.findViewById<TextView>(R.id.island_connected_text)
             val deviceText = islandView.findViewById<TextView>(R.id.island_device_name)
             islandView.findViewById<FrameLayout>(R.id.island_battery_container)
-            islandView.findViewById<ImageView>(R.id.island_icon_view)
+            islandView.findViewById<ImageView>(R.id.island_product_view)
 
             val stretchFactor = 1f + (stretchAmount / 300f).coerceAtMost(4.0f)
             val newMinHeight = (initialHeight * stretchFactor).toInt()
@@ -602,7 +621,7 @@ class IslandWindow(private val context: Context) {
             containerView.alpha = progress
 
             if (progress < 0.7f) {
-                islandView.findViewById<ImageView>(R.id.island_icon_view).visibility = View.GONE
+                islandView.findViewById<ImageView>(R.id.island_product_view).visibility = View.GONE
             }
         }
         normalizeAnimator.addListener(object : AnimatorListenerAdapter() {

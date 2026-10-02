@@ -16,14 +16,15 @@
     android:clipToPadding="false"
     android:clipChildren="false">
 
+    <!-- LibrePods plays an 80dp clip of the AirPods here; LibreBuds shows the model's product render,
+         set in IslandWindow.show(). No tint: the render is in colour. -->
     <ImageView
-        android:id="@+id/island_icon_view"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:id="@+id/island_product_view"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
         android:layout_marginStart="8dp"
         android:importantForAccessibility="no"
-        android:src="@drawable/ic_buds"
-        android:tint="@android:color/white" />
+        android:scaleType="fitCenter" />
 
     <LinearLayout
         android:layout_width="0dp"

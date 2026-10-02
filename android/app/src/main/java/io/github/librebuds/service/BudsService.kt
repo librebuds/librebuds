@@ -49,6 +49,7 @@ import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.LinkState
 import io.github.librebuds.state.PairHistory
 import io.github.librebuds.state.batterySummary
+import io.github.librebuds.ui.components.ProductArt
 import io.github.librebuds.ui.model.Battery
 import io.github.librebuds.ui.model.toUiBatteries
 import kotlinx.coroutines.Job
@@ -292,7 +293,8 @@ class BudsService : Service() {
         island = window
         // Removed at once (no close animation) when a case-open popup arrives, so they never overlap.
         ConnectionIslandSlot.register(isOpen = { islandHost.islandOpen }, close = { window.forceClose() })
-        window.show(state.name ?: getString(R.string.app_name), islandBatteryLevel(state.battery), islandHost)
+        val shape = LibreBudsApp.from(this).registry.profiles.firstOrNull { it.id == state.profileId }?.art ?: "generic"
+        window.show(state.name ?: getString(R.string.app_name), islandBatteryLevel(state.battery), islandHost, ProductArt.thumbnail(shape, state.profileId))
     }
 
     private val islandHost = object : IslandHost {

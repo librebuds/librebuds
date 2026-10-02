@@ -8,14 +8,15 @@ import io.github.librebuds.MainActivity
 import io.github.librebuds.overlay.IslandHost
 import io.github.librebuds.overlay.IslandType
 import io.github.librebuds.overlay.IslandWindow
+import io.github.librebuds.ui.components.ProductArt
 import io.github.librebuds.ui.model.Battery
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
- * The case-open popup as the LibrePods island at the top of the screen: the model name, the lower
- * earbud level in the ring and left/right/case below the name. Like the card it only shows
- * information; it never connects to or takes over the earbuds. Main thread only.
+ * The case-open popup as the LibrePods island at the top of the screen: the model's render, its
+ * name, the lower earbud level in the ring and left/right/case above the name. Like the card it
+ * only shows information; it never connects to or takes over the earbuds. Main thread only.
  */
 class PopupIsland(context: Context, private val onClosed: () -> Unit) : CasePopup {
     // A receiver's context is a restricted wrapper; the application context outlives it.
@@ -52,7 +53,7 @@ class PopupIsland(context: Context, private val onClosed: () -> Unit) : CasePopu
     /** Shows the island; returns false when the window could not be added (for example, the overlay permission was revoked). */
     fun open(model: PopupModel): Boolean {
         this.model = model
-        window.show(model.title, 0, host, IslandType.CASE_OPEN, autoCloseMillis = ISLAND_AUTO_CLOSE_MILLIS)
+        window.show(model.title, 0, host, ProductArt.thumbnail(model.art, model.profileId), IslandType.CASE_OPEN, autoCloseMillis = ISLAND_AUTO_CLOSE_MILLIS)
         if (!host.islandOpen) return false
         collectState()
         return true
