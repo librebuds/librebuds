@@ -4,12 +4,13 @@ package io.github.librebuds
 import android.app.Application
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.os.StrictMode
 import android.provider.Settings
 import io.github.librebuds.beacon.BeaconScanner
+import io.github.librebuds.bt.AudioProfiles
 import io.github.librebuds.bt.LinkFactory
 import io.github.librebuds.bt.RfcommLinkFactory
 import io.github.librebuds.bt.isAudioConnected
-import io.github.librebuds.bt.refreshAudioConnections
 import io.github.librebuds.diag.EventLog
 import io.github.librebuds.diag.FrameLog
 import io.github.librebuds.profile.ProfileAssets
@@ -64,6 +65,7 @@ class LibreBudsApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        if (BuildConfig.DEBUG) watchMainThread()
         frameLog = FrameLog()
         registry = ProfileAssets.load(this)
         val adapter = getSystemService(BluetoothManager::class.java)?.adapter
@@ -115,28 +117,36 @@ class LibreBudsApp : Application() {
     }
 
     /**
-     * Refreshes [io.github.librebuds.bt.AudioConnections] at start and whenever the earbuds connect,
-     * so a later link drop can tell a takeover from a disconnect even before any ACL broadcast arrived.
+     * Binds the audio profile proxies once for the process and refreshes
+     * [io.github.librebuds.bt.AudioConnections] at start and whenever the earbuds connect, so a later
+     * link drop can tell a takeover from a disconnect even before any ACL broadcast arrived.
      * Once both audio profiles answered at start, a restored take-over without audio to those
      * earbuds (for example after a reboot) is cleared, so they connect again on their own.
      */
     private fun keepAudioConnectionsFresh() {
-        var answers = 0
-        refreshAudioConnections(this) {
-            if (++answers == AUDIO_PROFILE_COUNT) controller.clearTakeOver(keepWhile = ::isAudioConnected)
-        }
+        AudioProfiles.acquire(this)
+        AudioProfiles.whenComplete { controller.clearTakeOver(keepWhile = ::isAudioConnected) }
         appScope.launch {
             controller.state.map { it.link }.distinctUntilChanged().collect { link ->
-                if (link == LinkState.CONNECTED) refreshAudioConnections(this@LibreBudsApp)
+                if (link == LinkState.CONNECTED) AudioProfiles.refresh(this@LibreBudsApp)
             }
         }
     }
 
+    /**
+     * Debug builds log disk access, slow calls and leaked closeables on the main thread (tag
+     * StrictMode), so work that makes the popup stutter shows up in logcat.
+     */
+    private fun watchMainThread() {
+        StrictMode.setThreadPolicy(
+            StrictMode.ThreadPolicy.Builder().detectDiskReads().detectDiskWrites().detectNetwork().detectCustomSlowCalls()
+                .detectResourceMismatches().detectUnbufferedIo().penaltyLog().build(),
+        )
+        StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().detectLeakedClosableObjects().detectLeakedRegistrationObjects().penaltyLog().build())
+    }
+
     companion object {
         private const val SAVE_DEBOUNCE_MILLIS = 1000L
-
-        /** A2DP and headset: the profiles [refreshAudioConnections] asks. */
-        private const val AUDIO_PROFILE_COUNT = 2
 
         fun from(context: Context): LibreBudsApp = context.applicationContext as LibreBudsApp
     }

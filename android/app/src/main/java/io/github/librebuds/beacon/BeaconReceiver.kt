@@ -13,7 +13,10 @@ import android.content.pm.PackageManager
 import android.os.ParcelUuid
 import android.util.Log
 import io.github.librebuds.LibreBudsApp
+import io.github.librebuds.bt.BtWorker
 import io.github.librebuds.companion.AssociationStore
+import io.github.librebuds.popup.PopupArt
+import io.github.librebuds.popup.PopupModel
 import io.github.librebuds.popup.PopupPresenter
 import io.github.librebuds.popup.artFor
 import io.github.librebuds.popup.popupModel
@@ -24,7 +27,8 @@ import io.github.librebuds.state.AppPreferences
 
 /**
  * Receives the beacon scan results from [BeaconScanner] and raises the popup when [PopupRules] says so.
- * Runs on the main thread (manifest receiver); it never connects to the earbuds.
+ * The judging (preference and store reads, the paired devices' names) runs on [BtWorker], so a case
+ * opening never blocks the main thread; only the popup itself is shown there. It never connects to the earbuds.
  */
 class BeaconReceiver : BroadcastReceiver() {
     private val rules = PopupRules()
@@ -39,7 +43,32 @@ class BeaconReceiver : BroadcastReceiver() {
         if (isMatchLost(intent.getIntExtra(BluetoothLeScanner.EXTRA_CALLBACK_TYPE, ScanSettings.CALLBACK_TYPE_ALL_MATCHES))) return
         val results = intent.getParcelableArrayListExtra(BluetoothLeScanner.EXTRA_LIST_SCAN_RESULT, ScanResult::class.java)
             ?: return
+        val pending = goAsync()
         val app = LibreBudsApp.from(context)
+        BtWorker.execute {
+            val shows = try {
+                judge(app, results)
+            } catch (e: RuntimeException) {
+                Log.w(TAG, "Beacon batch failed", e)
+                emptyList()
+            }
+            BtWorker.main {
+                try {
+                    for ((model, art) in shows) PopupPresenter.show(app, model, art)
+                } finally {
+                    pending.finish()
+                }
+            }
+        }
+    }
+
+    /**
+     * Background: updates the beacon stores and returns the popups to show. The cooldown is recorded
+     * here, before the popup is up, so the next batch (judged after this one on the same thread)
+     * already sees it.
+     */
+    private fun judge(app: LibreBudsApp, results: List<ScanResult>): List<Pair<PopupModel, PopupArt>> {
+        val context: Context = app
         val preferences = AppPreferences(context)
         val associated = associatedProfile(context, app.registry)
         val rawResults = results.map { RawSighting(it.device.address, it.rssi, it.scanRecord?.getServiceData(FDEE)) }
@@ -63,12 +92,14 @@ class BeaconReceiver : BroadcastReceiver() {
         val pruned = CaseOpenings.prune(openings, now)
         if (CaseOpenings.worthSaving(before, pruned)) openingStore.save(pruned)
         for (line in decisionLogLines(verdicts, lastLogged)) Log.i(TAG, line)
+        val shows = mutableListOf<Pair<PopupModel, PopupArt>>()
         for (verdict in verdicts) {
             if (verdict.decision != PopupDecision.SHOW) continue
             val profile = verdict.profile ?: continue
-            PopupPresenter.show(app, popupModel(profile, verdict.batteries), artFor(profile.id, profile.art))
+            shows += popupModel(profile, verdict.batteries) to artFor(profile.id, profile.art)
             preferences.markPopupShown(cooldownKey(verdict.sighting.beacon), verdict.sighting.atMillis)
         }
+        return shows
     }
 
     /**

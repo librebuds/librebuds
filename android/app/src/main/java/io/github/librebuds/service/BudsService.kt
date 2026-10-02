@@ -26,9 +26,12 @@ import androidx.core.content.IntentCompat
 import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.MainActivity
 import io.github.librebuds.R
+import io.github.librebuds.bt.AudioProfiles
+import io.github.librebuds.bt.BtWorker
+import io.github.librebuds.bt.CoalescedReader
 import io.github.librebuds.bt.isAudioConnected
 import io.github.librebuds.bt.probeAclConnections
-import io.github.librebuds.bt.refreshAudioConnections
+import io.github.librebuds.companion.DetectedBuds
 import io.github.librebuds.companion.Presence
 import io.github.librebuds.companion.isBluetoothOn
 import io.github.librebuds.companion.readDetectedBuds
@@ -76,6 +79,26 @@ class BudsService : Service() {
     private var island: IslandWindow? = null
     private var receiverRegistered = false
 
+    // What evaluate() was asked for since the last decision; main thread only.
+    private val pendingReasons = mutableListOf<String>()
+    private var pendingPreferred: String? = null
+
+    /**
+     * The paired FreeBuds, Bluetooth on/off and the pair history are binder calls and preference reads:
+     * read on [BtWorker] once per burst of broadcasts, then decided on the main thread.
+     */
+    private val snapshots = CoalescedReader(
+        background = { BtWorker.execute { it.run() } },
+        main = { BtWorker.main { it.run() } },
+        read = { Snapshot(isBluetoothOn(this), readDetectedBuds(this), PairHistory(this).all()) },
+        deliver = ::decide,
+    )
+
+    private val onProfilesRead: () -> Unit = { evaluate("profiles") }
+
+    // False once this instance is destroyed; a read still in flight then decides nothing.
+    private var alive = true
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -90,6 +113,8 @@ class BudsService : Service() {
         // Only the system sends these protected broadcasts; exported just makes sure they are delivered.
         registerReceiver(bluetoothReceiver, filter, Context.RECEIVER_EXPORTED)
         receiverRegistered = true
+        AudioProfiles.addListener(onProfilesRead)
+        AudioProfiles.acquire(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -107,8 +132,12 @@ class BudsService : Service() {
 
     override fun onDestroy() {
         running = false
+        alive = false
         if (receiverRegistered) unregisterReceiver(bluetoothReceiver)
         receiverRegistered = false
+        AudioProfiles.removeListener(onProfilesRead)
+        // The proxies were bound once for this process; nothing needs them once the service is gone.
+        AudioProfiles.release()
         // Nothing keeps a session alive without the service; drop it rather than leak it.
         val link = LibreBudsApp.from(this).controller.state.value.link
         if (link == LinkState.CONNECTED || link == LinkState.CONNECTING) LibreBudsApp.from(this).controller.disconnect()
@@ -141,17 +170,32 @@ class BudsService : Service() {
      * user opened that pair in the app.
      */
     private fun sweep(preferred: String? = null) {
-        readDetectedBuds(this)?.let { buds -> probeAclConnections(this, buds.map { it.address }) }
-        refreshAudioConnections(this) { evaluate("profiles") }
+        // Queued on the serial worker before the evaluation's own read, so that read sees the probe.
+        BtWorker.execute { readDetectedBuds(this)?.let { buds -> probeAclConnections(this, buds.map { it.address }) } }
+        AudioProfiles.refresh(this)
         evaluate("sweep", preferred)
     }
 
-    /** Stops when the service is no longer needed, otherwise connects the pair the planner picks. */
+    /**
+     * Stops when the service is no longer needed, otherwise connects the pair the planner picks. The
+     * Bluetooth reads run in the background; a burst of calls ends in one decision ([decide]).
+     */
     private fun evaluate(reason: String, preferred: String? = null) {
         if (!running) return
-        val buds = readDetectedBuds(this)
-        if (!serviceShouldRun(isBluetoothOn(this), connectGranted = buds != null, bondedFreeBuds = buds?.size ?: 0)) {
-            event(this, "stopping ($reason): bluetooth ${if (isBluetoothOn(this)) "on" else "off"}, ${buds?.size ?: "no permission for"} paired FreeBuds")
+        pendingReasons += reason
+        if (preferred != null) pendingPreferred = preferred
+        snapshots.request()
+    }
+
+    private fun decide(snapshot: Snapshot) {
+        if (!running || !alive) return
+        val reason = pendingReasons.distinct().joinToString(", ").ifEmpty { "update" }
+        val preferred = pendingPreferred
+        pendingReasons.clear()
+        pendingPreferred = null
+        val buds = snapshot.buds
+        if (!serviceShouldRun(snapshot.bluetoothOn, connectGranted = buds != null, bondedFreeBuds = buds?.size ?: 0)) {
+            event(this, "stopping ($reason): bluetooth ${if (snapshot.bluetoothOn) "on" else "off"}, ${buds?.size ?: "no permission for"} paired FreeBuds")
             stopService()
             return
         }
@@ -163,7 +207,7 @@ class BudsService : Service() {
             listOfNotNull(state.address?.takeIf { state.link == LinkState.CONNECTED || state.link == LinkState.CONNECTING })
         val target = preferred?.takeIf { address ->
             connected.any { it.equals(address, ignoreCase = true) } && !planner.isHeldElsewhere(address)
-        } ?: planner.target(connected, PairHistory(this).all(), state)
+        } ?: planner.target(connected, snapshot.history, state)
         if (target == null || !shouldLaunchConnect(state, target)) return
         if (connectJob?.isActive == true && target.equals(connectAddress, ignoreCase = true)) return
         val name = buds.orEmpty().firstOrNull { it.address.equals(target, ignoreCase = true) }?.bondedName
@@ -177,7 +221,7 @@ class BudsService : Service() {
             when (intent.action) {
                 BluetoothDevice.ACTION_ACL_CONNECTED -> address?.let {
                     trackPresence(Presence.APPEARED, it)
-                    if (isFreeBuds(it)) PairHistory(context).record(it)
+                    BtWorker.execute { if (isFreeBuds(it)) PairHistory(context).record(it) }
                     planner.onLinkUp(it)
                 }
                 BluetoothDevice.ACTION_ACL_DISCONNECTED -> address?.let {
@@ -193,7 +237,8 @@ class BudsService : Service() {
                     val profileState = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, BluetoothProfile.STATE_DISCONNECTED)
                     // Audio coming up is often when the control channel accepts a connect that failed on the bare ACL.
                     if (profileState == BluetoothProfile.STATE_CONNECTED) address?.let(planner::onLinkUp)
-                    refreshAudioConnections(context) { evaluate("profiles changed") }
+                    // The held proxies are read once the burst of profile broadcasts is over; onProfilesRead evaluates.
+                    AudioProfiles.refresh(context)
                 }
             }
             evaluate(intent.action?.substringAfterLast('.') ?: "broadcast")
@@ -368,6 +413,9 @@ class BudsService : Service() {
         }
     }
 }
+
+/** What [BudsService] reads in the background before deciding: Bluetooth on, the paired FreeBuds (null without permission), the pair history. */
+private data class Snapshot(val bluetoothOn: Boolean, val buds: List<DetectedBuds>?, val history: Map<String, Long>)
 
 /** The notification's title and line. */
 data class NotificationContent(val title: String, val text: String)
