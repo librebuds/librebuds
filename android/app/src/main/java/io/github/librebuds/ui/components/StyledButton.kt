@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -140,6 +141,9 @@ fun StyledButton(
             val isInteractive = enabled && isInteractive
             val scope = rememberCoroutineScope()
             val haptics = LocalHapticFeedback.current
+            // The tap detector is installed once (pointerInput(Unit)); keep it on the latest handler.
+            val currentOnClick by rememberUpdatedState(onClick)
+            val currentEnabled by rememberUpdatedState(enabled)
             val progressAnimation = remember { Animatable(0f) }
             var pressStartPosition by remember { mutableStateOf(Offset.Zero) }
             val offsetAnimation = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
@@ -389,9 +393,9 @@ half4 main(float2 coord) {
                                         isPressed = false
                                     },
                                     onTap = {
-                                        if (enabled) {
+                                        if (currentEnabled) {
                                             haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                            onClick()
+                                            currentOnClick()
                                         }
                                     }
                                 )

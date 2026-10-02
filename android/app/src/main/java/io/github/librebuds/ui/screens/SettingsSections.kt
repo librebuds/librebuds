@@ -30,11 +30,20 @@ import io.github.librebuds.ui.components.StyledToggle
 import io.github.librebuds.ui.model.GestureControl
 import io.github.librebuds.ui.model.OptionGroup
 import io.github.librebuds.ui.model.Picker
+import io.github.librebuds.ui.model.SettingsModel
 import io.github.librebuds.ui.model.keyOf
 import io.github.librebuds.ui.model.optionLabelRes
 
-/** An open picker sheet: its title, choices and what choosing one sends. */
-private class PickerRequest(val title: String, val picker: Picker, val onSelect: (Int) -> Unit)
+/**
+ * An open picker sheet: its title, choices and what choosing one sends. [live] finds the same
+ * picker in a newer model, so the open sheet's check follows the earbuds (null: the row is gone).
+ */
+private class PickerRequest(
+    val title: String,
+    val picker: Picker,
+    val onSelect: (Int) -> Unit,
+    val live: (SettingsModel) -> Picker? = { picker },
+)
 
 /**
  * The per-model settings below noise control, generated from the profile and the device's values
@@ -65,7 +74,7 @@ fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, on
     }
     model.equalizer?.let { picker ->
         StyledList(title = stringResource(R.string.section_equalizer), description = note("equalizer")) {
-            PickerRow(stringResource(R.string.equalizer_preset), picker, open) { onChange(SettingChange.EqualizerPreset(it)) }
+            PickerRow(stringResource(R.string.equalizer_preset), picker, open, live = { it.equalizer }) { onChange(SettingChange.EqualizerPreset(it)) }
         }
     }
     if (model.hasSound) {
@@ -99,7 +108,7 @@ fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, on
         // Its own group so the note about switching sits right under it.
         model.soundQuality?.let { picker ->
             StyledList(title = stringResource(R.string.section_sound).takeIf { model.lowLatency == null && model.language == null }) {
-                PickerRow(stringResource(R.string.audio_priority), picker, open, describe = { described("soundQuality", it) }) {
+                PickerRow(stringResource(R.string.audio_priority), picker, open, live = { it.soundQuality }, describe = { described("soundQuality", it) }) {
                     onChange(SettingChange.SoundQualityChange(it))
                 }
             }
@@ -122,7 +131,9 @@ fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, on
         }
     }
 
-    PickerSheet(request) { request = null }
+    // Rebuilt from the live model on every recomposition, like [CancellationLevelList]'s sheet.
+    val shown = request?.let { open -> open.live(model)?.let { PickerRequest(open.title, it, open.onSelect) } }
+    PickerSheet(shown) { request = null }
 }
 
 /**
@@ -152,15 +163,15 @@ private fun StyledListScope.GestureRows(
     val sided = control.right != null
     control.left?.let { picker ->
         val title = if (sided) stringResource(R.string.gesture_side, name, stringResource(R.string.left)) else name
-        PickerRow(title, picker, open) { onChange(SettingChange.GestureChange(g, left = it, right = null, inCall = null)) }
+        PickerRow(title, picker, open, live = { m -> m.gesture(control.subKey)?.left }) { onChange(SettingChange.GestureChange(g, left = it, right = null, inCall = null)) }
     }
     control.right?.let { picker ->
         val title = stringResource(R.string.gesture_side, name, stringResource(R.string.right))
-        PickerRow(title, picker, open) { onChange(SettingChange.GestureChange(g, left = null, right = it, inCall = null)) }
+        PickerRow(title, picker, open, live = { m -> m.gesture(control.subKey)?.right }) { onChange(SettingChange.GestureChange(g, left = null, right = it, inCall = null)) }
     }
     control.inCall?.let { picker ->
         val title = stringResource(R.string.gesture_side, name, stringResource(R.string.in_call))
-        PickerRow(title, picker, open) { onChange(SettingChange.GestureChange(g, left = null, right = null, inCall = it)) }
+        PickerRow(title, picker, open, live = { m -> m.gesture(control.subKey)?.inCall }) { onChange(SettingChange.GestureChange(g, left = null, right = null, inCall = it)) }
     }
 }
 
@@ -169,13 +180,14 @@ private fun StyledListScope.PickerRow(
     title: String,
     picker: Picker,
     open: (PickerRequest) -> Unit,
+    live: (SettingsModel) -> Picker? = { picker },
     describe: (String?) -> String? = { it },
     onSelect: (Int) -> Unit,
 ) {
     StyledListItem(
         name = title,
         description = describe(picker.current?.let { optionLabel(picker, it) }),
-        onClick = { open(PickerRequest(title, picker, onSelect)) }
+        onClick = { open(PickerRequest(title, picker, onSelect, live)) }
     )
 }
 
@@ -214,6 +226,8 @@ private fun PickerSheet(request: PickerRequest?, onDismiss: () -> Unit) {
 private fun optionLabel(picker: Picker, code: Int): String =
     optionLabelRes(picker.group, picker.keyOf(code))?.let { stringResource(it) }
         ?: stringResource(if (picker.group == OptionGroup.CANCELLATION_LEVEL) R.string.level_code else R.string.option_code, code)
+
+private fun SettingsModel.gesture(subKey: String): GestureControl? = gestures.firstOrNull { it.subKey == subKey }
 
 @StringRes
 private fun Gesture.nameRes(): Int = when (this) {

@@ -52,6 +52,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -182,6 +183,11 @@ private fun StyledListItemContent(
     val animatedBackgroundColor by animateColorAsState(targetValue = backgroundColor, animationSpec = tween(durationMillis = 500))
     val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
+    // The tap detector below is installed once (pointerInput(Unit)); it must call the latest click
+    // handler and enabled flag, not the ones from the first composition: a picker row's handler
+    // carries the picker as it is now, and rows shift when other rows appear above them.
+    val currentOnClick by rememberUpdatedState(onClick)
+    val currentEnabled by rememberUpdatedState(enabled)
 
     when (LocalDesignSystem.current) {
         DesignSystem.Apple -> {
@@ -252,20 +258,20 @@ private fun StyledListItemContent(
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onPress = {
-                                if (enabled) {
+                                if (currentEnabled) {
                                     backgroundColor = surfaceDimColor
                                     tryAwaitRelease()
                                     backgroundColor = surfaceColor
                                 }
                             },
                             onTap = {
-                                if (enabled) {
+                                if (currentEnabled) {
                                     scope.launch {
                                         haptics.performHapticFeedback(
                                             HapticFeedbackType.ContextClick
                                         )
                                     }
-                                    onClick?.invoke()
+                                    currentOnClick?.invoke()
                                 }
                             }
                         )
