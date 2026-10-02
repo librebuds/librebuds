@@ -77,26 +77,34 @@ fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, on
             value == null -> experimentalShort
             else -> withExperimental.format(value)
         }
-        StyledList(title = stringResource(R.string.section_sound)) {
-            model.lowLatency?.let { enabled ->
-                StyledToggle(
-                    label = stringResource(R.string.low_latency),
-                    description = described("lowLatency", null),
-                    checked = enabled,
-                    onCheckedChange = { onChange(SettingChange.LowLatencyChange(it)) }
-                )
+        if (model.lowLatency != null || model.language != null) {
+            StyledList(title = stringResource(R.string.section_sound)) {
+                model.lowLatency?.let { enabled ->
+                    StyledToggle(
+                        label = stringResource(if (model.dynamicLatency) R.string.dynamic_latency else R.string.low_latency),
+                        description = described("lowLatency", null),
+                        checked = enabled,
+                        onCheckedChange = { onChange(SettingChange.LowLatencyChange(it)) }
+                    )
+                }
+                // Read-only: language writes are out of scope.
+                model.language?.let { language ->
+                    StyledListItem(
+                        name = stringResource(R.string.voice_language),
+                        description = described("language", language.current ?: stringResource(R.string.not_reported))
+                    )
+                }
             }
-            model.soundQuality?.let { picker ->
+        }
+        // Its own group so the note about switching sits right under it.
+        model.soundQuality?.let { picker ->
+            StyledList(
+                title = stringResource(R.string.section_sound).takeIf { model.lowLatency == null && model.language == null },
+                description = stringResource(R.string.sound_quality_hint),
+            ) {
                 PickerRow(stringResource(R.string.audio_priority), picker, open, describe = { described("soundQuality", it) }) {
                     onChange(SettingChange.SoundQualityChange(it))
                 }
-            }
-            // Read-only: language writes are out of scope.
-            model.language?.let { language ->
-                StyledListItem(
-                    name = stringResource(R.string.voice_language),
-                    description = described("language", language.current ?: stringResource(R.string.not_reported))
-                )
             }
         }
     }

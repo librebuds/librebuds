@@ -49,7 +49,7 @@ class SettingsModelTest {
             Gesture.DOUBLE_TAP to GestureSetting(left = 1, right = 2, inCall = 0, supported = emptyList()),
             Gesture.SWIPE to GestureSetting(left = 0, right = 0, inCall = null, supported = emptyList()),
         ),
-        equalizer = EqualizerState(active = 2, available = emptyList()),
+        equalizer = EqualizerState(active = 2, available = listOf(1, 2, 3, 9)),
         lowLatency = false,
         soundQuality = 1,
         language = LanguageInfo(current = "en-GB", supported = emptyList()),
@@ -157,5 +157,94 @@ class SettingsModelTest {
             SettingChange.PreferredHost("AA:00:00:00:00:01").controlKey(),
             SettingChange.PreferredHost("AA:00:00:00:00:02").controlKey(),
         )
+    }
+
+    /** Shaped like the FreeBuds 5 profile built from the vendor app's tables. */
+    private val freebuds5: Profile = profile(
+        """
+        {"id": "fb5", "name": "FB5", "capabilities": {
+          "anc": {"modes": ["off", "cancellation"]},
+          "gestures": {"verified": null,
+            "tripleTap": {"options": {"2": "next", "7": "previous", "-1": "off"}},
+            "longPress": {"inCall": true, "options": {"3": "toggle_anc", "-1": "off"}, "hiddenOptions": {"15": "quick_play"},
+                          "inCallOptions": {"0": "reject", "-1": "off"}},
+            "swipe": {"bothSides": true, "options": {"0": "volume", "-1": "off"}}},
+          "equalizer": {"verified": null, "presets": {"1": "default", "2": "bass", "3": "treble", "9": "voice"}},
+          "lowLatency": {"verified": null}
+        }}
+        """.trimIndent(),
+    )
+
+    @Test
+    fun hiddenOptionsOnlyNameTheCurrentValue() {
+        val settings = DeviceSettings(gestures = mapOf(Gesture.LONG_PRESS to GestureSetting(15, 3, 0, supported = emptyList())))
+        val press = settingsModel(freebuds5, BudsState(settings = settings)).gestures.single()
+        assertEquals(listOf(3, -1), press.left!!.options.map { it.code })
+        assertEquals("quick_play", press.left!!.keyOf(15))
+        assertEquals(listOf(SettingOption(0, "reject"), SettingOption(-1, "off")), press.inCall!!.options)
+        assertEquals(R.string.gesture_toggle_anc, optionLabelRes(OptionGroup.GESTURE, "toggle_anc"))
+        assertEquals(R.string.gesture_reject, optionLabelRes(OptionGroup.GESTURE, "reject"))
+    }
+
+    @Test
+    fun singleValueGestureHasOnePicker() {
+        val settings = DeviceSettings(gestures = mapOf(Gesture.SWIPE to GestureSetting(0, 0, null, supported = listOf(0, 1, -1))))
+        val swipe = settingsModel(freebuds5, BudsState(settings = settings)).gestures.single()
+        assertNull(swipe.right)
+        assertEquals(listOf(0, -1), swipe.left!!.options.map { it.code })
+    }
+
+    @Test
+    fun optionsTheEarbudsDoNotAcceptAreNotOffered() {
+        // The device accepts 2 and 7 for triple tap but not "off": never offer a value it refuses.
+        val accepts = DeviceSettings(gestures = mapOf(Gesture.TRIPLE_TAP to GestureSetting(2, 2, null, supported = listOf(2, 4, 5, 6, 7))))
+        assertEquals(listOf(2, 7), settingsModel(freebuds5, BudsState(settings = accepts)).gestures.single().left!!.options.map { it.code })
+        // A list sharing nothing with the profile is treated as misread.
+        val odd = DeviceSettings(gestures = mapOf(Gesture.TRIPLE_TAP to GestureSetting(2, 2, null, supported = listOf(40))))
+        assertEquals(listOf(2, 7, -1), settingsModel(freebuds5, BudsState(settings = odd)).gestures.single().left!!.options.map { it.code })
+    }
+
+    @Test
+    fun equalizerOffersTheReportedPresetsNamedByTheProfile() {
+        val settings = DeviceSettings(equalizer = EqualizerState(active = 9, available = listOf(1, 2, 3, 9, 12)))
+        val eq = settingsModel(freebuds5, BudsState(settings = settings)).equalizer!!
+        assertEquals(listOf(1, 2, 3, 9, 12), eq.options.map { it.code })
+        assertEquals("voice", eq.keyOf(9))
+        assertNull(eq.keyOf(12))
+        val offered = profile("""{"id": "o", "name": "O", "capabilities": {"equalizer": {"presets": {"5": "default", "2": "bass"}, "offered": [2, 5]}}}""")
+        val fallback = settingsModel(offered, BudsState(settings = DeviceSettings(equalizer = EqualizerState(5, emptyList())))).equalizer!!
+        assertEquals(listOf(2, 5), fallback.options.map { it.code })
+        assertEquals(R.string.eq_concert, optionLabelRes(OptionGroup.EQUALIZER, "concert"))
+    }
+
+    @Test
+    fun noiseCycleOnlyWhilePressAndHoldSwitchesNoiseControl() {
+        val p = profile(
+            """{"id": "c", "name": "C", "capabilities": {"anc": {"modes": ["off", "cancellation", "awareness"]}, "gestures": {""" +
+                """"longPress": {"options": {"10": "switch_anc", "-1": "off"}}, "noiseCycle": {"options": {"1": "off_on", "2": "off_on_awareness"}}}}}""",
+        )
+        fun model(left: Int, right: Int) = settingsModel(
+            p,
+            BudsState(
+                settings = DeviceSettings(
+                    gestures = mapOf(
+                        Gesture.LONG_PRESS to GestureSetting(left, right, null, supported = emptyList()),
+                        Gesture.NOISE_CYCLE to GestureSetting(2, 2, null, supported = emptyList()),
+                    ),
+                ),
+            ),
+        )
+        assertEquals(listOf("longPress", "noiseCycle"), model(10, -1).gestures.map { it.subKey })
+        assertEquals(listOf("longPress"), model(-1, -1).gestures.map { it.subKey })
+    }
+
+    @Test
+    fun unsupportedSettingsAreHiddenAndDynamicLatencyNamed() {
+        val settings = DeviceSettings(lowLatency = false, lowLatencyDynamic = true)
+        assertEquals(true, settingsModel(freebuds5, BudsState(settings = settings)).dynamicLatency)
+        assertEquals(false, settingsModel(freebuds5, BudsState(settings = settings)).lowLatency)
+        assertNull(settingsModel(freebuds5, BudsState(settings = settings.copy(unsupported = setOf("lowLatency")))).lowLatency)
+        val quality = fullSettings.copy(unsupported = setOf("soundQuality"))
+        assertNull(settingsModel(freebuds6, BudsState(settings = quality)).soundQuality)
     }
 }

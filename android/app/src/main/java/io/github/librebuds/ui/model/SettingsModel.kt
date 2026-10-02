@@ -10,6 +10,7 @@ import io.github.librebuds.protocol.profile.ancModes
 import io.github.librebuds.session.GESTURE_SUB_KEYS
 import io.github.librebuds.state.BudsState
 import io.github.librebuds.state.SettingChange
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -50,6 +51,8 @@ data class SettingsModel(
     val gestures: List<GestureControl> = emptyList(),
     val equalizer: Picker? = null,
     val lowLatency: Boolean? = null,
+    /** The low-latency row is the dynamic-latency variant on this model. */
+    val dynamicLatency: Boolean = false,
     val soundQuality: Picker? = null,
     /** Present (possibly with a null current language) when the language was read. */
     val language: LanguageRow? = null,
@@ -63,14 +66,16 @@ data class LanguageRow(val current: String?)
 
 fun settingsModel(profile: Profile, state: BudsState): SettingsModel {
     val settings = state.settings
-    fun shown(key: String, capability: String = key) = profile.supports(capability) && key !in settings.unanswered
+    fun shown(key: String, capability: String = key) =
+        profile.supports(capability) && key !in settings.unanswered && key !in settings.unsupported
     return SettingsModel(
         wear = settings.wearDetection?.takeIf { shown("wear") },
         gestures = gestureControls(profile, state),
         equalizer = settings.equalizer?.takeIf { shown("equalizer") }?.let { eq ->
-            picker(eq.active, options(profile.capabilities["equalizer"]?.table("presets"), eq.available), OptionGroup.EQUALIZER)
+            picker(eq.active, equalizerOptions(profile.capabilities["equalizer"], eq.available), OptionGroup.EQUALIZER)
         },
         lowLatency = settings.lowLatency?.takeIf { shown("lowLatency") },
+        dynamicLatency = settings.lowLatencyDynamic == true,
         soundQuality = settings.soundQuality?.takeIf { shown("soundQuality") }?.let {
             picker(it, options(profile.capabilities["soundQuality"]?.table("options"), emptyList()), OptionGroup.SOUND_QUALITY)
         },
@@ -82,12 +87,19 @@ fun settingsModel(profile: Profile, state: BudsState): SettingsModel {
 
 private fun gestureControls(profile: Profile, state: BudsState): List<GestureControl> {
     val listed = profile.capabilities["gestures"] ?: return emptyList()
+    val gestures = state.settings.gestures
     return GESTURE_SUB_KEYS.mapNotNull { (subKey, gesture) ->
         val entry = listed[subKey] as? JsonObject ?: return@mapNotNull null
         if ("gestures.$subKey" in state.settings.unanswered) return@mapNotNull null
-        val setting = state.settings.gestures[gesture] ?: return@mapNotNull null
+        val setting = gestures[gesture] ?: return@mapNotNull null
+        // Like the vendor app, the noise-control cycle only matters while press and hold switches
+        // noise control on at least one earbud.
+        if (gesture == Gesture.NOISE_CYCLE && listed["longPress"] != null) {
+            val press = gestures[Gesture.LONG_PRESS]
+            if (press != null && press.left != SWITCH_NOISE_CONTROL && press.right != SWITCH_NOISE_CONTROL) return@mapNotNull null
+        }
         val group = if (gesture == Gesture.NOISE_CYCLE) OptionGroup.NOISE_CYCLE else OptionGroup.GESTURE
-        val all = options(entry.table("options"), setting.supported)
+        val all = accepted(options(entry.table("options"), setting.supported), setting.supported)
         // Never offer a cycle through a noise-control mode the profile does not list.
         val offered = if (gesture == Gesture.NOISE_CYCLE) {
             val modes = profile.ancModes().toSet()
@@ -95,18 +107,43 @@ private fun gestureControls(profile: Profile, state: BudsState): List<GestureCon
         } else {
             all
         }
-        val hidden = all - offered.toSet()
-        val withInCall = (entry["inCall"] as? JsonPrimitive)?.booleanOrNull == true
+        // Values the vendor app does not offer are only named, for when one is the current value.
+        val hidden = all - offered.toSet() + options(entry.table("hiddenOptions"), emptyList())
+        val flag = { name: String -> (entry[name] as? JsonPrimitive)?.booleanOrNull == true }
+        val single = gesture == Gesture.SWIPE || flag("bothSides")
         GestureControl(
             subKey = subKey,
             gesture = gesture,
             left = setting.left?.let { picker(it, offered, group, hidden) },
-            right = setting.right?.takeIf { gesture != Gesture.SWIPE }?.let { picker(it, offered, group, hidden) },
-            inCall = setting.inCall?.takeIf { withInCall }?.let {
-                picker(it, options(entry.table("inCallOptions"), emptyList()), OptionGroup.GESTURE)
+            right = setting.right?.takeIf { !single }?.let { picker(it, offered, group, hidden) },
+            inCall = setting.inCall?.takeIf { flag("inCall") }?.let {
+                picker(it, accepted(options(entry.table("inCallOptions"), emptyList()), setting.inCallSupported), OptionGroup.GESTURE, hidden)
             },
         ).takeIf { it.left != null || it.right != null || it.inCall != null }
     }
+}
+
+/** Press-and-hold code that switches noise control (and so uses the noise-control cycle). */
+private const val SWITCH_NOISE_CONTROL = 10
+
+/**
+ * [options] limited to the codes the earbuds report they accept, when they report any; a list
+ * that shares nothing with the profile is taken as misread and ignored rather than blanking the row.
+ */
+private fun accepted(options: List<SettingOption>, reported: List<Int>): List<SettingOption> {
+    if (reported.isEmpty()) return options
+    return options.filter { it.code in reported }.ifEmpty { options }
+}
+
+/**
+ * The presets the earbuds report (in their order), named from the profile's table; without a
+ * reported list, the profile's `offered` ids; with neither, nothing (the picker is not shown).
+ */
+private fun equalizerOptions(capability: JsonObject?, available: List<Int>): List<SettingOption> {
+    val names = options(capability?.table("presets"), emptyList()).associate { it.code to it.key }
+    val offered = (capability?.get("offered") as? JsonArray)
+        ?.mapNotNull { (it as? JsonPrimitive)?.content?.toIntOrNull() }.orEmpty()
+    return available.ifEmpty { offered }.distinct().map { SettingOption(it, names[it]) }
 }
 
 /** A picker with nothing to choose from is not shown at all. */
@@ -138,6 +175,11 @@ fun optionLabelRes(group: OptionGroup, key: String?): Int? = when (group) {
         "assistant" -> R.string.gesture_assistant
         "switch_anc" -> R.string.gesture_switch_anc
         "answer" -> R.string.gesture_answer
+        "reject" -> R.string.gesture_reject
+        "toggle_anc" -> R.string.gesture_toggle_anc
+        "quick_play" -> R.string.gesture_quick_play
+        "song_id" -> R.string.gesture_song_id
+        "record" -> R.string.gesture_record
         "volume" -> R.string.gesture_volume
         else -> null
     }
@@ -153,6 +195,17 @@ fun optionLabelRes(group: OptionGroup, key: String?): Int? = when (group) {
         "bass" -> R.string.eq_bass
         "treble" -> R.string.eq_treble
         "voice" -> R.string.eq_voice
+        "lively" -> R.string.eq_lively
+        "balanced" -> R.string.eq_balanced
+        "classical" -> R.string.eq_classical
+        "movie" -> R.string.eq_movie
+        "gaming" -> R.string.eq_gaming
+        "podcast" -> R.string.eq_podcast
+        "punchy" -> R.string.eq_punchy
+        "adaptive" -> R.string.eq_adaptive
+        "natural" -> R.string.eq_natural
+        "concert" -> R.string.eq_concert
+        "shooter" -> R.string.eq_shooter
         else -> null
     }
     OptionGroup.SOUND_QUALITY -> when (key) {
@@ -195,6 +248,7 @@ fun SettingChange.applyTo(state: BudsState): BudsState {
         is SettingChange.Wear -> state.copy(settings = settings.copy(wearDetection = enabled))
         is SettingChange.GestureChange -> {
             val current = settings.gestures[gesture] ?: return state
+            // A single-value gesture (swipe, bothSides) only ever changes left; right is not shown.
             val next = current.copy(
                 left = left ?: current.left,
                 right = if (gesture == Gesture.SWIPE) current.right else right ?: current.right,
