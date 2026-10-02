@@ -11,13 +11,16 @@ import io.github.librebuds.R
  * Profiles without a clip get the vector drawing of their shape.
  */
 object PopupVideos {
+    private val PRO = R.raw.popup_freebuds_pro_light to R.raw.popup_freebuds_pro_dark
+
     val clips: Map<String, Pair<Int, Int>> = mapOf(
         "freebuds-4" to (R.raw.popup_freebuds_4_light to R.raw.popup_freebuds_4_dark),
         "freebuds-5" to (R.raw.popup_freebuds_5_light to R.raw.popup_freebuds_5_dark),
         "freebuds-6" to (R.raw.popup_freebuds_6_light to R.raw.popup_freebuds_6_dark),
-        "freebuds-pro-2" to (R.raw.popup_freebuds_pro_2_light to R.raw.popup_freebuds_pro_2_dark),
-        "freebuds-pro-3" to (R.raw.popup_freebuds_pro_3_light to R.raw.popup_freebuds_pro_3_dark),
-        "freebuds-pro-4" to (R.raw.popup_freebuds_pro_4_light to R.raw.popup_freebuds_pro_4_dark),
-        "freebuds-pro-5" to (R.raw.popup_freebuds_pro_5_light to R.raw.popup_freebuds_pro_5_dark),
+        // The Pro cases look alike, so all Pro models share one clip.
+        "freebuds-pro-2" to PRO,
+        "freebuds-pro-3" to PRO,
+        "freebuds-pro-4" to PRO,
+        "freebuds-pro-5" to PRO,
     )
 }
