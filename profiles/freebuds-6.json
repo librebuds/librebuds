@@ -41,54 +41,67 @@
       "doubleTap": {
         "inCall": true,
         "options": {
-          "-1": "off",
           "1": "pause",
           "2": "next",
           "7": "previous",
-          "0": "assistant"
+          "0": "assistant",
+          "-1": "off"
         },
         "inCallOptions": {
-          "-1": "off",
-          "0": "answer"
+          "0": "answer",
+          "-1": "off"
         }
       },
       "tripleTap": {
         "options": {
-          "-1": "off",
-          "1": "pause",
           "2": "next",
           "7": "previous",
-          "0": "assistant"
+          "-1": "off"
         }
       },
       "longPress": {
+        "inCall": true,
         "options": {
-          "-1": "off",
-          "10": "switch_anc"
-        }
-      },
-      "noiseCycle": {
-        "options": {
-          "1": "off_on",
-          "2": "off_on_awareness",
-          "3": "on_awareness",
-          "4": "off_awareness"
+          "3": "toggle_anc",
+          "0": "assistant",
+          "-1": "off"
+        },
+        "hiddenOptions": {
+          "15": "quick_play"
+        },
+        "inCallOptions": {
+          "0": "reject",
+          "-1": "off"
         }
       },
       "swipe": {
+        "bothSides": true,
         "options": {
-          "-1": "off",
-          "0": "volume"
+          "0": "volume",
+          "-1": "off"
         }
       }
     },
     "equalizer": {
       "verified": "2026-09-29",
       "presets": {
+        "0": "default",
         "1": "default",
+        "5": "default",
         "2": "bass",
         "3": "treble",
-        "9": "voice"
+        "9": "voice",
+        "10": "lively",
+        "11": "balanced",
+        "12": "classical",
+        "13": "movie",
+        "14": "gaming",
+        "15": "podcast",
+        "16": "punchy",
+        "17": "adaptive",
+        "18": "natural",
+        "19": "concert",
+        "25": "shooter"
       },
       "offered": [
         0,

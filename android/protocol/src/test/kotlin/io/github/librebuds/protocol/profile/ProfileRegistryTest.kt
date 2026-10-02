@@ -137,11 +137,41 @@ class ProfileRegistryTest {
             profile.capabilities["soundQuality"]?.let { assertOptions(id, "soundQuality.options", it["options"]) }
         }
 
+        // Settings follow the vendor app's per-model device page (2026-10-02).
         val freebuds4 = registry.profiles.first { it.id == "freebuds-4" }
-        assertFalse(freebuds4.supports("equalizer"), "freebuds-4: equalizer is omitted per the analysis")
-        assertFalse(freebuds4.supports("multipoint"), "freebuds-4: multipoint support is unknown, so it is omitted")
+        assertTrue(freebuds4.supports("equalizer"), "freebuds-4: the vendor app shows the equalizer")
+        assertFalse(freebuds4.supports("multipoint"), "freebuds-4: the vendor app has no dual-connect page")
+        assertFalse(freebuds4.supports("lowLatency"), "freebuds-4: the vendor app has no low-latency row")
+        assertFalse(freebuds4.supports("soundQuality"), "freebuds-4: the vendor app has no sound-quality switch")
+        assertEquals(setOf("verified", "doubleTap", "longPress"), freebuds4.capabilities.getValue("gestures").keys)
+    }
 
-        val freebudsPro2 = registry.profiles.first { it.id == "freebuds-pro-2" }
-        assertFalse(freebudsPro2.supports("lowLatency"), "freebuds-pro-2: lowLatency is not on this model")
+    private fun gestureEntry(id: String, key: String): JsonObject? =
+        registry.profiles.first { it.id == id }.capabilities.getValue("gestures")[key] as? JsonObject
+
+    private fun codes(entry: JsonObject?, table: String): List<Int> = (entry?.get(table) as? JsonObject)?.keys?.map { it.toInt() }.orEmpty()
+
+    @Test
+    fun freebuds5GesturesMatchTheVendorApp() {
+        assertEquals(listOf(1, 2, 7, 0, -1), codes(gestureEntry("freebuds-5", "doubleTap"), "options"))
+        assertEquals(listOf(0, -1), codes(gestureEntry("freebuds-5", "doubleTap"), "inCallOptions"))
+        assertEquals(listOf(2, 7, -1), codes(gestureEntry("freebuds-5", "tripleTap"), "options"))
+        assertEquals(listOf(3, -1), codes(gestureEntry("freebuds-5", "longPress"), "options"))
+        assertEquals(listOf(15), codes(gestureEntry("freebuds-5", "longPress"), "hiddenOptions"))
+        assertEquals(listOf(0, -1), codes(gestureEntry("freebuds-5", "longPress"), "inCallOptions"))
+        assertNull(gestureEntry("freebuds-5", "noiseCycle"))
+        assertEquals(listOf(0, -1), codes(gestureEntry("freebuds-5", "swipe"), "options"))
+    }
+
+    @Test
+    fun pinchModelsHaveNoTapGesturesTheyDoNotShow() {
+        assertNull(gestureEntry("freebuds-pro-3", "doubleTap"))
+        assertNull(gestureEntry("freebuds-pro-3", "tripleTap"))
+        assertNull(gestureEntry("freebuds-pro-2", "doubleTap"))
+        assertEquals(listOf(10, 0, -1), codes(gestureEntry("freebuds-pro-3", "longPress"), "options"))
+        assertEquals(listOf(1, 2, 3, 4), codes(gestureEntry("freebuds-pro-3", "noiseCycle"), "options"))
+        val pro5DoubleTap = gestureEntry("freebuds-pro-5", "doubleTap")
+        assertEquals(true, (pro5DoubleTap?.get("bothSides") as? JsonPrimitive)?.booleanOrNull)
+        assertEquals(listOf(1, -1), codes(pro5DoubleTap, "options"))
     }
 }

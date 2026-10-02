@@ -38,8 +38,13 @@
       "verified": null,
       "longPress": {
         "options": {
-          "-1": "off",
-          "10": "switch_anc"
+          "10": "switch_anc",
+          "0": "assistant",
+          "-1": "off"
+        },
+        "hiddenOptions": {
+          "15": "quick_play",
+          "14": "song_id"
         }
       },
       "noiseCycle": {
@@ -51,18 +56,33 @@
         }
       },
       "swipe": {
+        "bothSides": true,
         "options": {
-          "-1": "off",
-          "0": "volume"
+          "0": "volume",
+          "-1": "off"
         }
       }
     },
     "equalizer": {
       "verified": null,
       "presets": {
+        "0": "default",
         "1": "default",
+        "5": "default",
         "2": "bass",
-        "3": "treble"
+        "3": "treble",
+        "9": "voice",
+        "10": "lively",
+        "11": "balanced",
+        "12": "classical",
+        "13": "movie",
+        "14": "gaming",
+        "15": "podcast",
+        "16": "punchy",
+        "17": "adaptive",
+        "18": "natural",
+        "19": "concert",
+        "25": "shooter"
       }
     },
     "soundQuality": {
@@ -76,6 +96,9 @@
       "verified": null
     },
     "language": {
+      "verified": null
+    },
+    "lowLatency": {
       "verified": null
     }
   }

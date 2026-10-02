@@ -3,7 +3,9 @@
   "name": "FreeBuds Pro 5",
   "match": {
     "sku": [],
-    "modelId": ["00016B"],
+    "modelId": [
+      "00016B"
+    ],
     "productId": [],
     "btName": [
       "HUAWEI FreeBuds Pro 5"
@@ -24,31 +26,34 @@
       "verified": null,
       "doubleTap": {
         "inCall": true,
+        "bothSides": true,
         "options": {
-          "-1": "off",
           "1": "pause",
-          "2": "next",
-          "7": "previous",
-          "0": "assistant"
+          "-1": "off"
+        },
+        "hiddenOptions": {
+          "21": "record"
         },
         "inCallOptions": {
-          "-1": "off",
-          "0": "answer"
+          "0": "answer",
+          "-1": "off"
         }
       },
       "tripleTap": {
         "options": {
-          "-1": "off",
-          "1": "pause",
           "2": "next",
           "7": "previous",
-          "0": "assistant"
+          "-1": "off"
         }
       },
       "longPress": {
         "options": {
-          "-1": "off",
-          "10": "switch_anc"
+          "10": "switch_anc",
+          "0": "assistant",
+          "-1": "off"
+        },
+        "hiddenOptions": {
+          "15": "quick_play"
         }
       },
       "noiseCycle": {
@@ -60,19 +65,33 @@
         }
       },
       "swipe": {
+        "bothSides": true,
         "options": {
-          "-1": "off",
-          "0": "volume"
+          "0": "volume",
+          "-1": "off"
         }
       }
     },
     "equalizer": {
       "verified": null,
       "presets": {
+        "0": "default",
+        "1": "default",
         "5": "default",
-        "1": "bass",
-        "2": "treble",
-        "9": "voice"
+        "2": "bass",
+        "3": "treble",
+        "9": "voice",
+        "10": "lively",
+        "11": "balanced",
+        "12": "classical",
+        "13": "movie",
+        "14": "gaming",
+        "15": "podcast",
+        "16": "punchy",
+        "17": "adaptive",
+        "18": "natural",
+        "19": "concert",
+        "25": "shooter"
       }
     },
     "lowLatency": {

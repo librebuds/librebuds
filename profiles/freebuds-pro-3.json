@@ -36,33 +36,14 @@
     },
     "gestures": {
       "verified": "2026-09-29",
-      "doubleTap": {
-        "inCall": true,
-        "options": {
-          "-1": "off",
-          "1": "pause",
-          "2": "next",
-          "7": "previous",
-          "0": "assistant"
-        },
-        "inCallOptions": {
-          "-1": "off",
-          "0": "answer"
-        }
-      },
-      "tripleTap": {
-        "options": {
-          "-1": "off",
-          "1": "pause",
-          "2": "next",
-          "7": "previous",
-          "0": "assistant"
-        }
-      },
       "longPress": {
         "options": {
-          "-1": "off",
-          "10": "switch_anc"
+          "10": "switch_anc",
+          "0": "assistant",
+          "-1": "off"
+        },
+        "hiddenOptions": {
+          "15": "quick_play"
         }
       },
       "noiseCycle": {
@@ -74,19 +55,33 @@
         }
       },
       "swipe": {
+        "bothSides": true,
         "options": {
-          "-1": "off",
-          "0": "volume"
+          "0": "volume",
+          "-1": "off"
         }
       }
     },
     "equalizer": {
       "verified": "2026-09-29",
       "presets": {
+        "0": "default",
+        "1": "default",
         "5": "default",
-        "1": "bass",
-        "2": "treble",
-        "9": "voice"
+        "2": "bass",
+        "3": "treble",
+        "9": "voice",
+        "10": "lively",
+        "11": "balanced",
+        "12": "classical",
+        "13": "movie",
+        "14": "gaming",
+        "15": "podcast",
+        "16": "punchy",
+        "17": "adaptive",
+        "18": "natural",
+        "19": "concert",
+        "25": "shooter"
       },
       "offered": [
         2,
