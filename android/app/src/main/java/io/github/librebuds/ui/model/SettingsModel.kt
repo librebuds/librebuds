@@ -105,7 +105,7 @@ data class SettingsModel(
     /** Each side's sound state while the earbuds answer find requests; null when not offered. */
     val findEarbuds: Map<Side, Boolean>? = null,
 ) {
-    val hasSound: Boolean get() = lowLatency != null || soundQuality != null || language != null
+    val hasSound: Boolean get() = lowLatency != null || soundQuality != null || language != null || hdCall != null || pickupMode != null
 }
 
 data class LanguageRow(val current: String?)

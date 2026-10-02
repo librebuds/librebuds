@@ -272,9 +272,10 @@ class BudsController(
     }
 
     /**
-     * The read-only probe round for the per-model extras, each sent only when the profile lists the
-     * feature: the feature-switch ability query, then the state of every feature it offers (and the
-     * ear tip type, which has no ability entry); every pinch slot; the extended equalizer presets;
+     * The read-only probe round for the per-model extras: the feature-switch ability query (always,
+     * as the vendor app sends it on connect), then, each only when the profile lists the feature, the
+     * state of every feature switch the answer offers (and the ear tip type, which has no ability
+     * entry); every pinch slot; the extended equalizer presets;
      * rest reminder, HD calls and pickup mode; each side's find-earbuds sound state. [request]
      * returns null once [current] went stale.
      */
@@ -283,7 +284,8 @@ class BudsController(
         request: suspend (String, Packet, (Packet) -> Boolean) -> Result<Packet>?,
     ) {
         val features = profile.features()
-        if (features.any { it.capability != null }) {
+        // Sent on every connect, as the vendor app does; a model that does not know it stays silent once.
+        run {
             val reply = request("abilities", FeatureSwitch.abilityQuery()) { true } ?: return
             val abilities = reply.getOrNull()?.let(FeatureSwitch::parseAbilities)
             event("feature abilities ${abilities?.capabilities?.keys?.sorted()?.joinToString(",") { "%02X".format(it) } ?: "not answered"}")

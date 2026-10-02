@@ -123,6 +123,7 @@ class FeatureSettingsModelTest {
         assertEquals(listOf(1, 0), picker.options.map { it.code })
         val m = settingsModel(p, BudsState(settings = everything))
         assertNull(m.customEqualizer)
+        assertTrue("HD calls and pickup mode make the sound section", m.hasSound)
         assertEquals(true, m.hdCall)
         assertNotNull(m.pickupMode)
     }
