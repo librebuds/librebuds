@@ -3,11 +3,17 @@ package io.github.librebuds.protocol.tlv
 import io.github.librebuds.protocol.util.toHex
 import io.github.librebuds.protocol.util.u8
 
-/** One application-layer record: 1-byte type, 1-byte length, value. */
-class Tlv(val type: Int, val value: ByteArray) {
+/**
+ * One application-layer record: 1-byte type, 1-byte length, value. [declaredLength] is the length
+ * byte [encode] writes; it defaults to the value's size and differs only for frames that must be
+ * sent byte for byte as the earbuds' own app forms them (see [io.github.librebuds.protocol.command.Gestures]).
+ * Equality ignores it.
+ */
+class Tlv(val type: Int, val value: ByteArray, val declaredLength: Int = value.size) {
     init {
         require(type in 0..255) { "TLV type out of range: $type" }
         require(value.size <= 255) { "TLV value too long: ${value.size}" }
+        require(declaredLength in 0..255) { "TLV length out of range: $declaredLength" }
     }
 
     override fun equals(other: Any?): Boolean =
@@ -43,7 +49,7 @@ class Tlv(val type: Int, val value: ByteArray) {
             val out = ArrayList<Byte>()
             for (tlv in tlvs) {
                 out += tlv.type.toByte()
-                out += tlv.value.size.toByte()
+                out += tlv.declaredLength.toByte()
                 tlv.value.forEach { out += it }
             }
             return out.toByteArray()
