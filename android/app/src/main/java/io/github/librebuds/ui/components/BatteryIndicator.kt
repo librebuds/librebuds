@@ -61,20 +61,22 @@ import io.github.librebuds.ui.theme.interFamily
 
 @Composable
 fun BatteryIndicator(
-    batteryPercentage: Int,
+    batteryPercentage: Int?,
     status: Int,
     prefix: String = "",
     previousCharging: Boolean = false,
 ) {
     val isDarkTheme = isSystemInDarkTheme()
-    val batteryTextColor = if (isDarkTheme) Color.White else Color.Black
+    val missing = batteryPercentage == null
+    val level = batteryPercentage ?: 0
+    val batteryTextColor = (if (isDarkTheme) Color.White else Color.Black).copy(alpha = if (missing) 0.45f else 1f)
     val batteryFillColor =
-        if (batteryPercentage > 25) if (isDarkTheme) Color(0xFF2ED158) else Color(0xFF35C759)
+        if (level > 25) if (isDarkTheme) Color(0xFF2ED158) else Color(0xFF35C759)
         else if (isDarkTheme) Color(0xFFFC4244) else Color(0xFFfe373C)
 
     val initialScale = if (previousCharging) 1f else 0f
     val scaleAnim = remember { Animatable(initialScale) }
-    val charging = status == BatteryStatus.CHARGING
+    val charging = !missing && status == BatteryStatus.CHARGING
     val targetScale = if (charging) 1f else 0f
 
     LaunchedEffect(previousCharging, charging) {
@@ -91,7 +93,7 @@ fun BatteryIndicator(
             val strokeWidthPx = with(LocalDensity.current) { 4.dp.toPx() }
 
             val trackColor = if (isDarkTheme) Color(0xFF272728) else Color(0xFFE3E3E8)
-            val progress = batteryPercentage / 100f
+            val progress = level / 100f
 
             Canvas(modifier = Modifier.size(34.dp)) {
                 val startAngle = -90f
@@ -111,7 +113,7 @@ fun BatteryIndicator(
                     style = stroke
                 )
 
-                drawArc(
+                if (!missing) drawArc(
                     color = batteryFillColor,
                     startAngle = startAngle,
                     sweepAngle = 360f * progress,
@@ -131,7 +133,7 @@ fun BatteryIndicator(
         Spacer(modifier = Modifier.height(4.dp))
 
         Text(
-            text = "$prefix $batteryPercentage%",
+            text = listOf(prefix, if (missing) MISSING_LEVEL else "$level%").filter { it.isNotEmpty() }.joinToString(" "),
             color = batteryTextColor,
             style = TextStyle(
                 fontSize = 14.sp,
@@ -141,6 +143,9 @@ fun BatteryIndicator(
         )
     }
 }
+
+/** Shown instead of a percentage when a part has no level. */
+const val MISSING_LEVEL = "\u2014"
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable

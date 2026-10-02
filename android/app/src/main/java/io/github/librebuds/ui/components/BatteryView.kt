@@ -29,15 +29,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,24 +44,23 @@ import androidx.compose.ui.unit.dp
 import io.github.librebuds.R
 import io.github.librebuds.ui.model.Battery
 import io.github.librebuds.ui.model.BatteryComponent
+import io.github.librebuds.ui.model.BatteryPart
+import io.github.librebuds.ui.model.BatteryPartUi
 import io.github.librebuds.ui.model.BatteryStatus
+import io.github.librebuds.ui.model.batteryParts
 import kotlin.io.encoding.ExperimentalEncodingApi
 
+/**
+ * Left earbud, right earbud and case side by side, each with its own picture, ring and percentage.
+ * A part with no level stays in place, dimmed, with a dash for its percentage.
+ */
 @Composable
 fun BatteryView(
     batteryList: List<Battery>,
     art: String = "generic",
     profileId: String? = null
 ) {
-    val left = batteryList.find { it.component == BatteryComponent.LEFT }
-    val right = batteryList.find { it.component == BatteryComponent.RIGHT }
-    val case = batteryList.find { it.component == BatteryComponent.CASE }
-
-    val leftLevel = left?.level ?: 0
-    val rightLevel = right?.level ?: 0
-    val caseLevel = case?.level ?: 0
-
-    val singleDisplayed = remember { mutableStateOf(false) }
+    val parts = batteryParts(batteryList)
 
     Box(
         modifier = Modifier.fillMaxWidth(),
@@ -75,76 +70,25 @@ fun BatteryView(
             modifier = Modifier.widthIn(max = 500.dp),
             horizontalArrangement = Arrangement.Center
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Image(
-                    painter = painterResource(ProductArt.battery(art, profileId)),
-                    contentDescription = stringResource(R.string.buds),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(112.dp)
-                        .padding(8.dp)
-                )
-
-                if (
-                    left?.status == right?.status &&
-                    (leftLevel - rightLevel) in -3..3
+            for (part in parts) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    BatteryIndicator(
-                        leftLevel.coerceAtMost(rightLevel),
-                        left?.status ?: BatteryStatus.NOT_CHARGING
+                    Image(
+                        painter = painterResource(ProductArt.part(part.part, art, profileId)),
+                        contentDescription = stringResource(part.imageLabel()),
+                        alpha = if (part.missing) MISSING_ALPHA else 1f,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .padding(4.dp)
                     )
-                    singleDisplayed.value = true
-                } else {
-                    singleDisplayed.value = false
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        if (leftLevel > 0 || left?.status != BatteryStatus.DISCONNECTED) {
-                            BatteryIndicator(
-                                leftLevel,
-                                left?.status ?: BatteryStatus.NOT_CHARGING,
-                                stringResource(R.string.left)
-                            )
-                        }
-
-                        if (leftLevel > 0 && rightLevel > 0) {
-                            Spacer(modifier = Modifier.width(16.dp))
-                        }
-
-                        if (rightLevel > 0 || right?.status != BatteryStatus.DISCONNECTED) {
-                            BatteryIndicator(
-                                rightLevel,
-                                right?.status ?: BatteryStatus.NOT_CHARGING,
-                                stringResource(R.string.right)
-                            )
-                        }
-                    }
-                }
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Image(
-                    painter = painterResource(ProductArt.case(profileId)),
-                    contentDescription = stringResource(R.string.case_alt),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(112.dp)
-                        .padding(8.dp)
-                )
-
-                if (caseLevel > 0 || case?.status != BatteryStatus.DISCONNECTED) {
                     BatteryIndicator(
-                        caseLevel,
-                        case?.status ?: BatteryStatus.NOT_CHARGING,
-                        prefix = if (!singleDisplayed.value) stringResource(R.string.case_short) else ""
+                        part.level,
+                        if (part.charging) BatteryStatus.CHARGING else BatteryStatus.NOT_CHARGING,
+                        prefix = stringResource(part.shortLabel())
                     )
                 }
             }
@@ -152,12 +96,25 @@ fun BatteryView(
     }
 }
 
+private const val MISSING_ALPHA = 0.35f
+
+private fun BatteryPartUi.imageLabel(): Int = when (part) {
+    BatteryPart.LEFT -> R.string.bud_left_alt
+    BatteryPart.RIGHT -> R.string.bud_right_alt
+    BatteryPart.CASE -> R.string.case_alt
+}
+
+private fun BatteryPartUi.shortLabel(): Int = when (part) {
+    BatteryPart.LEFT -> R.string.left
+    BatteryPart.RIGHT -> R.string.right
+    BatteryPart.CASE -> R.string.case_short
+}
+
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun BatteryViewPreview() {
     val fakeBattery = listOf(
         Battery(BatteryComponent.LEFT, 90, BatteryStatus.NOT_CHARGING),
-        Battery(BatteryComponent.RIGHT, 40, BatteryStatus.CHARGING),
         Battery(BatteryComponent.CASE, 60, BatteryStatus.NOT_CHARGING)
     )
 

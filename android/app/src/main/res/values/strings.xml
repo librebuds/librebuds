@@ -4,11 +4,12 @@
     <string name="off">Off</string>
     <string name="noise_cancellation">Noise cancellation</string>
     <string name="awareness">Awareness</string>
-    <string name="buds">Earbuds</string>
     <string name="case_alt">Charging case</string>
     <string name="case_short">Case</string>
     <string name="left">Left</string>
     <string name="right">Right</string>
+    <string name="bud_left_alt">Left earbud</string>
+    <string name="bud_right_alt">Right earbud</string>
     <string name="about">About</string>
     <string name="model_name">Model</string>
     <string name="version">Firmware</string>
