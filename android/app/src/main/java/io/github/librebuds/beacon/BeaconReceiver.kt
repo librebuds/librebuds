@@ -15,7 +15,6 @@ import android.util.Log
 import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.companion.AssociationStore
 import io.github.librebuds.popup.PopupPresenter
-import io.github.librebuds.popup.PopupVideos
 import io.github.librebuds.popup.artFor
 import io.github.librebuds.popup.popupModel
 import io.github.librebuds.protocol.beacon.FdeeBeacon
@@ -67,7 +66,7 @@ class BeaconReceiver : BroadcastReceiver() {
         for (verdict in verdicts) {
             if (verdict.decision != PopupDecision.SHOW) continue
             val profile = verdict.profile ?: continue
-            PopupPresenter.show(app, popupModel(profile, verdict.batteries), artFor(profile.art, preferences.artVariant, PopupVideos.map()))
+            PopupPresenter.show(app, popupModel(profile, verdict.batteries), artFor(profile.id, profile.art))
             preferences.markPopupShown(cooldownKey(verdict.sighting.beacon), verdict.sighting.atMillis)
         }
     }

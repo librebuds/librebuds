@@ -12,7 +12,6 @@ import androidx.compose.ui.res.stringResource
 import io.github.librebuds.BuildConfig
 import io.github.librebuds.R
 import io.github.librebuds.beacon.LastBeacon
-import io.github.librebuds.popup.ArtVariant
 import io.github.librebuds.popup.PopupStyle
 import io.github.librebuds.ui.components.ListItemOrientation
 import io.github.librebuds.ui.components.StyledList
@@ -41,8 +40,6 @@ fun SettingsScreen(
     onOpenAppInfo: () -> Unit,
     demoMode: Boolean,
     onDemoModeChange: (Boolean) -> Unit,
-    artVariant: ArtVariant,
-    onArtVariantChange: (ArtVariant) -> Unit,
     lastBeacon: LastBeacon?,
     onShowTestPopup: () -> Unit,
     companionPair: String?,
@@ -122,13 +119,6 @@ fun SettingsScreen(
                         label = stringResource(R.string.demo_mode),
                         checked = demoMode,
                         onCheckedChange = onDemoModeChange
-                    )
-                    StyledToggle(
-                        label = stringResource(R.string.popup_art_variant),
-                        checked = artVariant == ArtVariant.VIDEO,
-                        // The artwork belongs to the card; the island has none.
-                        enabled = popupStyle == PopupStyle.CARD,
-                        onCheckedChange = { onArtVariantChange(if (it) ArtVariant.VIDEO else ArtVariant.VECTOR) }
                     )
                     StyledListItem(
                         name = stringResource(R.string.show_test_popup),

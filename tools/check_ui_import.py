@@ -26,11 +26,23 @@ BANNED_FILE_GLOBS = [
     "drawable*/noise_cancellation.png",
     "drawable*/transparency.png",
 ]
-# Our own generated popup clips (art/prompts.md, CC BY-SA) are the only videos allowed, and only in the
-# debug source set: release APKs must not ship them. Exact paths, relative to android/app/src.
+# Our own case-opening clips for the card popup (LibreBuds original artwork, see NOTICE) are the only
+# videos allowed. Exact paths, relative to android/app/src.
 ALLOWED_FILES = [
-    "debug/res/raw/popup_round_light.mp4",
-    "debug/res/raw/popup_round_dark.mp4",
+    "main/res/raw/popup_freebuds_4_light.mp4",
+    "main/res/raw/popup_freebuds_4_dark.mp4",
+    "main/res/raw/popup_freebuds_5_light.mp4",
+    "main/res/raw/popup_freebuds_5_dark.mp4",
+    "main/res/raw/popup_freebuds_6_light.mp4",
+    "main/res/raw/popup_freebuds_6_dark.mp4",
+    "main/res/raw/popup_freebuds_pro_2_light.mp4",
+    "main/res/raw/popup_freebuds_pro_2_dark.mp4",
+    "main/res/raw/popup_freebuds_pro_3_light.mp4",
+    "main/res/raw/popup_freebuds_pro_3_dark.mp4",
+    "main/res/raw/popup_freebuds_pro_4_light.mp4",
+    "main/res/raw/popup_freebuds_pro_4_dark.mp4",
+    "main/res/raw/popup_freebuds_pro_5_light.mp4",
+    "main/res/raw/popup_freebuds_pro_5_dark.mp4",
 ]
 # XML numeric character references pointing into the SF Symbols private-use ranges (hex or decimal).
 NUMERIC_CHAR_REF = re.compile(r"&#(x[0-9a-fA-F]+|[0-9]+);")

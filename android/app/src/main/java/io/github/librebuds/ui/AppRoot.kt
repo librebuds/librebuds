@@ -17,7 +17,6 @@ import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.companion.AssociationStore
 import io.github.librebuds.popup.PopupPresenter
-import io.github.librebuds.popup.PopupVideos
 import io.github.librebuds.popup.artFor
 import io.github.librebuds.popup.demoPopupModel
 import io.github.librebuds.state.AppPreferences
@@ -60,7 +59,6 @@ fun AppRoot(
     val context = LocalContext.current
     var demoMode by remember { mutableStateOf(preferences.demoMode) }
     var popupStyle by remember { mutableStateOf(preferences.popupStyle) }
-    var artVariant by remember { mutableStateOf(preferences.artVariant) }
     val detection = rememberDetection()
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val registry = remember { LibreBudsApp.from(context).registry }
@@ -151,17 +149,12 @@ fun AppRoot(
                             demoMode = it
                             preferences.demoMode = it
                         },
-                        artVariant = artVariant,
-                        onArtVariantChange = {
-                            artVariant = it
-                            preferences.artVariant = it
-                        },
                         // Read fresh every time Settings is entered, since BeaconReceiver writes it outside Compose.
                         lastBeacon = preferences.lastBeacon,
                         onShowTestPopup = {
                             val app = LibreBudsApp.from(context)
                             demoPopupModel(app.registry)?.let { model ->
-                                PopupPresenter.show(app, model, artFor(model.art, preferences.artVariant, PopupVideos.map()))
+                                PopupPresenter.show(app, model, artFor(model.profileId, model.art))
                             }
                         },
                         companionPair = selected?.takeIf { it.address != DEMO_ADDRESS }?.label,

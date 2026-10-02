@@ -26,16 +26,20 @@ import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.PixelFormat
+import android.graphics.SurfaceTexture
 import android.graphics.drawable.Animatable
-import android.media.AudioManager
+import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.view.Surface
+import android.view.TextureView
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.AccelerateInterpolator
@@ -44,8 +48,7 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.VideoView
-import androidx.core.net.toUri
+import androidx.core.graphics.get
 import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.R
 import io.github.librebuds.ui.model.Battery
@@ -72,6 +75,7 @@ class PopupWindow(
     private var autoCloseRunnable: Runnable? = null
     private var stateCollector: Job? = null
     private var model: PopupModel? = null
+    private var player: MediaPlayer? = null
 
     override val isOpen: Boolean
         get() = mView.parent != null && !isClosing
@@ -98,6 +102,8 @@ class PopupWindow(
             WindowManager.LayoutParams.FLAG_FULLSCREEN or
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
             WindowManager.LayoutParams.FLAG_DIM_BEHIND or
+            // The clip plays on a TextureView, which draws nothing without hardware acceleration.
+            WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
             WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
     }
 
@@ -215,16 +221,17 @@ class PopupWindow(
     }
 
     /**
-     * While a clip plays the card takes the clip's own background colour (fixed light/dark values) so
-     * there is no seam around the video; the drawing keeps the dynamic system colours.
+     * While a clip plays the card takes the clip's background colour, so there is no seam around the
+     * video: first the nominal fixed value, then the colour the decoder actually rendered (see
+     * [cardColorFor]). The drawing keeps the dynamic system colours.
      */
-    private fun matchCardToVideo(playing: Boolean) {
-        mView.findViewById<View>(R.id.popup_card).backgroundTintList =
-            if (playing) context.getColorStateList(R.color.popup_video_background) else null
+    private fun matchCardToVideo(color: Int?) {
+        mView.findViewById<View>(R.id.popup_card).backgroundTintList = color?.let { ColorStateList.valueOf(it) }
     }
 
     private fun showAnimation(slot: FrameLayout, avdRes: Int) {
-        matchCardToVideo(false)
+        releasePlayer()
+        matchCardToVideo(null)
         slot.removeAllViews()
         val image = ImageView(context).apply {
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
@@ -236,27 +243,75 @@ class PopupWindow(
         (image.drawable as? Animatable)?.start()
     }
 
-    /** Plays the clip once, muted and without taking audio focus, so the user's music keeps playing. */
+    /**
+     * Plays the clip once, muted and without audio focus, so the user's music keeps playing; the last
+     * frame (the open case) stays on screen. A TextureView, unlike VideoView's SurfaceView, moves with
+     * the card's slide-in and can be read back, which [matchCardToFrame] needs. The view stays
+     * invisible until the first frame is drawn, so the slot never shows an empty or black square.
+     */
     private fun showVideo(slot: FrameLayout, videoRes: Int, fallbackAvdRes: Int) {
-        matchCardToVideo(true)
+        releasePlayer()
+        val nominal = context.getColor(R.color.popup_video_background)
+        matchCardToVideo(nominal)
         slot.removeAllViews()
-        val video = VideoView(context).apply {
+        val texture = TextureView(context).apply {
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            setAudioFocusRequest(AudioManager.AUDIOFOCUS_NONE)
-            setOnPreparedListener { player ->
-                player.setVolume(0f, 0f)
-                player.isLooping = false
-            }
-            // Returning true also stops VideoView from showing its error dialog, which needs an activity.
-            setOnErrorListener { _, what, extra ->
-                Log.w("PopupWindow", "Popup clip failed ($what, $extra); showing the drawing")
-                showAnimation(slot, fallbackAvdRes)
-                true
-            }
-            setVideoURI("android.resource://${context.packageName}/$videoRes".toUri())
+            isOpaque = false
+            alpha = 0f
         }
-        slot.addView(video, FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.MATCH_PARENT, Gravity.CENTER))
-        video.start()
+        texture.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+            private var sampled = false
+
+            override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+                try {
+                    player = MediaPlayer().apply {
+                        context.resources.openRawResourceFd(videoRes).use { setDataSource(it) }
+                        setSurface(Surface(surface))
+                        setVolume(0f, 0f)
+                        isLooping = false
+                        setOnErrorListener { _, what, extra ->
+                            Log.w("PopupWindow", "Popup clip failed ($what, $extra); showing the drawing")
+                            showAnimation(slot, fallbackAvdRes)
+                            true
+                        }
+                        setOnPreparedListener { it.start() }
+                        prepareAsync()
+                    }
+                } catch (e: Exception) {
+                    Log.w("PopupWindow", "Popup clip failed (${e.message}); showing the drawing")
+                    showAnimation(slot, fallbackAvdRes)
+                }
+            }
+
+            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
+                if (sampled) return
+                sampled = true
+                matchCardToFrame(texture, nominal)
+                texture.alpha = 1f
+            }
+
+            override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) = Unit
+
+            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+                releasePlayer()
+                return true
+            }
+        }
+        // Square like the clips (720x720): as wide as the slot is tall.
+        val size = context.resources.getDimensionPixelSize(R.dimen.popup_art_height)
+        slot.addView(texture, FrameLayout.LayoutParams(size, FrameLayout.LayoutParams.MATCH_PARENT, Gravity.CENTER))
+    }
+
+    /** Tints the card to the corner of the first rendered frame, which is pure clip background. */
+    private fun matchCardToFrame(texture: TextureView, nominal: Int) {
+        // Downscaled, so the corner pixel averages a patch of background instead of one decoded pixel.
+        val corner = runCatching { texture.getBitmap(16, 16)?.let { bitmap -> bitmap[0, 0].also { bitmap.recycle() } } }.getOrNull()
+        matchCardToVideo(cardColorFor(nominal, corner))
+    }
+
+    private fun releasePlayer() {
+        player?.let { runCatching { it.release() } }
+        player = null
     }
 
     private fun showBatteries(batteryList: List<Battery>) {
@@ -305,6 +360,7 @@ class PopupWindow(
 
     private fun removeView() {
         autoCloseRunnable?.let { autoCloseHandler.removeCallbacks(it) }
+        releasePlayer()
         stateCollector?.cancel()
         stateCollector = null
         try {

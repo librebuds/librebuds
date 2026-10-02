@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Height of the card popup's art slot; the square case-opening clips are shown this wide too. -->
+    <dimen name="popup_art_height">180dp</dimen>
+</resources>

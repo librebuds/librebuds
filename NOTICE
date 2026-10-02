@@ -28,7 +28,5 @@ Third-party references:
   LibreBuds original artwork generated with an image model; no third-party licence. The
   launcher background (res/drawable/ic_launcher_background.xml) is a plain gradient.
 - Inter typeface (SIL Open Font License 1.1), loaded at runtime through Google Fonts.
-- Popup video clips in android/app/src/debug/res/raw/popup_*.mp4 (debug builds only) are derived from
-  "HUAWEI FreeBuds 6.jpg" by Kyu3a (Wikimedia Commons, CC BY-SA 4.0,
-  https://commons.wikimedia.org/wiki/File:HUAWEI_FreeBuds_6.jpg), animated with an
-  image-to-video model; the clips are licensed CC BY-SA 4.0.
+- Case animations (android/app/src/main/res/raw/popup_*.mp4): LibreBuds original artwork generated
+  with image and video models.
