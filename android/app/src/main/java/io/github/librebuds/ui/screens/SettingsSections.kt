@@ -19,7 +19,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.librebuds.R
+import io.github.librebuds.protocol.command.Feature
 import io.github.librebuds.protocol.command.Gesture
+import io.github.librebuds.protocol.command.Side
 import io.github.librebuds.state.SettingChange
 import io.github.librebuds.ui.SettingsUi
 import io.github.librebuds.ui.components.StyledBottomSheet
@@ -32,13 +34,14 @@ import io.github.librebuds.ui.model.OptionGroup
 import io.github.librebuds.ui.model.Picker
 import io.github.librebuds.ui.model.SettingsModel
 import io.github.librebuds.ui.model.keyOf
+import io.github.librebuds.ui.model.labelOf
 import io.github.librebuds.ui.model.optionLabelRes
 
 /**
  * An open picker sheet: its title, choices and what choosing one sends. [live] finds the same
  * picker in a newer model, so the open sheet's check follows the earbuds (null: the row is gone).
  */
-private class PickerRequest(
+internal class PickerRequest(
     val title: String,
     val picker: Picker,
     val onSelect: (Int) -> Unit,
@@ -51,30 +54,44 @@ private class PickerRequest(
  * capability it shows has no verified date in the profile.
  */
 @Composable
-fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, onOpenMultipoint: () -> Unit) {
+fun DeviceSettingsSections(
+    ui: SettingsUi,
+    onChange: (SettingChange) -> Unit,
+    onOpenMultipoint: () -> Unit,
+    onRing: (Side, Boolean) -> Unit = { _, _ -> },
+) {
     val model = ui.model
     var request by remember { mutableStateOf<PickerRequest?>(null) }
     val open: (PickerRequest) -> Unit = { request = it }
     val experimental = stringResource(R.string.experimental)
     fun note(vararg capabilities: String) = experimental.takeIf { capabilities.any { it in model.experimental } }
 
+    NoiseExtrasSection(model, note("anc", "singleBudAnc"), open, onChange)
+    AdaptiveAudioSection(model, note("adaptiveVolume", "aiConversation"), onChange)
     if (model.gestures.isNotEmpty()) {
         StyledList(title = stringResource(R.string.section_gestures), description = note("gestures")) {
             model.gestures.forEach { GestureRows(it, onChange, open) }
         }
     }
-    model.wear?.let { wear ->
-        StyledList(title = stringResource(R.string.section_wear), description = note("wear")) {
-            StyledToggle(
-                label = stringResource(R.string.wear_detection),
-                checked = wear,
-                onCheckedChange = { onChange(SettingChange.Wear(it)) }
-            )
+    PinchSection(model, note("pinch"), open, onChange)
+    HeadControlSection(model, note("headControl"), open, onChange)
+    val wearExtras = model.earTip != null || Feature.DROP_DETECTION in model.switches || model.restReminder != null
+    if (model.wear != null || wearExtras) {
+        StyledList(title = stringResource(R.string.section_wear), description = note("wear", "earTip", "dropDetection", "restReminder")) {
+            model.wear?.let { wear ->
+                StyledToggle(
+                    label = stringResource(R.string.wear_detection),
+                    checked = wear,
+                    onCheckedChange = { onChange(SettingChange.Wear(it)) }
+                )
+            }
+            WearExtraRows(model, open, onChange)
         }
     }
     model.equalizer?.let { picker ->
         StyledList(title = stringResource(R.string.section_equalizer), description = note("equalizer")) {
             PickerRow(stringResource(R.string.equalizer_preset), picker, open, live = { it.equalizer }) { onChange(SettingChange.EqualizerPreset(it)) }
+            model.customEqualizer?.let { custom -> CustomEqualizerRow(custom, onChange) }
         }
     }
     if (model.hasSound) {
@@ -86,7 +103,7 @@ fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, on
             value == null -> experimentalShort
             else -> withExperimental.format(value)
         }
-        if (model.lowLatency != null || model.language != null) {
+        if (model.lowLatency != null || model.language != null || model.hdCall != null || model.pickupMode != null) {
             StyledList(title = stringResource(R.string.section_sound)) {
                 model.lowLatency?.let { enabled ->
                     StyledToggle(
@@ -95,6 +112,19 @@ fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, on
                         checked = enabled,
                         onCheckedChange = { onChange(SettingChange.LowLatencyChange(it)) }
                     )
+                }
+                model.hdCall?.let { enabled ->
+                    StyledToggle(
+                        label = stringResource(R.string.hd_call),
+                        description = described("hdCall", null),
+                        checked = enabled,
+                        onCheckedChange = { onChange(SettingChange.HdCallChange(it)) }
+                    )
+                }
+                model.pickupMode?.let { picker ->
+                    PickerRow(stringResource(R.string.pickup_mode), picker, open, live = { it.pickupMode }, describe = { described("pickupMode", it) }) {
+                        onChange(SettingChange.PickupModeChange(it))
+                    }
                 }
                 // Read-only: language writes are out of scope.
                 model.language?.let { language ->
@@ -107,7 +137,7 @@ fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, on
         }
         // Its own group so the note about switching sits right under it.
         model.soundQuality?.let { picker ->
-            StyledList(title = stringResource(R.string.section_sound).takeIf { model.lowLatency == null && model.language == null }) {
+            StyledList(title = stringResource(R.string.section_sound).takeIf { model.lowLatency == null && model.language == null && model.hdCall == null && model.pickupMode == null }) {
                 PickerRow(stringResource(R.string.audio_priority), picker, open, live = { it.soundQuality }, describe = { described("soundQuality", it) }) {
                     onChange(SettingChange.SoundQualityChange(it))
                 }
@@ -121,6 +151,7 @@ fun DeviceSettingsSections(ui: SettingsUi, onChange: (SettingChange) -> Unit, on
             )
         }
     }
+    model.findEarbuds?.let { ringing -> FindEarbudsSection(ringing, note("findEarbuds"), onRing) }
     model.multipointEnabled?.let { enabled ->
         StyledList(title = stringResource(R.string.section_multipoint), description = note("multipoint")) {
             StyledListItem(
@@ -176,7 +207,7 @@ private fun StyledListScope.GestureRows(
 }
 
 @Composable
-private fun StyledListScope.PickerRow(
+internal fun StyledListScope.PickerRow(
     title: String,
     picker: Picker,
     open: (PickerRequest) -> Unit,
@@ -223,8 +254,9 @@ private fun PickerSheet(request: PickerRequest?, onDismiss: () -> Unit) {
  * cancellation level) when the profile or this app does not name it.
  */
 @Composable
-private fun optionLabel(picker: Picker, code: Int): String =
-    optionLabelRes(picker.group, picker.keyOf(code))?.let { stringResource(it) }
+internal fun optionLabel(picker: Picker, code: Int): String =
+    picker.labelOf(code)
+        ?: optionLabelRes(picker.group, picker.keyOf(code))?.let { stringResource(it) }
         ?: stringResource(if (picker.group == OptionGroup.CANCELLATION_LEVEL) R.string.level_code else R.string.option_code, code)
 
 private fun SettingsModel.gesture(subKey: String): GestureControl? = gestures.firstOrNull { it.subKey == subKey }
