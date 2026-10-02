@@ -47,6 +47,15 @@ class DeviceInfoTest {
     }
 
     @Test
+    fun splitsSkuAndModelIdFromTlv10() {
+        // FreeBuds 5 (HCI capture): TLV 10 "<SKU>-<model id>", TLV 15 the bare SKU.
+        val info = DeviceInfoCommand.parse(Packet(CommandId(1, 7), listOf(text(10, "BTFT0013-000141"), text(15, "BTFT0013"))))!!
+        assertEquals("BTFT0013", info.sku)
+        assertEquals("000141", info.modelId)
+        assertNull(DeviceInfoCommand.parse(Packet(CommandId(1, 7), listOf(text(15, "BTFT0013"))))!!.modelId)
+    }
+
+    @Test
     fun trimsNulPaddingAndTreatsEmptyAsNull() {
         val info = DeviceInfoCommand.parse(
             Packet(CommandId(1, 7), listOf(Tlv(3, "PLATFORM_B\u0000\u0000".toByteArray()), Tlv.empty(7))),

@@ -154,7 +154,7 @@ class BudsController(
 
         val info = current.request(DeviceInfoCommand.request()).getOrNull()?.let(DeviceInfoCommand::parse)
         if (!isCurrent(current, myGeneration)) return@withLock
-        profile = registry.match(sku = info?.sku, btName = name)
+        profile = registry.match(sku = info?.sku, modelId = info?.modelId, btName = name)
         event("connected, profile ${profile.id}, device info ${if (info == null) "missing" else "read"}")
         mutable.update {
             it.copy(

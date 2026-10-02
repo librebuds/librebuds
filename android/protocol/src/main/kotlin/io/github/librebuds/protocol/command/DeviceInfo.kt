@@ -11,7 +11,12 @@ class DeviceInfo(val fields: Map<Int, ByteArray>) {
     val serial: String? get() = text(9)
 
     // SPEC-GAP: both TLV 10 and 15 carried the SKU in tests; which one is canonical is unconfirmed.
-    val sku: String? get() = text(10) ?: text(15)
+    // FreeBuds 5 sends TLV 10 as "<SKU>-<model id>" (TLV 15 holds the bare SKU), so only the part
+    // before the dash is the SKU.
+    val sku: String? get() = text(10)?.substringBefore('-')?.takeIf { it.isNotEmpty() } ?: text(15)
+
+    /** The model id after the SKU in a TLV 10 of the form "<SKU>-<model id>", or null. */
+    val modelId: String? get() = text(10)?.takeIf { '-' in it }?.substringAfter('-')?.takeIf { it.isNotEmpty() }
 
     /** Classic Bluetooth address; the device sends it least-significant byte first. */
     val macAddress: String?
