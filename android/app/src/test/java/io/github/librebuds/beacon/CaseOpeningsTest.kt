@@ -57,16 +57,30 @@ class CaseOpeningsTest {
     }
 
     @Test
-    fun budsOutNeitherStartsNorEndsAnOpening() {
-        assertNull(CaseOpenings.step(null, budsOut, 1_000))
+    fun budsOutKeepsAnOpeningAlive() {
         val opening = CaseOpenings.step(null, open, 1_000)!!.copy(shown = true)
         val out = CaseOpenings.step(opening, budsOut, 2_000)!!
         assertTrue(out.open && out.shown)
-        assertEquals(1_000, out.lastOpenAt)
+        assertEquals(2_000, out.lastOpenAt)
         // Bud levels refresh, the case level stays the last one seen.
         assertEquals(BeaconBattery(48, false), out.batteries.case)
-        val closedState = CaseOpenings.step(null, closed, 1_000)
-        assertNull(closedState)
+        assertNull(CaseOpenings.step(null, closed, 1_000))
+    }
+
+    @Test
+    fun earbudsPutBackIntoTheOpenCaseAfterWearingThemRaiseNoPopup() {
+        // Opened, popup shown, earbuds worn for minutes (buds-out frames), then put back: the open
+        // frame comes long after the opening began but continues the same session.
+        var state = CaseOpenings.step(null, open, 1_000)!!.copy(shown = true)
+        for (t in 5_000L..300_000L step 5_000L) state = CaseOpenings.step(state, budsOut, t)!!
+        val back = CaseOpenings.step(state, open, 303_000)!!
+        assertTrue(back.open && back.shown)
+        // Worn without a seen opening (app started while worn): still no popup when put back.
+        val worn = CaseOpenings.step(null, budsOut, 1_000)!!
+        assertTrue(CaseOpenings.step(worn, open, 4_000)!!.shown)
+        // Closing the case and opening it again is a new opening.
+        val closedAgain = CaseOpenings.step(back, closed, 305_000)!!
+        assertFalse(CaseOpenings.step(closedAgain, open, 306_000)!!.shown)
     }
 
     @Test

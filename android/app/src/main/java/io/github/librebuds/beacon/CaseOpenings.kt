@@ -34,8 +34,10 @@ data class Opening(val open: Boolean, val lastOpenAt: Long, val shown: Boolean, 
  *
  * An open-lid beacon starts an opening when the previous beacon said closed, or when no open beacon
  * came for [GAP_MILLIS] (the closed beacons are rare and easy to miss). A closed or just-closed beacon
- * ends it. Buds-out beacons (also sent the whole time they are worn) neither start nor end one; they
- * only refresh the bud batteries of an opening in progress.
+ * ends it. Buds-out beacons (also sent the whole time they are worn) keep an opening alive and refresh
+ * its bud batteries; without one they start a session that counts as already shown. So putting the
+ * earbuds back into the open case after wearing them (an open beacon long after the case opened)
+ * raises no popup; only opening a closed case does.
  */
 object CaseOpenings {
     const val GAP_MILLIS = 30_000L
@@ -48,7 +50,9 @@ object CaseOpenings {
             else Opening(open = true, lastOpenAt = now, shown = false, batteries = BudBatteries().mergedWith(beacon))
         }
         LidState.CLOSED, LidState.TRANSITIONAL -> previous?.copy(open = false, shown = false, batteries = BudBatteries())
-        LidState.BUDS_OUT -> previous?.takeIf { it.open }?.let { it.copy(batteries = it.batteries.mergedWith(beacon)) } ?: previous
+        LidState.BUDS_OUT ->
+            if (previous != null && previous.open) previous.copy(lastOpenAt = now, batteries = previous.batteries.mergedWith(beacon))
+            else Opening(open = true, lastOpenAt = now, shown = true, batteries = BudBatteries().mergedWith(beacon))
         null -> previous
     }
 
