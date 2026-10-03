@@ -73,8 +73,22 @@ class ProductArtTest {
         assertEquals(R.drawable.battery_bud_left_round, ProductArt.bud(true, "round", "freebuds-4"))
         assertEquals(R.drawable.battery_bud_right_round, ProductArt.bud(false, "round", "freebuds-4"))
         assertEquals(R.drawable.thumb_buds_round, ProductArt.thumbnail("round", "freebuds-4"))
-        assertEquals(R.drawable.battery_bud_left_stem, ProductArt.bud(true, "stem", "freebuds-pro-2"))
-        assertEquals(R.drawable.battery_bud_right_stem, ProductArt.bud(false, "stem", "freebuds-pro-2"))
+        assertEquals(R.drawable.battery_bud_left_stem, ProductArt.bud(true, "stem", "freebuds-pro-6"))
+        assertEquals(R.drawable.battery_bud_right_stem, ProductArt.bud(false, "stem", "freebuds-pro-6"))
+    }
+
+    @Test
+    fun proModelsGetTheirOwnRendersAndPro2SharesWithPro3() {
+        for (id in listOf("freebuds-pro-2", "freebuds-pro-3")) {
+            assertEquals(id, R.drawable.battery_bud_left_freebuds_pro_2, ProductArt.bud(true, "stem", id))
+            assertEquals(id, R.drawable.battery_bud_right_freebuds_pro_2, ProductArt.bud(false, "stem", id))
+            assertEquals(id, R.drawable.thumb_buds_freebuds_pro_2, ProductArt.thumbnail("stem", id))
+            assertEquals(id, R.drawable.battery_case_freebuds_pro_2, ProductArt.case(id))
+        }
+        assertEquals(R.drawable.battery_bud_left_freebuds_pro_4, ProductArt.bud(true, "stem", "freebuds-pro-4"))
+        assertEquals(R.drawable.battery_bud_right_freebuds_pro_4, ProductArt.bud(false, "stem", "freebuds-pro-4"))
+        assertEquals(R.drawable.thumb_buds_freebuds_pro_4, ProductArt.thumbnail("stem", "freebuds-pro-4"))
+        assertEquals(R.drawable.battery_case_freebuds_pro_4, ProductArt.case("freebuds-pro-4"))
     }
 
     @Test

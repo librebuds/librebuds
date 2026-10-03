@@ -24,6 +24,13 @@ object ProductArt {
         @param:DrawableRes val case: Int,
     )
 
+    private val PRO_2_3 = ModelArt(
+        left = R.drawable.battery_bud_left_freebuds_pro_2,
+        right = R.drawable.battery_bud_right_freebuds_pro_2,
+        thumbnail = R.drawable.thumb_buds_freebuds_pro_2,
+        case = R.drawable.battery_case_freebuds_pro_2,
+    )
+
     /** Profile id to its own renders, for the profiles that get a model-specific product shot. */
     private val MODEL_OVERRIDES: Map<String, ModelArt> = mapOf(
         "freebuds-5" to ModelArt(
@@ -43,6 +50,15 @@ object ProductArt {
             right = R.drawable.battery_bud_right_freebuds_pro_5,
             thumbnail = R.drawable.thumb_buds_freebuds_pro_5,
             case = R.drawable.battery_case_freebuds_pro_5,
+        ),
+        // Pro 2 and Pro 3 look the same, so they share one set of renders.
+        "freebuds-pro-2" to PRO_2_3,
+        "freebuds-pro-3" to PRO_2_3,
+        "freebuds-pro-4" to ModelArt(
+            left = R.drawable.battery_bud_left_freebuds_pro_4,
+            right = R.drawable.battery_bud_right_freebuds_pro_4,
+            thumbnail = R.drawable.thumb_buds_freebuds_pro_4,
+            case = R.drawable.battery_case_freebuds_pro_4,
         ),
     )
 
