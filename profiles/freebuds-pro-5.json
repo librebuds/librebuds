@@ -18,10 +18,10 @@
   "art": "stem",
   "capabilities": {
     "battery": {
-      "verified": null
+      "verified": "2026-10-03"
     },
     "anc": {
-      "verified": null,
+      "verified": "2026-10-03",
       "cancellationLevels": [
         3,
         1,
@@ -39,10 +39,10 @@
       }
     },
     "wear": {
-      "verified": null
+      "verified": "2026-10-03"
     },
     "gestures": {
-      "verified": null,
+      "verified": "2026-10-03",
       "doubleTap": {
         "inCall": true,
         "bothSides": true,
@@ -92,7 +92,7 @@
       }
     },
     "equalizer": {
-      "verified": null,
+      "verified": "2026-10-03",
       "presets": {
         "0": "default",
         "1": "default",
@@ -130,7 +130,7 @@
       }
     },
     "lowLatency": {
-      "verified": null
+      "verified": "2026-10-03"
     },
     "soundQuality": {
       "verified": null,
@@ -146,7 +146,7 @@
       "verified": null
     },
     "pinch": {
-      "verified": null,
+      "verified": "2026-10-03",
       "slots": [
         {
           "type": 0,
@@ -200,19 +200,19 @@
       ]
     },
     "singleBudAnc": {
-      "verified": null
+      "verified": "2026-10-03"
     },
     "adaptiveVolume": {
-      "verified": null
+      "verified": "2026-10-03"
     },
     "aiConversation": {
-      "verified": null
+      "verified": "2026-10-03"
     },
     "earTip": {
       "verified": null
     },
     "headControl": {
-      "verified": null,
+      "verified": "2026-10-03",
       "actions": {
         "1": "answer",
         "2": "reject",
@@ -220,13 +220,13 @@
       }
     },
     "findEarbuds": {
-      "verified": null
+      "verified": "2026-10-03"
     },
     "restReminder": {
       "verified": null
     },
     "pickupMode": {
-      "verified": null
+      "verified": "2026-10-03"
     }
   }
 }

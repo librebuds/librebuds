@@ -102,6 +102,8 @@ class ProfileRegistryTest {
             "freebuds-pro-3" to setOf("battery", "anc", "wear", "gestures", "equalizer", "multipoint", "language"),
             "freebuds-pro-2" to setOf("battery", "anc"),
         )
+        // Confirmed on a FreeBuds Pro 5 on 2026-10-03: every write acknowledged and read back.
+        val confirmedOnPro5 = setOf("wear", "gestures", "equalizer", "lowLatency")
         val newCapabilities = listOf("wear", "gestures", "equalizer", "lowLatency", "soundQuality", "multipoint", "language")
 
         fun assertOptions(id: String, label: String, value: JsonElement?) {
@@ -120,6 +122,8 @@ class ProfileRegistryTest {
                 if (id == "freebuds-5" && capability == "soundQuality") {
                     // Smart HD writes confirmed on FreeBuds 5 (2B/A2 status 100000, 2B/A3 TLV 2 followed).
                     assertEquals("2026-10-02", profile.verifiedOn(capability), "$id: $capability was confirmed on 2026-10-02")
+                } else if (id == "freebuds-pro-5" && capability in confirmedOnPro5) {
+                    assertEquals("2026-10-03", profile.verifiedOn(capability), "$id: $capability was confirmed on 2026-10-03")
                 } else if (capability in confirmed) {
                     assertEquals("2026-09-29", profile.verifiedOn(capability), "$id: $capability was confirmed in round 2")
                 } else {

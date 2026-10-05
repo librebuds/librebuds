@@ -24,6 +24,7 @@ import io.github.librebuds.ui.model.controlKey
 import io.github.librebuds.ui.model.optionLabelRes
 import io.github.librebuds.ui.model.settingsModel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -73,7 +74,9 @@ class FeatureSettingsModelTest {
         assertNull("not listed for Pro 5", m.hdCall)
         assertEquals(0, m.pickupMode!!.current)
         assertEquals(true, m.findEarbuds!![Side.RIGHT])
-        assertTrue("pinch" in m.experimental)
+        // Confirmed on hardware on 2026-10-03; ear tips were not part of that run.
+        assertFalse("pinch" in m.experimental)
+        assertTrue("earTip" in m.experimental)
     }
 
     @Test
