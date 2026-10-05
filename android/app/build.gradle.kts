@@ -35,8 +35,8 @@ android {
         applicationId = "io.github.librebuds"
         minSdk = 33
         targetSdk = 37
-        versionCode = 18
-        versionName = "0.1.0-test.18"
+        versionCode = 19
+        versionName = "0.1.0-test.19"
         buildConfigField("String", "BUILD_COMMIT", "\"$buildCommit\"")
     }
 
