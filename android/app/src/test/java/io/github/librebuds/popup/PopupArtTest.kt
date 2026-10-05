@@ -40,10 +40,10 @@ class PopupArtTest {
             "freebuds-4" to (R.raw.popup_freebuds_4_light to R.raw.popup_freebuds_4_dark),
             "freebuds-5" to (R.raw.popup_freebuds_5_light to R.raw.popup_freebuds_5_dark),
             "freebuds-6" to (R.raw.popup_freebuds_6_light to R.raw.popup_freebuds_6_dark),
-            "freebuds-pro-2" to (R.raw.popup_freebuds_pro_light to R.raw.popup_freebuds_pro_dark),
-            "freebuds-pro-3" to (R.raw.popup_freebuds_pro_light to R.raw.popup_freebuds_pro_dark),
-            "freebuds-pro-4" to (R.raw.popup_freebuds_pro_light to R.raw.popup_freebuds_pro_dark),
-            "freebuds-pro-5" to (R.raw.popup_freebuds_pro_light to R.raw.popup_freebuds_pro_dark),
+            "freebuds-pro-2" to (R.raw.popup_freebuds_pro_2_light to R.raw.popup_freebuds_pro_2_dark),
+            "freebuds-pro-3" to (R.raw.popup_freebuds_pro_3_light to R.raw.popup_freebuds_pro_3_dark),
+            "freebuds-pro-4" to (R.raw.popup_freebuds_pro_4_light to R.raw.popup_freebuds_pro_4_dark),
+            "freebuds-pro-5" to (R.raw.popup_freebuds_pro_5_light to R.raw.popup_freebuds_pro_5_dark),
         )
         assertEquals(expected, PopupVideos.clips)
         for ((id, clip) in expected) {
@@ -52,9 +52,8 @@ class PopupArtTest {
             assertEquals(id, clip.first, art.videoLight)
             assertEquals(id, clip.second, art.videoDark)
         }
-        // Ten distinct clips: FreeBuds 3, 4, 5 and 6 have their own, the Pro models share one,
-        // and light differs from dark.
-        assertEquals(10, expected.values.flatMap { listOf(it.first, it.second) }.toSet().size)
+        // Every model has its own clips, and light differs from dark.
+        assertEquals(16, expected.values.flatMap { listOf(it.first, it.second) }.toSet().size)
     }
 
     @Test

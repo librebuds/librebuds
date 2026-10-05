@@ -37,8 +37,14 @@ ALLOWED_FILES = [
     "main/res/raw/popup_freebuds_5_dark.mp4",
     "main/res/raw/popup_freebuds_6_light.mp4",
     "main/res/raw/popup_freebuds_6_dark.mp4",
-    "main/res/raw/popup_freebuds_pro_light.mp4",
-    "main/res/raw/popup_freebuds_pro_dark.mp4",
+    "main/res/raw/popup_freebuds_pro_2_light.mp4",
+    "main/res/raw/popup_freebuds_pro_2_dark.mp4",
+    "main/res/raw/popup_freebuds_pro_3_light.mp4",
+    "main/res/raw/popup_freebuds_pro_3_dark.mp4",
+    "main/res/raw/popup_freebuds_pro_4_light.mp4",
+    "main/res/raw/popup_freebuds_pro_4_dark.mp4",
+    "main/res/raw/popup_freebuds_pro_5_light.mp4",
+    "main/res/raw/popup_freebuds_pro_5_dark.mp4",
 ]
 # XML numeric character references pointing into the SF Symbols private-use ranges (hex or decimal).
 NUMERIC_CHAR_REF = re.compile(r"&#(x[0-9a-fA-F]+|[0-9]+);")

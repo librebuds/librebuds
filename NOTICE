@@ -27,8 +27,6 @@ Third-party references:
   res/drawable-night-nodpi/*.webp, res/mipmap-*/ic_launcher_foreground.webp, and the
   vectors derived from them: res/drawable/ic_launcher_monochrome.xml and ic_buds.xml):
   LibreBuds original artwork generated with an image model; no third-party licence. This does
-  not cover the FreeBuds 3 and FreeBuds 4 files (*_freebuds_3.webp, *_freebuds_4.webp).
+  not cover the per-model earbud files (*_freebuds_*.webp).
 - Inter typeface (SIL Open Font License 1.1), loaded at runtime through Google Fonts.
-- Case animations (android/app/src/main/res/raw/popup_*.mp4): LibreBuds original artwork generated
-  with image and video models, except popup_freebuds_3_*.mp4 and popup_freebuds_4_*.mp4, which
-  this statement does not cover.
+- Case animations (android/app/src/main/res/raw/popup_*.mp4): not covered by the statements above.
