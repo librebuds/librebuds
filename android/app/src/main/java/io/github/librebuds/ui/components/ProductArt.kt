@@ -33,6 +33,12 @@ object ProductArt {
 
     /** Profile id to its own renders, for the profiles that get a model-specific product shot. */
     private val MODEL_OVERRIDES: Map<String, ModelArt> = mapOf(
+        "freebuds-3" to ModelArt(
+            left = R.drawable.battery_bud_left_freebuds_3,
+            right = R.drawable.battery_bud_right_freebuds_3,
+            thumbnail = R.drawable.thumb_buds_freebuds_3,
+            case = R.drawable.battery_case_freebuds_3,
+        ),
         "freebuds-4" to ModelArt(
             left = R.drawable.battery_bud_left_freebuds_4,
             right = R.drawable.battery_bud_right_freebuds_4,

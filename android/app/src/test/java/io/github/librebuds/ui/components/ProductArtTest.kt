@@ -29,7 +29,7 @@ class ProductArtTest {
         assertEquals(R.drawable.battery_case, ProductArt.case())
         assertEquals(R.drawable.battery_case, ProductArt.case(null))
         assertEquals(R.drawable.battery_case, ProductArt.case("generic"))
-        assertEquals(R.drawable.battery_case, ProductArt.case("freebuds-3"))
+        assertEquals(R.drawable.battery_case, ProductArt.case("freebuds-se"))
     }
 
     @Test
@@ -70,9 +70,9 @@ class ProductArtTest {
 
     @Test
     fun otherModelsKeepTheShapeBasedRenderEvenWithAProfileId() {
-        assertEquals(R.drawable.battery_bud_left_round, ProductArt.bud(true, "round", "freebuds-3"))
-        assertEquals(R.drawable.battery_bud_right_round, ProductArt.bud(false, "round", "freebuds-3"))
-        assertEquals(R.drawable.thumb_buds_round, ProductArt.thumbnail("round", "freebuds-3"))
+        assertEquals(R.drawable.battery_bud_left_round, ProductArt.bud(true, "round", "freebuds-se"))
+        assertEquals(R.drawable.battery_bud_right_round, ProductArt.bud(false, "round", "freebuds-se"))
+        assertEquals(R.drawable.thumb_buds_round, ProductArt.thumbnail("round", "freebuds-se"))
         assertEquals(R.drawable.battery_bud_left_stem, ProductArt.bud(true, "stem", "freebuds-pro-6"))
         assertEquals(R.drawable.battery_bud_right_stem, ProductArt.bud(false, "stem", "freebuds-pro-6"))
     }
@@ -98,7 +98,7 @@ class ProductArtTest {
         assertEquals(R.drawable.battery_case_freebuds_6, ProductArt.part(BatteryPart.CASE, "round", "freebuds-6"))
         assertEquals(R.drawable.battery_bud_left_stem, ProductArt.part(BatteryPart.LEFT, "stem"))
         assertEquals(R.drawable.battery_bud_right_round, ProductArt.part(BatteryPart.RIGHT, "generic"))
-        assertEquals(R.drawable.battery_case, ProductArt.part(BatteryPart.CASE, "stem", "freebuds-3"))
+        assertEquals(R.drawable.battery_case, ProductArt.part(BatteryPart.CASE, "stem", "freebuds-se"))
         assertEquals(R.drawable.battery_case_freebuds_4, ProductArt.part(BatteryPart.CASE, "stem", "freebuds-4"))
     }
 

@@ -29,6 +29,8 @@ BANNED_FILE_GLOBS = [
 # Our own case-opening clips for the card popup (LibreBuds original artwork, see NOTICE) are the only
 # videos allowed. Exact paths, relative to android/app/src.
 ALLOWED_FILES = [
+    "main/res/raw/popup_freebuds_3_light.mp4",
+    "main/res/raw/popup_freebuds_3_dark.mp4",
     "main/res/raw/popup_freebuds_4_light.mp4",
     "main/res/raw/popup_freebuds_4_dark.mp4",
     "main/res/raw/popup_freebuds_5_light.mp4",
