@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.ui.other.VendorProtocols
 import io.github.librebuds.ui.other.shouldProbeVendorWhenViewed
 import io.github.librebuds.ui.other.PairFreeController
@@ -82,6 +83,10 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
         !pair.name.contains("FreeBuds", ignoreCase = true)
     val shouldProbeVendor = shouldProbeVendorWhenViewed(pair.name, pair.brand, pair.connected)
     LaunchedEffect(controller, shouldProbeVendor) {
+        if (samsungProbe) {
+            LibreBudsApp.from(context).eventLog.record("PairFreeSamsung",
+                "Samsung device screen opened; vendorProbe=$shouldProbeVendor; audioConnected=${pair.connected}")
+        }
         if (shouldProbeVendor) controller?.run() else controller?.close()
     }
     DisposableEffect(controller) {
