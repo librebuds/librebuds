@@ -69,7 +69,19 @@ fun LibreBudsTheme(
     val colorScheme = when {
         m3eEnabled -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            val dynamic = if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (darkTheme && amoledBlack) {
+                dynamic.copy(
+                    background = Color.Black,
+                    surface = Color(0xFF050506),
+                    surfaceContainer = Color.Black,
+                    surfaceContainerLow = Color.Black,
+                    surfaceContainerHigh = Color(0xFF101114),
+                    surfaceContainerHighest = Color(0xFF17181B),
+                )
+            } else {
+                dynamic
+            }
         }
         darkTheme -> OneUiDarkColorScheme.copy(
             background = if (amoledBlack) Color.Black else OneUiDarkColorScheme.background,
