@@ -7,6 +7,8 @@
 **Open-source companion app for HUAWEI FreeBuds on Android.**<br />
 Battery, noise control, gestures, equalizer and a popup when you open the case. No root, no vendor app.
 
+Just added support for freebuds 6i
+
 <a href="https://github.com/librebuds/librebuds/releases"><img src="https://img.shields.io/github/v/release/librebuds/librebuds?include_prereleases&label=release" alt="Latest release" /></a>
 <a href="https://github.com/librebuds/librebuds/releases"><img src="https://img.shields.io/github/downloads/librebuds/librebuds/total?label=downloads" alt="Downloads" /></a>
 <a href="LICENSE"><img src="https://img.shields.io/github/license/librebuds/librebuds?color=blue" alt="License: GPL-3.0" /></a>
