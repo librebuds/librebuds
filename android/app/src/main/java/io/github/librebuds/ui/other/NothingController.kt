@@ -42,9 +42,9 @@ data class NothingStatus(
  *
  * BluetoothClassic sockets require the earbud to be bonded already.
  */
-class NothingController(private val context: Context, private val address: String, private val deviceName: String) {
+class NothingController(private val context: Context, private val address: String, private val deviceName: String) : VendorController {
     private val _state = MutableStateFlow(NothingStatus())
-    val state = _state.asStateFlow()
+    override val state = _state.asStateFlow()
     private val lock = Mutex()
     private val requestLock = Mutex()
     private var pendingResponse: Pair<Int, CompletableDeferred<NothingProtocol.Response>>? = null
@@ -57,7 +57,7 @@ class NothingController(private val context: Context, private val address: Strin
     private var activeScope: CoroutineScope? = null
 
     @SuppressLint("MissingPermission")
-    suspend fun run() {
+    override suspend fun run() {
         if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             _state.value = NothingStatus(error = "Bluetooth permission is required")
             return
@@ -159,7 +159,7 @@ class NothingController(private val context: Context, private val address: Strin
         }
     }
 
-    suspend fun changeNoise(mode: Int) {
+    override suspend fun changeNoise(mode: Int) {
         if (!_state.value.ready || mode !in listOf(1, 5, 7)) return
         // This is Nothing X SET_CURRENT_NOISE_REDUCTION (group 1, mode, zero).
         request(NothingProtocol.SET_NOISE, byteArrayOf(1, mode.toByte(), 0))
@@ -167,7 +167,7 @@ class NothingController(private val context: Context, private val address: Strin
         request(NothingProtocol.GET_NOISE, byteArrayOf(3))
     }
 
-    suspend fun changeEq(preset: Int) {
+    override suspend fun changeEq(preset: Int) {
         if (!_state.value.ready || _state.value.eq == null || preset !in 0..3) return
         request(NothingProtocol.SET_EQ_MODE, byteArrayOf(preset.toByte(), 0))
         delay(350)
@@ -206,7 +206,7 @@ class NothingController(private val context: Context, private val address: Strin
         }
     }
 
-    fun close() {
+    override fun close() {
         val old = socket
         socket = null
         runCatching { old?.close() }
