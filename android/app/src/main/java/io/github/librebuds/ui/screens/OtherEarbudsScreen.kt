@@ -23,6 +23,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import io.github.librebuds.ui.other.VendorProtocols
+import io.github.librebuds.ui.other.PairFreeController
+import io.github.omegadestroyer.pairfree.protocol.SettingTab
 import io.github.librebuds.ui.other.NothingProtocol
 import io.github.librebuds.ui.components.NoiseControlSettings
 import io.github.librebuds.ui.components.BatteryView
@@ -59,6 +61,7 @@ import io.github.librebuds.ui.components.StyledScaffold
 fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     var page by rememberSaveable(pair.address) { mutableIntStateOf(0) }
+    var controlsSection by rememberSaveable(pair.address) { mutableIntStateOf(0) }
     val audioManager = remember(context) { context.getSystemService(AudioManager::class.java) }
     val maxVolume = remember(audioManager) { audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC)?.coerceAtLeast(1) ?: 1 }
     var volume by remember(audioManager) { mutableFloatStateOf(audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC)?.toFloat() ?: 0f) }
@@ -67,6 +70,8 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
     }
     val scope = rememberCoroutineScope()
     val nothingStatus = controller?.state?.collectAsStateWithLifecycle()?.value
+    val pairfree = controller as? PairFreeController
+    val vendorGroups = pairfree?.groups?.collectAsStateWithLifecycle()?.value.orEmpty()
     LaunchedEffect(controller, pair.connected) {
         if (pair.connected) controller?.run() else controller?.close()
     }
@@ -167,6 +172,16 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                     }
                 }
                 1 -> {
+                    PremiumSegmentedTabs(
+                        labels = listOf(
+                            stringResource(R.string.device_section_audio),
+                            stringResource(R.string.device_section_gestures),
+                            stringResource(R.string.device_section_more)
+                        ),
+                        selected = controlsSection,
+                        onSelect = { controlsSection = it }
+                    )
+                    if (controlsSection == 0) {
                     if (pair.connected) {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
@@ -249,6 +264,38 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(stringResource(R.string.open_bluetooth_settings))
+                    }
+
+                        if (pairfree != null) {
+                            VendorSettingsSections(vendorGroups, SettingTab.SOUND, pairfree::changeSetting)
+                            VendorSettingsSections(vendorGroups, SettingTab.HOME, pairfree::changeSetting)
+                        }
+                    } else if (controlsSection == 1) {
+                        if (pairfree != null) {
+                            VendorSettingsSections(vendorGroups, SettingTab.CONTROLS, pairfree::changeSetting)
+                        }
+                        if (vendorGroups.none { it.tab == SettingTab.CONTROLS && it.settings.isNotEmpty() }) {
+                            DetailCard(
+                                title = stringResource(R.string.device_section_gestures),
+                                description = stringResource(R.string.other_controls_note)
+                            )
+                        }
+                    } else {
+                        if (pairfree != null) {
+                            VendorSettingsSections(vendorGroups, SettingTab.DEVICE, pairfree::changeSetting)
+                        }
+                        StyledButton(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            },
+                            backdrop = rememberLayerBackdrop(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.open_bluetooth_settings))
+                        }
                     }
                 }
                 else -> {
