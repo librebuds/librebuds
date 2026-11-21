@@ -1,0 +1,18 @@
+{
+  "id": "freebuds-se-3",
+  "name": "FreeBuds SE 3",
+  "match": {
+    "sku": [],
+    "modelId": [],
+    "productId": [],
+    "btName": [
+      "HUAWEI FreeBuds SE 3"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    }
+  }
+}
