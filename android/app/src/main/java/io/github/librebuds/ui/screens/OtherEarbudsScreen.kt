@@ -22,7 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import io.github.librebuds.ui.other.NothingController
+import io.github.librebuds.ui.other.VendorProtocols
 import io.github.librebuds.ui.other.NothingProtocol
 import io.github.librebuds.ui.components.NoiseControlSettings
 import io.github.librebuds.ui.components.BatteryView
@@ -62,11 +62,8 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
     val audioManager = remember(context) { context.getSystemService(AudioManager::class.java) }
     val maxVolume = remember(audioManager) { audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC)?.coerceAtLeast(1) ?: 1 }
     var volume by remember(audioManager) { mutableFloatStateOf(audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC)?.toFloat() ?: 0f) }
-    val isNothing = pair.brand == "Nothing / CMF" ||
-        pair.name.startsWith("Nothing ", ignoreCase = true) ||
-        pair.name.startsWith("CMF ", ignoreCase = true)
-    val controller = remember(context, pair.address, isNothing) {
-        if (isNothing) NothingController(context.applicationContext, pair.address, pair.name) else null
+    val controller = remember(context, pair.address, pair.name, pair.brand) {
+        VendorProtocols.open(context, pair.name, pair.address, pair.brand)
     }
     val scope = rememberCoroutineScope()
     val nothingStatus = controller?.state?.collectAsStateWithLifecycle()?.value
