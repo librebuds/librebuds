@@ -30,7 +30,7 @@ LibreBuds+ includes the pinned [PairFree](https://github.com/Omega-Destroyer/Pai
 | --- | --- | --- |
 | SOUNDPEATS | **Needs testing** | PairFree driver/model detection; battery and vendor settings dependent on model |
 | Soundcore / Anker | **Needs testing** | PairFree driver; battery, ANC, EQ/settings where supported |
-| Samsung Galaxy Buds | **Needs testing** | PairFree driver; feature/firmware support not confirmed |
+| Samsung Galaxy Buds (including Buds2 Pro) | **Needs testing** | Strict Galaxy Buds model-name aliases and optional four-digit factory suffix recognized in alpha; PairFree's Samsung protocol is experimental and real-hardware controls remain unverified. The main FreeBuds-only service intentionally does not manage Galaxy Buds. |
 | Sony (WF / WH) | **Needs testing** | PairFree driver; feature/firmware support not confirmed |
 | Bose | **Needs testing** | PairFree driver; feature/firmware support not confirmed |
 | JBL | **Needs testing** | PairFree driver; feature/firmware support not confirmed |
