@@ -54,7 +54,7 @@ fun NoiseControlSettings(
     if (options.isEmpty()) return
     val colors = MaterialTheme.colorScheme
 
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
         Text(
             text = stringResource(R.string.noise_control),
             style = MaterialTheme.typography.titleMedium,
@@ -64,7 +64,7 @@ fun NoiseControlSettings(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(17.dp))
                 .background(colors.surfaceContainerHigh)
                 .padding(5.dp)
                 .selectableGroup(),
@@ -81,22 +81,22 @@ fun NoiseControlSettings(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(19.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(fill.value)
                         .selectable(
                             selected = active,
                             role = Role.RadioButton,
                             onClick = { if (!active) onSelected(option.mode) }
                         )
-                        .padding(horizontal = 3.dp, vertical = 12.dp),
+                        .padding(horizontal = 3.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Icon(
                         imageVector = ImageVector.vectorResource(option.icon),
                         contentDescription = null,
                         tint = ink,
-                        modifier = Modifier.size(27.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                     Text(
                         text = stringResource(option.label),
