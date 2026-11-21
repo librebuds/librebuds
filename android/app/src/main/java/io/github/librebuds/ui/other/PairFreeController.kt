@@ -7,6 +7,7 @@ import android.Manifest
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
+import io.github.librebuds.LibreBudsApp
 import io.github.omegadestroyer.pairfree.bluetooth.AndroidTransport
 import io.github.omegadestroyer.pairfree.bluetooth.androidPlatform
 import io.github.omegadestroyer.pairfree.bluetooth.EarbudsConnection
@@ -51,6 +52,13 @@ class PairFreeController(
     val eqState: StateFlow<EqState?> = _eqState.asStateFlow()
     private var equalizer: Equalizer? = null
 
+    /** Export only non-identifying vendor results for Galaxy Buds hardware diagnosis. */
+    private fun samsungDiagnostic(message: String) {
+        if (deviceName.contains("Galaxy Buds", ignoreCase = true)) {
+            LibreBudsApp.from(context).eventLog.record("PairFreeSamsung", message)
+        }
+    }
+
     override suspend fun run() {
         if (OtherEarbudsCatalog.isHuaweiManaged(deviceName)) {
             _state.value = NothingStatus(error = "Huawei earbuds use the original FreeBuds controller.")
@@ -72,6 +80,7 @@ class PairFreeController(
             val uuids = pairedDevice.uuids?.map { it.toString() }.orEmpty()
             val maker = Identify.maker(deviceName, uuids)
             val matched = maker?.let { Brands[it].paired(address, deviceName, uuids) }
+            samsungDiagnostic("identified maker=${maker?.name ?: "none"}, modelMatch=${matched != null}, services=${uuids.size}")
             if (matched == null) {
                 _state.value = NothingStatus(status = "Standard Bluetooth audio",
                     error = "A vendor control protocol could not be identified for this model.")
@@ -100,6 +109,7 @@ class PairFreeController(
                     controller.status.collect { status ->
                         when (status) {
                             is LinkStatus.Connected -> {
+                                samsungDiagnostic("vendor settings channel connected")
                                 _state.value = _state.value.copy(status = "Connected", ready = true, error = null)
                                 eqOpener.open(matched, Brands[matched.brand].model(matched, controller.state.value))
                             }
