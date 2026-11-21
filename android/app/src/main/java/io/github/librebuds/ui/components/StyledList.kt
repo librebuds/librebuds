@@ -116,9 +116,7 @@ class StyledListScope {
 @Preview(showBackground = true, wallpaper = GREEN_DOMINATED_EXAMPLE, uiMode = UI_MODE_NIGHT_YES)
 @Composable
 fun StyledListDemo() {
-    LibreBudsTheme(
-        m3eEnabled = true
-    ) {
+    LibreBudsTheme() {
         val backgroundC = MaterialTheme.colorScheme.background
         StyledScaffold(
             title = "${backgroundC.red}, ${backgroundC.green}, ${backgroundC.blue}"
