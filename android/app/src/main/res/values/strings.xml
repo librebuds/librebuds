@@ -233,4 +233,7 @@
     <string name="device_tab_details">Details</string>
     <string name="device_battery_status">Battery status</string>
     <string name="device_quick_actions">Quick settings</string>
+    <string name="device_section_audio">Audio</string>
+    <string name="device_section_gestures">Gestures</string>
+    <string name="device_section_more">More</string>
 </resources>
