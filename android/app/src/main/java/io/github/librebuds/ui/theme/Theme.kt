@@ -35,28 +35,42 @@ import androidx.compose.ui.platform.LocalContext
 val ColorScheme.sectionHeader: Color
     get() = onBackground.copy(alpha = 0.6f)
 
-private val OneUiDarkColorScheme = darkColorScheme(
-    surfaceContainer = Color(0xFF000000), // for some reason background is not used as the background in gmail and settings app, but surfacecontainer, so using that
-    onBackground = Color(0xFFFFFFFF),
-    surface = Color(0xFF1C1D21),
-    onSurface = Color(0xFFFFFFFF),
-    surfaceDim = Color(0x40888888),
-    primary = Color(0xFF4F8CFF),
-    secondaryContainer = Color(0xFF263C68),
-    onSecondaryContainer = Color(0xFF8FB5FF),
-    onPrimary = Color(0xFFFFFFFF)
+// QuickBuds-inspired neutral palette: true black in AMOLED mode, charcoal panels otherwise.
+private val QuickDark = darkColorScheme(
+    primary = Color(0xFF79D3CD),
+    onPrimary = Color(0xFF003936),
+    primaryContainer = Color(0xFF23514F),
+    onPrimaryContainer = Color(0xFFD1F7F2),
+    background = Color(0xFF0E1013),
+    onBackground = Color(0xFFF4F5F7),
+    surface = Color(0xFF191C20),
+    onSurface = Color(0xFFF4F5F7),
+    surfaceContainer = Color(0xFF0E1013),
+    surfaceContainerLow = Color(0xFF171A1E),
+    surfaceContainerHigh = Color(0xFF25292F),
+    surfaceContainerHighest = Color(0xFF2C3137),
+    outlineVariant = Color(0xFF454A50),
+    onSurfaceVariant = Color(0xFFAFB8BD),
+    secondaryContainer = Color(0xFF294743),
+    onSecondaryContainer = Color(0xFFD3F3EC)
 )
 
-private val OneUiLightColorScheme = lightColorScheme(
-    surfaceContainer = Color(0xFFF5F6F8),
-    onBackground = Color(0xFF000000),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF000000),
-    surfaceDim = Color(0x40D9D9D9),
-    secondaryContainer = Color(0xFFDCE7FF),
-    onSecondaryContainer = Color(0xFF2D5FB8),
-    primary = Color(0xFF2D6CDF),
-    onPrimary = Color(0xFFFFFFFF)
+private val QuickLight = lightColorScheme(
+    primary = Color(0xFF006B66),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFBBEDE7),
+    onPrimaryContainer = Color(0xFF003D39),
+    background = Color(0xFFF3F5F6),
+    onBackground = Color(0xFF161A1D),
+    surface = Color.White,
+    onSurface = Color(0xFF161A1D),
+    surfaceContainer = Color(0xFFF3F5F6),
+    surfaceContainerLow = Color.White,
+    surfaceContainerHigh = Color(0xFFE7ECEE),
+    surfaceContainerHighest = Color(0xFFDCE5E6),
+    outlineVariant = Color(0xFFC2CFD1),
+    onSurfaceVariant = Color(0xFF536063),
+    secondaryContainer = Color(0xFFCCEAE5)
 )
 
 @Composable
@@ -64,35 +78,20 @@ fun LibreBudsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     m3eEnabled: Boolean = false,
     amoledBlack: Boolean = false,
+    accentPreset: AccentPreset = AccentPreset.MINT,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        m3eEnabled -> {
-            val context = LocalContext.current
-            val dynamic = if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            if (darkTheme && amoledBlack) {
-                dynamic.copy(
-                    background = Color.Black,
-                    surface = Color(0xFF050506),
-                    surfaceContainer = Color.Black,
-                    surfaceContainerLow = Color.Black,
-                    surfaceContainerHigh = Color(0xFF101114),
-                    surfaceContainerHighest = Color(0xFF17181B),
-                )
-            } else {
-                dynamic
-            }
-        }
-        darkTheme -> OneUiDarkColorScheme.copy(
-            background = if (amoledBlack) Color.Black else OneUiDarkColorScheme.background,
-            surface = if (amoledBlack) Color(0xFF090A0C) else OneUiDarkColorScheme.surface,
-            surfaceContainer = if (amoledBlack) Color.Black else OneUiDarkColorScheme.surfaceContainer,
-            surfaceContainerLow = if (amoledBlack) Color.Black else OneUiDarkColorScheme.surfaceContainerLow,
-            surfaceContainerHigh = if (amoledBlack) Color(0xFF111214) else OneUiDarkColorScheme.surfaceContainerHigh,
-            surfaceContainerHighest = if (amoledBlack) Color(0xFF18191C) else OneUiDarkColorScheme.surfaceContainerHighest,
-        )
-        else -> OneUiLightColorScheme
-    }
+    val initial = if (darkTheme) QuickDark else QuickLight
+    val accent = if (darkTheme) accentPreset.dark else accentPreset.light
+    val base = initial.copy(primary = accent, primaryContainer = accent.copy(alpha = 0.25f), onPrimaryContainer = initial.onSurface)
+    val colorScheme = if (darkTheme && amoledBlack) base.copy(
+        background = Color.Black,
+        surfaceContainer = Color.Black,
+        surface = Color(0xFF0B0D0F),
+        surfaceContainerLow = Color(0xFF101215),
+        surfaceContainerHigh = Color(0xFF1B1E22),
+        surfaceContainerHighest = Color(0xFF262A2F)
+    ) else base
 
     CompositionLocalProvider(
         LocalDesignSystem provides

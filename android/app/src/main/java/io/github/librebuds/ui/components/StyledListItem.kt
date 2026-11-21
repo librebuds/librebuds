@@ -357,11 +357,11 @@ private fun StyledListItemContent(
 
         DesignSystem.Material -> {
             val defaultShape = when {
-                count == 1 -> RoundedCornerShape(24.dp)
+                count == 1 -> RoundedCornerShape(18.dp)
 
                 index == 0 -> RoundedCornerShape(
-                    topStart = 24.dp,
-                    topEnd = 24.dp,
+                    topStart = 18.dp,
+                    topEnd = 18.dp,
                     bottomStart = 8.dp,
                     bottomEnd = 8.dp
                 )
@@ -369,18 +369,18 @@ private fun StyledListItemContent(
                 index == count - 1 -> RoundedCornerShape(
                     topStart = 8.dp,
                     topEnd = 8.dp,
-                    bottomStart = 24.dp,
-                    bottomEnd = 24.dp
+                    bottomStart = 18.dp,
+                    bottomEnd = 18.dp
                 )
 
                 else -> RoundedCornerShape(8.dp)
             }
             Column {
                 SegmentedListItem(
-                    modifier = modifier.heightIn(min = 64.dp),
+                    modifier = modifier.heightIn(min = 52.dp),
                     shapes = ListItemDefaults.shapes().copy(
                         shape = defaultShape,
-                        pressedShape = RoundedCornerShape(24.dp),
+                        pressedShape = RoundedCornerShape(18.dp),
                         selectedShape = RoundedCornerShape(24.dp),
                         hoveredShape = RoundedCornerShape(24.dp),
                     ),
@@ -416,8 +416,8 @@ private fun StyledListItemContent(
                             text = name,
                             style = MaterialTheme.typography.labelMediumEmphasized,
                             modifier = Modifier.alpha(contentAlpha).padding(
-                                top = 4.dp,
-                                bottom = if (description != null) 0.dp else 4.dp
+                                top = 2.dp,
+                                bottom = if (description != null) 0.dp else 2.dp
                             )
                         )
                     },

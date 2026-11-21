@@ -3,6 +3,14 @@ package io.github.librebuds.ui.screens
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -63,31 +71,28 @@ fun DeviceSettingsSections(
     val model = ui.model
     var request by remember { mutableStateOf<PickerRequest?>(null) }
     val open: (PickerRequest) -> Unit = { request = it }
-    val experimental = stringResource(R.string.experimental)
-    fun note(vararg capabilities: String) = experimental.takeIf { capabilities.any { it in model.experimental } }
+    // Keep hardware verification metadata in the model, not repeated in every settings card.
+    fun note(vararg capabilities: String): String? = null
 
-    NoiseExtrasSection(model, note("anc", "singleBudAnc"), open, onChange)
-    AdaptiveAudioSection(model, note("adaptiveVolume", "aiConversation"), onChange)
-    if (model.gestures.isNotEmpty()) {
-        StyledList(title = stringResource(R.string.section_gestures), description = note("gestures")) {
-            model.gestures.forEach { GestureRows(it, onChange, open) }
+    // Three focused groups replace the old endless list. All existing controls stay reachable.
+    var section by remember { mutableStateOf(0) }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        listOf(R.string.device_section_audio, R.string.device_section_gestures, R.string.device_section_more).forEachIndexed { index, label ->
+            FilterChip(
+                modifier = Modifier.weight(1f),
+                selected = section == index,
+                onClick = { section = index },
+                label = { Text(stringResource(label), maxLines = 1) }
+            )
         }
     }
-    PinchSection(model, note("pinch"), open, onChange)
-    HeadControlSection(model, note("headControl"), open, onChange)
-    val wearExtras = model.earTip != null || Feature.DROP_DETECTION in model.switches || model.restReminder != null
-    if (model.wear != null || wearExtras) {
-        StyledList(title = stringResource(R.string.section_wear), description = note("wear", "earTip", "dropDetection", "restReminder")) {
-            model.wear?.let { wear ->
-                StyledToggle(
-                    label = stringResource(R.string.wear_detection),
-                    checked = wear,
-                    onCheckedChange = { onChange(SettingChange.Wear(it)) }
-                )
-            }
-            WearExtraRows(model, open, onChange)
-        }
-    }
+    when (section) {
+        0 -> {
+            NoiseExtrasSection(model, note("anc", "singleBudAnc"), open, onChange)
+            AdaptiveAudioSection(model, note("adaptiveVolume", "aiConversation"), onChange)
     model.equalizer?.let { picker ->
         StyledList(title = stringResource(R.string.section_equalizer), description = note("equalizer")) {
             PickerRow(stringResource(R.string.equalizer_preset), picker, open, live = { it.equalizer }) { onChange(SettingChange.EqualizerPreset(it)) }
@@ -127,7 +132,7 @@ fun DeviceSettingsSections(
                     }
                 }
                 // Read-only: language writes are out of scope.
-                model.language?.let { language ->
+                model.language?.takeIf { it.current != null }?.let { language ->
                     StyledListItem(
                         name = stringResource(R.string.voice_language),
                         description = described("language", language.current ?: stringResource(R.string.not_reported))
@@ -151,6 +156,30 @@ fun DeviceSettingsSections(
             )
         }
     }
+        }
+        1 -> {
+    if (model.gestures.isNotEmpty()) {
+        StyledList(title = stringResource(R.string.section_gestures), description = note("gestures")) {
+            model.gestures.forEach { GestureRows(it, onChange, open) }
+        }
+    }
+    PinchSection(model, note("pinch"), open, onChange)
+    HeadControlSection(model, note("headControl"), open, onChange)
+        }
+        else -> {
+    val wearExtras = model.earTip != null || Feature.DROP_DETECTION in model.switches || model.restReminder != null
+    if (model.wear != null || wearExtras) {
+        StyledList(title = stringResource(R.string.section_wear), description = note("wear", "earTip", "dropDetection", "restReminder")) {
+            model.wear?.let { wear ->
+                StyledToggle(
+                    label = stringResource(R.string.wear_detection),
+                    checked = wear,
+                    onCheckedChange = { onChange(SettingChange.Wear(it)) }
+                )
+            }
+            WearExtraRows(model, open, onChange)
+        }
+    }
     model.findEarbuds?.let { ringing -> FindEarbudsSection(ringing, note("findEarbuds"), onRing) }
     model.multipointEnabled?.let { enabled ->
         StyledList(title = stringResource(R.string.section_multipoint), description = note("multipoint")) {
@@ -159,6 +188,9 @@ fun DeviceSettingsSections(
                 description = stringResource(if (enabled) R.string.on else R.string.off),
                 onClick = onOpenMultipoint
             )
+        }
+    }
+
         }
     }
 

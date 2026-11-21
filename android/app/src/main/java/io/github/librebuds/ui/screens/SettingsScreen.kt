@@ -2,6 +2,21 @@
 package io.github.librebuds.ui.screens
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -20,6 +35,7 @@ import io.github.librebuds.ui.components.StyledToggle
 import io.github.librebuds.ui.screens.onboarding.OverlayAccess
 import io.github.librebuds.ui.screens.onboarding.PermissionHintRow
 import io.github.librebuds.ui.theme.DesignSystem
+import io.github.librebuds.ui.theme.AccentPreset
 
 @Composable
 fun SettingsScreen(
@@ -27,6 +43,8 @@ fun SettingsScreen(
     onDesignSystemChange: (DesignSystem) -> Unit,
     amoledBlack: Boolean,
     onAmoledBlackChange: (Boolean) -> Unit,
+    accentPreset: AccentPreset,
+    onAccentPresetChange: (AccentPreset) -> Unit,
     showOffMode: Boolean,
     onShowOffModeChange: (Boolean) -> Unit,
     showIsland: Boolean,
@@ -58,7 +76,7 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(screenContentPadding())
         ) {
-            StyledList {
+            StyledList(title = "Appearance") {
                 StyledToggle(
                     label = stringResource(R.string.material_you_style),
                     checked = designSystem == DesignSystem.Material,
@@ -70,6 +88,39 @@ fun SettingsScreen(
                     checked = amoledBlack,
                     onCheckedChange = onAmoledBlackChange
                 )
+            }
+            Text(
+                text = "Accent color",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 8.dp)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AccentPreset.entries.forEach { preset ->
+                    val selected = preset == accentPreset
+                    Column(
+                        modifier = Modifier.clickable { onAccentPresetChange(preset) }.padding(4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        androidx.compose.foundation.layout.Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(preset.dark)
+                                .then(if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (selected) Text("✓", color = Color.Black)
+                        }
+                        Text(preset.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+                    }
+                }
+            }
+            StyledList(title = "App controls") {
                 StyledToggle(
                     label = stringResource(R.string.show_off_mode),
                     checked = showOffMode,

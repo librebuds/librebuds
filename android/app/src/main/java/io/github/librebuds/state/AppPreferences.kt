@@ -8,6 +8,7 @@ import io.github.librebuds.beacon.PopupTimes
 import io.github.librebuds.beacon.ScanMarker
 import io.github.librebuds.popup.PopupStyle
 import io.github.librebuds.ui.theme.DesignSystem
+import io.github.librebuds.ui.theme.AccentPreset
 
 class AppPreferences(context: Context) {
     private val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -15,6 +16,10 @@ class AppPreferences(context: Context) {
     var onboardingDone: Boolean
         get() = prefs.getBoolean("onboarding_done", false)
         set(value) = prefs.edit { putBoolean("onboarding_done", value) }
+
+    var accentPreset: AccentPreset
+        get() = runCatching { AccentPreset.valueOf(prefs.getString("accent_preset", AccentPreset.MINT.name)!!) }.getOrDefault(AccentPreset.MINT)
+        set(value) = prefs.edit { putString("accent_preset", value.name) }
 
     var amoledBlack: Boolean
         get() = prefs.getBoolean("amoled_black", false)

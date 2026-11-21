@@ -13,6 +13,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -39,6 +43,7 @@ import io.github.librebuds.protocol.command.FeatureSwitch
 import io.github.librebuds.protocol.command.PinchSlot
 import io.github.librebuds.protocol.command.Side
 import io.github.librebuds.state.SettingChange
+import io.github.librebuds.ui.components.EqualizerCurve
 import io.github.librebuds.ui.components.StyledBottomSheet
 import io.github.librebuds.ui.components.StyledButton
 import io.github.librebuds.ui.components.StyledInputField
@@ -236,6 +241,11 @@ private fun CustomEqualizerEditor(preset: CustomPreset, existing: Boolean, onCha
     fun currentName() = name.text.toString().trim().take(Equalizer.MAX_NAME_LENGTH).ifEmpty { preset.id.toString() }
     Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         StyledInputField(inputState = name, focusRequester = focus, placeholder = stringResource(R.string.custom_preset_name))
+        EqualizerCurve(
+            gains = gains.toList(),
+            minGain = Equalizer.MIN_GAIN,
+            maxGain = Equalizer.MAX_GAIN
+        )
         BAND_LABELS.forEachIndexed { band, label ->
             CommittingSlider(
                 label = stringResource(R.string.eq_band_hz, label),
@@ -283,17 +293,55 @@ internal fun FindEarbudsSection(ringing: Map<Side, Boolean>, note: String?, onRi
     DisposableEffect(Unit) {
         onDispose { currentRinging.filterValues { it }.keys.forEach { ring(it, false) } }
     }
-    StyledList(title = stringResource(R.string.section_find), description = note ?: stringResource(R.string.find_warning)) {
-        listOf(Side.LEFT to R.string.find_left, Side.RIGHT to R.string.find_right).forEach { (side, label) ->
-            val on = ringing[side] == true
-            StyledListItem(
-                name = stringResource(label),
-                description = stringResource(if (on) R.string.find_stop else R.string.find_ring),
-                onClick = { onRing(side, !on) }
+    Text(
+        text = stringResource(R.string.section_find),
+        style = MaterialTheme.typography.titleSmall,
+        modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
+    )
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = stringResource(R.string.find_warning),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf(Side.LEFT to R.string.left, Side.RIGHT to R.string.right).forEach { (side, label) ->
+                    val active = ringing[side] == true
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(label),
+                            style = MaterialTheme.typography.labelMediumEmphasized,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (active) {
+                            FilledTonalButton(
+                                onClick = { onRing(side, false) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(stringResource(R.string.find_stop), maxLines = 1)
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { onRing(side, true) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(stringResource(R.string.find_ring), maxLines = 1)
+                            }
+                        }
+                    }
+                }
+            }
+            if (note != null) Text(note, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
-    if (note != null) Hint(stringResource(R.string.find_warning))
 }
 
 @Composable

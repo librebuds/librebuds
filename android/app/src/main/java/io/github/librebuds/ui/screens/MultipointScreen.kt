@@ -4,6 +4,13 @@ package io.github.librebuds.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
@@ -99,14 +106,40 @@ fun MultipointScreen(viewModel: SettingsViewModel, onNavigateBack: () -> Unit, b
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 } else {
-                    StyledList(title = stringResource(R.string.paired_devices)) {
-                        ui.state.hosts.forEach { host ->
-                            StyledListItem(
-                                name = host.name ?: host.mac,
-                                description = stringResource(host.statusRes()),
-                                onClick = if (connected) ({ selectedMac = host.mac }) else null,
-                                leadingContent = { PreferredMark(host.preferred) }
-                            )
+                    Text(
+                        text = stringResource(R.string.paired_devices),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
+                    ui.state.hosts.forEach { host ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(enabled = connected) { selectedMac = host.mac }
+                                    .padding(horizontal = 14.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                PreferredMark(host.preferred)
+                                androidx.compose.foundation.layout.Spacer(Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(host.name ?: host.mac, style = MaterialTheme.typography.bodyLarge)
+                                    Text(
+                                        stringResource(host.statusRes()),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (host.connected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Text(
+                                    text = if (host.connected) "●" else "○",
+                                    color = if (host.connected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
                         }
                     }
                 }

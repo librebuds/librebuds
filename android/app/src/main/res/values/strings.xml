@@ -38,7 +38,7 @@
     <string name="permission_app_info_hint">Android no longer shows this request. Open App info and allow it under Permissions. If it is blocked there, tap the ⋮ menu, choose Allow restricted settings, then try again.</string>
     <string name="open_app_info">Open app info</string>
     <string name="overlay_missing_reason">Needed for the island and the popup window; without it the popup shows as a notification</string>
-    <string name="material_you_style">One UI style</string>
+    <string name="material_you_style">QuickBuds-inspired style</string>
     <string name="amoled_black">AMOLED black</string>
     <string name="amoled_black_description">Use true black surfaces in dark mode to reduce OLED pixel usage.</string>
     <string name="show_off_mode">Show Off in noise control</string>
@@ -228,4 +228,12 @@
     <string name="find_ring">Play sound</string>
     <string name="find_stop">Stop</string>
     <string name="find_warning">Take the earbuds out of your ears first. The sound is loud.</string>
+    <string name="device_tab_home">Home</string>
+    <string name="device_tab_controls">Controls</string>
+    <string name="device_tab_details">Details</string>
+    <string name="device_battery_status">Battery status</string>
+    <string name="device_quick_actions">Quick settings</string>
+    <string name="device_section_audio">Audio</string>
+    <string name="device_section_gestures">Gestures</string>
+    <string name="device_section_more">More</string>
 </resources>

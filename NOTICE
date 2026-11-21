@@ -3,6 +3,7 @@ Copyright (C) 2026 LibreBuds contributors
 Licensed under the GNU General Public License v3.0.
 
 Third-party references:
+- QuickBuds (https://github.com/spizganed/QuickBuds, GPL-3.0): visual and interaction reference for compact battery rings, segmented noise controls, modal sheets and equalizer curves. LibreBuds' Compose counterparts were independently implemented; no QuickBuds Bluetooth protocol or original View classes are included.
 - OpenHarmony communication_dsoftbus (Apache License 2.0): FDEE service UUID used
   as a cross-reference for the beacon format.
 - Wire formats were learned through interoperability analysis (Directive 2009/24/EC,

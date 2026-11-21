@@ -61,19 +61,19 @@ fun StyledList(
                 modifier = Modifier
                     .background(if (m3eEnabled) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer)
                     .padding(horizontal = 16.dp)
-                    .padding(top = 4.dp, bottom = if (m3eEnabled) 12.dp else 4.dp)
+                    .padding(top = 4.dp, bottom = if (m3eEnabled) 7.dp else 4.dp)
             ) {
                 Text(
                     text = it,
                     color = if (m3eEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.sectionHeader,
-                    style = MaterialTheme.typography.labelSmallEmphasized
+                    style = if (m3eEnabled) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelSmallEmphasized
                 )
             }
         }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(if (m3eEnabled) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surface, RoundedCornerShape(28.dp))
+                .background(if (m3eEnabled) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
                 .clip(RoundedCornerShape(28.dp))
         ) {
             if (m3eEnabled && description != null) {

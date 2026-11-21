@@ -1,62 +1,42 @@
-/*
-    LibrePods - AirPods liberated from Apple’s ecosystem
-    Copyright (C) 2025 LibrePods contributors
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-    Modified for LibreBuds (2026): adapted to FreeBuds; see NOTICE.
-*/
-
-@file:OptIn(ExperimentalEncodingApi::class)
-
+// LibreBuds - Copyright (C) 2026 LibreBuds contributors - SPDX-License-Identifier: GPL-3.0-or-later
+// Compact status presentation inspired by the GPL-3.0 QuickBuds battery panel.
+// Independently implemented with LibreBuds' Compose state and model-specific artwork.
 package io.github.librebuds.ui.components
 
-import android.content.res.Configuration
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.runtime.Composable
 import io.github.librebuds.R
 import io.github.librebuds.ui.model.Battery
-import io.github.librebuds.ui.model.BatteryComponent
 import io.github.librebuds.ui.model.BatteryPart
 import io.github.librebuds.ui.model.BatteryPartUi
-import io.github.librebuds.ui.model.BatteryStatus
 import io.github.librebuds.ui.model.batteryParts
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
- * Left earbud, right earbud and case side by side, each with its own picture, ring and percentage.
- * A part with no level stays in place, dimmed, with a dash for its percentage.
+ * One compact three-slot battery status panel. The status remains based on the
+ * real FreeBuds battery reports; unreported values display an empty track and dash.
  */
 @Composable
 fun BatteryView(
@@ -65,48 +45,92 @@ fun BatteryView(
     profileId: String? = null
 ) {
     val parts = batteryParts(batteryList)
+    val ordered = listOf(BatteryPart.LEFT, BatteryPart.CASE, BatteryPart.RIGHT)
+        .mapNotNull { kind -> parts.firstOrNull { it.part == kind } }
 
-    Box(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.widthIn(max = 500.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            for (part in parts) {
-                Surface(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh
-                ) {
-                Column(
-                    modifier = Modifier.padding(vertical = 16.dp, horizontal = 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Image(
-                        painter = painterResource(ProductArt.part(part.part, art, profileId)),
-                        contentDescription = stringResource(part.imageLabel()),
-                        alpha = if (part.missing) MISSING_ALPHA else 1f,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(104.dp)
-                            .padding(4.dp)
-                    )
-
-                    BatteryIndicator(
-                        part.level,
-                        if (part.charging) BatteryStatus.CHARGING else BatteryStatus.NOT_CHARGING,
-                        prefix = stringResource(part.shortLabel())
-                    )
-                }
-                }
-            }
+        ordered.forEach { part ->
+            BatterySlot(part, art, profileId, Modifier.weight(1f))
         }
     }
 }
 
-private const val MISSING_ALPHA = 0.35f
+@Composable
+private fun BatterySlot(
+    part: BatteryPartUi,
+    art: String,
+    profileId: String?,
+    modifier: Modifier = Modifier
+) {
+    val progress = animateFloatAsState(
+        targetValue = ((part.level ?: 0).coerceIn(0, 100)) / 100f,
+        animationSpec = tween(durationMillis = 420),
+        label = "FreeBuds battery"
+    )
+    val colors = MaterialTheme.colorScheme
+    val track = colors.outlineVariant.copy(alpha = 0.48f)
+    val accent = if (part.level != null && part.level <= 20) colors.error else colors.primary
+
+    Column(
+        modifier = modifier.padding(vertical = 3.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        Box(modifier = Modifier.size(70.dp), contentAlignment = Alignment.Center) {
+            Canvas(modifier = Modifier.size(67.dp)) {
+                val stroke = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
+                drawArc(
+                    color = track,
+                    startAngle = -90f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    style = stroke
+                )
+                if (!part.missing) {
+                    drawArc(
+                        color = accent,
+                        startAngle = -90f,
+                        sweepAngle = 360f * progress.value,
+                        useCenter = false,
+                        style = stroke
+                    )
+                }
+            }
+            Image(
+                painter = painterResource(ProductArt.part(part.part, art, profileId)),
+                contentDescription = stringResource(part.imageLabel()),
+                alpha = if (part.missing) 0.35f else 1f,
+                modifier = Modifier.size(43.dp)
+            )
+            if (part.charging) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_charging),
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(18.dp)
+                )
+            }
+        }
+        Text(
+            text = stringResource(part.shortLabel()),
+            style = MaterialTheme.typography.labelMedium,
+            color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = part.level?.let { "$it%" } ?: "—",
+            style = MaterialTheme.typography.titleLarge,
+            color = if (part.missing) colors.onSurfaceVariant else colors.onSurface,
+            textAlign = TextAlign.Center
+        )
+    }
+}
 
 private fun BatteryPartUi.imageLabel(): Int = when (part) {
     BatteryPart.LEFT -> R.string.bud_left_alt
@@ -118,23 +142,4 @@ private fun BatteryPartUi.shortLabel(): Int = when (part) {
     BatteryPart.LEFT -> R.string.left
     BatteryPart.RIGHT -> R.string.right
     BatteryPart.CASE -> R.string.case_short
-}
-
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun BatteryViewPreview() {
-    val fakeBattery = listOf(
-        Battery(BatteryComponent.LEFT, 90, BatteryStatus.NOT_CHARGING),
-        Battery(BatteryComponent.CASE, 60, BatteryStatus.NOT_CHARGING)
-    )
-
-    val bg = if (isSystemInDarkTheme()) Color.Black else Color(0xFFF2F2F7)
-
-    Box(
-        modifier = Modifier
-            .background(bg)
-            .padding(16.dp)
-    ) {
-        BatteryView(batteryList = fakeBattery)
-    }
 }
