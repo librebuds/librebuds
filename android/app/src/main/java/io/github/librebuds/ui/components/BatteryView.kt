@@ -105,7 +105,16 @@ private fun BatterySlot(
                     )
                 }
             }
-            Image(
+            if (ProductArt.useTextOnlyBatteryArt(profileId)) {
+                // Avoid showing a fictitious TWS earbud or case on a clip, neckband,
+                // eyewear, watch-earbud or over-ear headset. Keep the real percentage.
+                Text(
+                    text = stringResource(part.shortLabel()),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            } else Image(
                 painter = painterResource(ProductArt.part(part.part, art, profileId)),
                 contentDescription = stringResource(part.imageLabel()),
                 alpha = if (part.missing) 0.35f else 1f,
