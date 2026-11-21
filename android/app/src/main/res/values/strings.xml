@@ -247,4 +247,6 @@
     <string name="other_generic">Generic Bluetooth audio</string>
     <string name="other_support_source">Device identification</string>
     <string name="other_pairfree_credit">Model names adapted from PairFree (Omega-Destroyer), GPL-3.0. Model recognition does not imply that proprietary controls are implemented.</string>
+    <string name="other_media_volume">Media volume</string>
+    <string name="other_media_volume_note">Changes Android media volume for the current audio output, not a proprietary earbud setting.</string>
 </resources>
