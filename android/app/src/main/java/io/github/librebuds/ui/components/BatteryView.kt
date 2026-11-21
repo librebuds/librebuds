@@ -33,6 +33,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,11 +72,16 @@ fun BatteryView(
     ) {
         Row(
             modifier = Modifier.widthIn(max = 500.dp),
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             for (part in parts) {
-                Column(
+                Surface(
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh
+                ) {
+                Column(
+                    modifier = Modifier.padding(vertical = 16.dp, horizontal = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Image(
@@ -81,7 +90,7 @@ fun BatteryView(
                         alpha = if (part.missing) MISSING_ALPHA else 1f,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(120.dp)
+                            .height(104.dp)
                             .padding(4.dp)
                     )
 
@@ -90,6 +99,7 @@ fun BatteryView(
                         if (part.charging) BatteryStatus.CHARGING else BatteryStatus.NOT_CHARGING,
                         prefix = stringResource(part.shortLabel())
                     )
+                }
                 }
             }
         }
