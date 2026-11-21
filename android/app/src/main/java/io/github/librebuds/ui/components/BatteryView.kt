@@ -76,12 +76,12 @@ private fun BatterySlot(
     val accent = if (part.level != null && part.level <= 20) colors.error else colors.primary
 
     Column(
-        modifier = modifier.padding(vertical = 6.dp),
+        modifier = modifier.padding(vertical = 3.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        Box(modifier = Modifier.size(88.dp), contentAlignment = Alignment.Center) {
-            Canvas(modifier = Modifier.size(84.dp)) {
+        Box(modifier = Modifier.size(70.dp), contentAlignment = Alignment.Center) {
+            Canvas(modifier = Modifier.size(67.dp)) {
                 val stroke = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
                 drawArc(
                     color = track,
@@ -104,7 +104,7 @@ private fun BatterySlot(
                 painter = painterResource(ProductArt.part(part.part, art, profileId)),
                 contentDescription = stringResource(part.imageLabel()),
                 alpha = if (part.missing) 0.35f else 1f,
-                modifier = Modifier.size(55.dp)
+                modifier = Modifier.size(43.dp)
             )
             if (part.charging) {
                 Icon(
