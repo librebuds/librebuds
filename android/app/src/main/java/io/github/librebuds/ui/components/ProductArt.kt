@@ -56,6 +56,13 @@ object ProductArt {
             thumbnail = R.drawable.thumb_buds_freebuds_pro_5,
             case = R.drawable.battery_case_freebuds_pro_5,
         ),
+        // FreeBuds 6i intentionally reuses the FreeBuds Pro 5 artwork until dedicated 6i art is added.
+        "freebuds-6i" to ModelArt(
+            left = R.drawable.battery_bud_left_freebuds_pro_5,
+            right = R.drawable.battery_bud_right_freebuds_pro_5,
+            thumbnail = R.drawable.thumb_buds_freebuds_pro_5,
+            case = R.drawable.battery_case_freebuds_pro_5,
+        ),
         "freebuds-pro-2" to ModelArt(
             left = R.drawable.battery_bud_left_freebuds_pro_2,
             right = R.drawable.battery_bud_right_freebuds_pro_2,
