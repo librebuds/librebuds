@@ -23,6 +23,13 @@ class OtherEarbudsCatalogTest {
         assertNull(OtherEarbudsCatalog.match("Gaming PC", models))
     }
 
+    @Test fun freebudsAlwaysUseOriginalHuaweiBackend() {
+        assertTrue(OtherEarbudsCatalog.isHuaweiManaged("HUAWEI FreeBuds 6i"))
+        assertTrue(OtherEarbudsCatalog.isHuaweiManaged("FreeBuds Pro 4"))
+        assertFalse(OtherEarbudsCatalog.isHuaweiManaged("Nothing Ear (2)"))
+        assertFalse(OtherEarbudsCatalog.isHuaweiManaged("Galaxy Buds3 Pro"))
+    }
+
     @Test fun headphoneNameFallbackIsConservative() {
         assertTrue(OtherEarbudsCatalog.looksLikeHeadphones("Nothing Ear (2)"))
         assertTrue(OtherEarbudsCatalog.looksLikeHeadphones("Pixel Buds Pro"))
