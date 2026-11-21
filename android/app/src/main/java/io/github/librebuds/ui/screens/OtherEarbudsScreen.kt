@@ -72,6 +72,7 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
     val nothingStatus = controller?.state?.collectAsStateWithLifecycle()?.value
     val pairfree = controller as? PairFreeController
     val vendorGroups = pairfree?.groups?.collectAsStateWithLifecycle()?.value.orEmpty()
+    val vendorEq = pairfree?.eqState?.collectAsStateWithLifecycle()?.value
     LaunchedEffect(controller, pair.connected) {
         if (pair.connected) controller?.run() else controller?.close()
     }
@@ -267,6 +268,13 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                     }
 
                         if (pairfree != null) {
+                            vendorEq?.let { eq ->
+                                VendorEqualizerPanel(
+                                    state = eq,
+                                    onSelect = pairfree::selectEq,
+                                    onGain = pairfree::setEqGain
+                                )
+                            }
                             VendorSettingsSections(vendorGroups, SettingTab.SOUND, pairfree::changeSetting)
                             VendorSettingsSections(vendorGroups, SettingTab.HOME, pairfree::changeSetting)
                         }
