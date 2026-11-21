@@ -125,7 +125,7 @@ fun DeviceScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(screenContentPadding()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (notice != LinkNotice.NONE) {
                 LinkBanner(
@@ -138,11 +138,11 @@ fun DeviceScreen(
             if (!current) return@Column
             if (batteries.isNotEmpty()) {
                 Surface(
-                    shape = RoundedCornerShape(26.dp),
+                    shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -157,7 +157,7 @@ fun DeviceScreen(
                                 Text(
                                     text = stringResource(if (ui.state.isConnected) R.string.buds_connected else R.string.not_connected),
                                     style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                                 )
                             }
                         }
@@ -171,7 +171,7 @@ fun DeviceScreen(
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    Column(modifier = Modifier.padding(10.dp)) {
                         NoiseControlSettings(
                             selected = ui.selectedNoiseMode,
                             modes = offeredModes(ui.listedModes, showOffMode),
