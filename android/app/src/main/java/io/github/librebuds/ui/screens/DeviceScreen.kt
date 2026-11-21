@@ -28,6 +28,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -102,6 +114,7 @@ fun DeviceScreen(
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val settings by settingsViewModel.ui.collectAsStateWithLifecycle()
     val batteries = ui.state.battery.toUiBatteries()
+    var selectedPage by rememberSaveable(pair.address) { mutableIntStateOf(0) }
     val address = pair.address
     // Again once the phone has the pair: picked while still in its case, it then becomes the service's choice.
     LaunchedEffect(address, pair.connected) { onShown() }
@@ -137,75 +150,132 @@ fun DeviceScreen(
                 )
             }
             if (!current) return@Column
-            if (batteries.isNotEmpty()) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(text = pair.label, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                shape = RoundedCornerShape(50)
-                            ) {
-                                Text(
-                                    text = stringResource(if (ui.state.isConnected) R.string.buds_connected else R.string.not_connected),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                                )
-                            }
-                        }
-                        BatteryView(batteries, pair.art, pair.profileId)
-                    }
-                }
-            }
-            if (ui.state.isConnected && "anc" in ui.state.capabilities) {
-                Surface(
-                    shape = RoundedCornerShape(26.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
-                        NoiseControlSettings(
-                            selected = ui.selectedNoiseMode,
-                            modes = offeredModes(ui.listedModes, showOffMode),
-                            onSelected = viewModel::selectNoiseMode
+            // A clear three-part product interface replaces one endless settings page.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(18.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                listOf(R.string.device_tab_home, R.string.device_tab_controls, R.string.device_tab_details).forEachIndexed { index, title ->
+                    val active = selectedPage == index
+                    Surface(
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
+                            .clickable { selectedPage = index },
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (active) MaterialTheme.colorScheme.surfaceContainerHighest
+                            else MaterialTheme.colorScheme.surfaceContainerLow,
+                        contentColor = if (active) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                    ) {
+                        Text(
+                            text = stringResource(title),
+                            modifier = Modifier.padding(vertical = 12.dp, horizontal = 2.dp),
+                            style = MaterialTheme.typography.labelMediumEmphasized,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            maxLines = 1
                         )
                     }
                 }
-                ui.cancellationLevel?.let { picker ->
-                    CancellationLevelList(picker, onSelect = viewModel::selectCancellationLevel)
+            }
+            when (selectedPage) {
+                0 -> {
+                    if (batteries.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Text(
+                                            text = stringResource(R.string.device_battery_status),
+                                            style = MaterialTheme.typography.titleSmall
+                                        )
+                                        Text(
+                                            text = pair.model ?: stringResource(R.string.unknown_model),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(if (ui.state.isConnected) R.string.buds_connected else R.string.not_connected),
+                                            style = MaterialTheme.typography.labelSmallEmphasized,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        )
+                                    }
+                                }
+                                BatteryView(batteries, pair.art, pair.profileId)
+                            }
+                        }
+                    }
+                    if (ui.state.isConnected && "anc" in ui.state.capabilities) {
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(Modifier.padding(14.dp)) {
+                                NoiseControlSettings(
+                                    selected = ui.selectedNoiseMode,
+                                    modes = offeredModes(ui.listedModes, showOffMode),
+                                    onSelected = viewModel::selectNoiseMode
+                                )
+                            }
+                        }
+                        ui.cancellationLevel?.let { picker ->
+                            CancellationLevelList(picker, onSelect = viewModel::selectCancellationLevel)
+                        }
+                    }
+                    if (ui.state.isConnected) {
+                        QuickActionsPanel(settings.model, onChange = settingsViewModel::apply, onOpenMultipoint = onOpenMultipoint)
+                    }
+                    ui.error?.let { error ->
+                        Text(
+                            text = stringResource(error.messageRes()),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
-            }
-            ui.error?.let { error ->
-                Text(
-                    text = stringResource(error.messageRes()),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-            // Like noise control, settings only show while connected: a change could not be sent otherwise.
-            if (ui.state.isConnected) {
-                QuickActionsPanel(settings.model, onChange = settingsViewModel::apply, onOpenMultipoint = onOpenMultipoint)
-                DeviceSettingsSections(settings, onChange = settingsViewModel::apply, onOpenMultipoint = onOpenMultipoint, onRing = settingsViewModel::ring)
-                settings.error?.let { error ->
-                    Text(
-                        text = stringResource(error.messageRes()),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
+                1 -> {
+                    if (ui.state.isConnected) {
+                        DeviceSettingsSections(
+                            settings, onChange = settingsViewModel::apply,
+                            onOpenMultipoint = onOpenMultipoint, onRing = settingsViewModel::ring
+                        )
+                        settings.error?.let { error ->
+                            Text(
+                                text = stringResource(error.messageRes()),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = stringResource(R.string.multipoint_not_connected),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
                 }
+                else -> AboutCard(ui.state.device.model, ui.state.device.firmware, ui.state.device.serial)
             }
-            AboutCard(ui.state.device.model, ui.state.device.firmware, ui.state.device.serial)
         }
     }
 }
