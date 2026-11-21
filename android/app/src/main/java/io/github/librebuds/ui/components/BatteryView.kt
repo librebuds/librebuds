@@ -7,14 +7,18 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -104,17 +108,27 @@ private fun BatterySlot(
                 painter = painterResource(ProductArt.part(part.part, art, profileId)),
                 contentDescription = stringResource(part.imageLabel()),
                 alpha = if (part.missing) 0.35f else 1f,
-                modifier = Modifier.size(43.dp)
+                modifier = Modifier.size(if (part.part == BatteryPart.CASE) 49.dp else 43.dp),
+                contentScale = ContentScale.Fit,
+                alignment = Alignment.Center
             )
             if (part.charging) {
-                Icon(
-                    imageVector = ImageVector.vectorResource(R.drawable.ic_charging),
-                    contentDescription = null,
-                    tint = accent,
+                // Keep the charging bolt readable and clear of the ring's progress stroke.
+                Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .size(18.dp)
-                )
+                        .offset(x = (-2).dp, y = (-2).dp)
+                        .size(20.dp)
+                        .background(colors.surfaceContainerLow, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_charging),
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
             }
         }
         Text(
