@@ -71,8 +71,8 @@ fun DeviceSettingsSections(
     val model = ui.model
     var request by remember { mutableStateOf<PickerRequest?>(null) }
     val open: (PickerRequest) -> Unit = { request = it }
-    val experimental = stringResource(R.string.experimental)
-    fun note(vararg capabilities: String) = experimental.takeIf { capabilities.any { it in model.experimental } }
+    // Keep hardware verification metadata in the model, not repeated in every settings card.
+    fun note(vararg capabilities: String): String? = null
 
     // Three focused groups replace the old endless list. All existing controls stay reachable.
     var section by remember { mutableStateOf(0) }
@@ -132,7 +132,7 @@ fun DeviceSettingsSections(
                     }
                 }
                 // Read-only: language writes are out of scope.
-                model.language?.let { language ->
+                model.language?.takeIf { it.current != null }?.let { language ->
                     StyledListItem(
                         name = stringResource(R.string.voice_language),
                         description = described("language", language.current ?: stringResource(R.string.not_reported))
