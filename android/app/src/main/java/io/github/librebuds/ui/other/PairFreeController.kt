@@ -12,6 +12,11 @@ import io.github.omegadestroyer.pairfree.bluetooth.androidPlatform
 import io.github.omegadestroyer.pairfree.bluetooth.EarbudsConnection
 import io.github.omegadestroyer.pairfree.bluetooth.LinkStatus
 import io.github.omegadestroyer.pairfree.brands.Brands
+import io.github.omegadestroyer.pairfree.eq.EqOpener
+import io.github.omegadestroyer.pairfree.eq.EqProfile
+import io.github.omegadestroyer.pairfree.eq.EqState
+import io.github.omegadestroyer.pairfree.eq.Equalizer
+import io.github.omegadestroyer.pairfree.eq.TextStore
 import io.github.omegadestroyer.pairfree.protocol.Command
 import io.github.omegadestroyer.pairfree.protocol.Identify
 import io.github.omegadestroyer.pairfree.protocol.SettingChange
@@ -42,6 +47,9 @@ class PairFreeController(
     private val _groups = MutableStateFlow<List<SettingGroup>>(emptyList())
     val groups: StateFlow<List<SettingGroup>> = _groups.asStateFlow()
     private var connection: EarbudsConnection? = null
+    private val _eqState = MutableStateFlow<EqState?>(null)
+    val eqState: StateFlow<EqState?> = _eqState.asStateFlow()
+    private var equalizer: Equalizer? = null
 
     override suspend fun run() {
         if (OtherEarbudsCatalog.isHuaweiManaged(deviceName)) {
@@ -77,11 +85,24 @@ class PairFreeController(
                     log = null,
                 )
                 connection = controller
+                val shared = context.getSharedPreferences("pairfree_eq_profiles", Context.MODE_PRIVATE)
+                val store = object : TextStore {
+                    override fun get(key: String): String? = shared.getString(key, null)
+                    override fun put(key: String, value: String) {
+                        shared.edit().putString(key, value).apply()
+                    }
+                }
+                val engine = Equalizer(store, this, send = controller::sendEq)
+                equalizer = engine
+                val eqOpener = EqOpener(controller, engine, this)
+                val eqJob = launch { engine.state.collect { _eqState.value = it } }
                 val statusJob = launch {
                     controller.status.collect { status ->
                         when (status) {
-                            is LinkStatus.Connected ->
+                            is LinkStatus.Connected -> {
                                 _state.value = _state.value.copy(status = "Connected", ready = true, error = null)
+                                eqOpener.open(matched, Brands[matched.brand].model(matched, controller.state.value))
+                            }
                             is LinkStatus.Connecting ->
                                 _state.value = _state.value.copy(status = "Connecting to vendor control channel…", ready = false)
                             is LinkStatus.Reconnecting ->
@@ -110,6 +131,9 @@ class PairFreeController(
                             }
                         }
                         _state.value = _state.value.copy(battery = batteries, noise = noise)
+                        if (controller.status.value is LinkStatus.Connected) {
+                            eqOpener.open(matched, Brands[matched.brand].model(matched, status))
+                        }
                     }
                 }
                 val groupsJob = launch {
@@ -121,6 +145,9 @@ class PairFreeController(
                 } finally {
                     controller.disconnect()
                     connection = null
+                    equalizer = null
+                    _eqState.value = null
+                    eqJob.cancel()
                     statusJob.cancel()
                     valuesJob.cancel()
                     groupsJob.cancel()
@@ -152,6 +179,20 @@ class PairFreeController(
     override suspend fun changeEq(preset: Int) {
         // EQ transport differs by brand. PairFree's vendor-specific groups and EQ
         // targets are the authoritative source; don't send a guessed generic code.
+    }
+
+    fun selectEq(profile: EqProfile) {
+        if (connection?.status?.value is LinkStatus.Connected) {
+            equalizer?.select(profile)
+        }
+    }
+
+    fun setEqGain(index: Int, db: Double) {
+        val state = _eqState.value ?: return
+        if (connection?.status?.value !is LinkStatus.Connected || !state.target.hasCustom) return
+        if (index !in state.curve.indices) return
+        equalizer?.setGain(index, db.coerceIn(
+            -state.layout.userRangeDb.toDouble(), state.layout.userRangeDb.toDouble()))
     }
 
     fun changeSetting(change: SettingChange) {
