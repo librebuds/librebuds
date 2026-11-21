@@ -59,7 +59,7 @@ object OtherEarbudsCatalog {
         // Samsung advertises "Galaxy Buds2 Pro (A1B2)" while PairFree's model-name
         // catalog uses "Buds2 Pro". Accept only this specific Samsung prefix and
         // optional four-hex-digit factory suffix; never fuzzy-match unrelated products.
-        val samsungName = name.trim().replace(Regex("""\\s*\\([0-9a-fA-F]{4}\\)\\s*$"""), "")
+        val samsungName = name.trim().replace(Regex("""\s*\([0-9a-fA-F]{4}\)\s*$"""), "")
         val samsungKey = normalize(samsungName).removePrefix("samsung ").removePrefix("galaxy ")
         val isSamsungName = normalize(samsungName).startsWith("galaxy buds") ||
             normalize(samsungName).startsWith("samsung galaxy buds")
