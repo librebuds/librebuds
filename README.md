@@ -73,11 +73,12 @@ Alongside the original Huawei FreeBuds support, the development branch can list 
 - The Home device list recognizes paired audio hardware by Android's headset class, known names or common headphone naming patterns.
 - When Android exposes a battery percentage, the non-Huawei device card displays that overall percentage. Android does not universally expose left/right/case levels.
 - Connected devices use the existing rounded **Home / Controls / Details** layout; **Controls** offers an Android media-volume slider (system output volume, not vendor EQ).
-- **ANC, EQ, touch gestures, multipoint configuration and other vendor-specific commands are not implemented for these additional brands yet.** Unsupported controls are not shown as working. Use Android's Bluetooth settings for system-level controls.
+- **Nothing / CMF (experimental):** open a connected pair to establish its vendor RFCOMM control channel, read left/right/case battery, read and switch Off/ANC/Transparency modes and change four EQ presets when the earbuds report those settings. Bluetooth packets and commands follow GPLv3 [PairFree's Nothing protocol documentation](https://github.com/Omega-Destroyer/PairFree/blob/main/docs/nothing/PROTOCOL.md). Controls appear only after a valid device reply. This driver is not yet physically tested and may vary by firmware.
+- **All other non-Huawei brands:** ANC, EQ, touch gestures and multipoint configuration remain unimplemented in this fork. Unsupported controls are not shown as working. Use Android's Bluetooth settings for system-level controls.
 - Existing Huawei FreeBuds connection/session code and controls are unchanged.
 - Recognition is heuristic; some models will be missing or misidentified. PairFree's source catalog is broader than the subset confirmed with physical devices.
 
-This is a **foundation** for future vendor-protocol ports, not a claim of universal advanced control. PairFree's own Android app supports many proprietary protocols; adding those to this fork still requires porting its drivers, transports, data tables and device testing.
+This is an **experimental multi-brand foundation with a first real Nothing/CMF vendor protocol**, not a claim of universal advanced control. PairFree's own Android app supports many proprietary protocols; adding those to this fork still requires porting its drivers, transports, data tables and device testing.
 
 ## Features
 
