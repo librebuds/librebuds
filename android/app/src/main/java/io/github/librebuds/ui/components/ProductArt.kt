@@ -81,6 +81,38 @@ object ProductArt {
             thumbnail = R.drawable.thumb_buds_freebuds_pro_4,
             case = R.drawable.battery_case_freebuds_pro_4,
         ),
+        // Exact-model SVG illustrations adapted from PairFree (GPLv3); see NOTICE.
+        // Unknown models intentionally keep generic artwork.
+        "pairfree-samsung-buds3pro" to ModelArt(
+            left = R.drawable.pairfree_samsung_buds3pro_bud,
+            right = R.drawable.pairfree_samsung_buds3pro_bud,
+            thumbnail = R.drawable.pairfree_samsung_buds3pro_bud,
+            case = R.drawable.battery_case,
+        ),
+        "pairfree-sony-wfxm5" to ModelArt(
+            left = R.drawable.pairfree_sony_wfxm5_bud,
+            right = R.drawable.pairfree_sony_wfxm5_bud,
+            thumbnail = R.drawable.pairfree_sony_wfxm5_bud,
+            case = R.drawable.battery_case,
+        ),
+        "pairfree-soundcore-a30i" to ModelArt(
+            left = R.drawable.pairfree_soundcore_a30i_bud,
+            right = R.drawable.pairfree_soundcore_a30i_bud,
+            thumbnail = R.drawable.pairfree_soundcore_a30i_bud,
+            case = R.drawable.pairfree_soundcore_a30i_case,
+        ),
+        "pairfree-nothing-ear" to ModelArt(
+            left = R.drawable.pairfree_nothing_ear_bud,
+            right = R.drawable.pairfree_nothing_ear_bud,
+            thumbnail = R.drawable.pairfree_nothing_ear_bud,
+            case = R.drawable.battery_case,
+        ),
+        "pairfree-apple-airpods-pro" to ModelArt(
+            left = R.drawable.pairfree_apple_airpods_pro_bud,
+            right = R.drawable.pairfree_apple_airpods_pro_bud,
+            thumbnail = R.drawable.pairfree_apple_airpods_pro_bud,
+            case = R.drawable.pairfree_apple_airpods_pro_case,
+        ),
     )
 
     /** One earbud above its battery ring, the same canvas and baseline as [case]. */
