@@ -3,6 +3,14 @@ package io.github.librebuds.ui.screens
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -89,7 +97,26 @@ fun DeviceSettingsSections(
         }
     }
     model.equalizer?.let { picker ->
-        StyledList(title = stringResource(R.string.section_equalizer), description = note("equalizer")) {
+        // QuickBuds-style live preset chips. All values come from the actual model,
+        // and a tap uses the same command as the existing preset picker.
+        Text(
+            text = stringResource(R.string.section_equalizer),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            picker.options.forEach { option ->
+                FilterChip(
+                    selected = picker.current == option.code,
+                    onClick = { onChange(SettingChange.EqualizerPreset(option.code)) },
+                    label = { Text(optionLabel(picker, option.code), maxLines = 1) }
+                )
+            }
+        }
+        StyledList(description = note("equalizer")) {
             PickerRow(stringResource(R.string.equalizer_preset), picker, open, live = { it.equalizer }) { onChange(SettingChange.EqualizerPreset(it)) }
             model.customEqualizer?.let { custom -> CustomEqualizerRow(custom, onChange) }
         }
