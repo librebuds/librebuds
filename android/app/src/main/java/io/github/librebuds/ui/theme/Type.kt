@@ -157,151 +157,31 @@ val labelEmphasized = robotoFlex(
 )
 
 
+// Compact typography: the previous 24–32sp title overrides overwhelmed real phones.
+// Keep a readable hierarchy and reserve display sizes for genuine hero content.
 val MaterialTypography = Typography().run {
     copy(
-        titleSmall = titleSmall.copy(
-            fontFamily = display,
-            fontSize = 24.sp,
-            lineHeight = 30.sp,
-        ),
-
-        titleMedium = titleMedium.copy(
-            fontFamily = display,
-            fontSize = 28.sp,
-            lineHeight = 32.sp,
-        ),
-
-        titleLarge = titleLarge.copy(
-            fontFamily = display,
-            fontSize = 32.sp,
-            lineHeight = 36.sp,
-        ),
-
-        titleSmallEmphasized = titleSmallEmphasized.copy(
-            fontFamily = display,
-            fontSize = 24.sp,
-            lineHeight = 30.sp,
-        ),
-
-        titleMediumEmphasized = titleMediumEmphasized.copy(
-            fontFamily = displayEmphasized,
-            fontSize = 28.sp,
-            lineHeight = 32.sp,
-        ),
-
-        titleLargeEmphasized = titleLargeEmphasized.copy(
-            fontFamily = displayEmphasized,
-            fontSize = 32.sp,
-            lineHeight = 36.sp,
-        ),
-
-        displaySmall = displaySmall.copy(
-            fontFamily = display,
-            fontSize = 32.sp,
-            lineHeight = 36.sp,
-        ),
-
-        displayMedium = displayMedium.copy(
-            fontFamily = display,
-            fontSize = 36.sp,
-            lineHeight = 40.sp,
-        ),
-
-        displayLarge = displayLarge.copy(
-            fontFamily = display,
-            fontSize = 40.sp,
-            lineHeight = 44.sp,
-        ),
-
-        displaySmallEmphasized = displaySmallEmphasized.copy(
-            fontFamily = displayEmphasized,
-            fontSize = 38.sp,
-            lineHeight = 42.sp,
-        ),
-
-        displayMediumEmphasized = displayMediumEmphasized.copy(
-            fontFamily = displayEmphasized,
-            fontSize = 42.sp,
-            lineHeight = 48.sp,
-        ),
-
-        displayLargeEmphasized = displayLargeEmphasized.copy(
-            fontFamily = displayEmphasized,
-            fontSize = 48.sp,
-            lineHeight = 52.sp,
-        ),
-
-        bodySmall = bodySmall.copy(
-            fontFamily = body,
-            fontSize = 14.sp,
-            lineHeight = 20.sp,
-        ),
-
-        bodyMedium = bodyMedium.copy(
-            fontFamily = body,
-            fontSize = 16.sp,
-            lineHeight = 24.sp,
-        ),
-
-        bodyLarge = bodyLarge.copy(
-            fontFamily = body,
-            fontSize = 18.sp,
-            lineHeight = 28.sp,
-        ),
-
-        bodySmallEmphasized = bodySmallEmphasized.copy(
-            fontFamily = bodyEmphasized,
-            fontSize = 14.sp,
-            lineHeight = 20.sp,
-        ),
-
-        bodyMediumEmphasized = bodyMediumEmphasized.copy(
-            fontFamily = bodyEmphasized,
-            fontSize = 16.sp,
-            lineHeight = 24.sp,
-        ),
-
-        bodyLargeEmphasized = bodyLargeEmphasized.copy(
-            fontFamily = bodyEmphasized,
-            fontSize = 18.sp,
-            lineHeight = 28.sp,
-        ),
-
-        labelSmall = labelSmall.copy(
-            fontFamily = label,
-            fontSize = 14.sp,
-            lineHeight = 18.sp,
-        ),
-
-        labelMedium = labelMedium.copy(
-            fontFamily = label,
-            fontSize = 16.sp,
-            lineHeight = 20.sp,
-        ),
-
-        labelLarge = labelLarge.copy(
-            fontFamily = label,
-            fontSize = 18.sp,
-            lineHeight = 22.sp,
-        ),
-
-        labelSmallEmphasized = labelSmallEmphasized.copy(
-            fontFamily = labelEmphasized,
-            fontSize = 14.sp,
-            lineHeight = 18.sp,
-        ),
-
-        labelMediumEmphasized = labelMediumEmphasized.copy(
-            fontFamily = labelEmphasized,
-            fontSize = 16.sp,
-            lineHeight = 20.sp,
-        ),
-
-        labelLargeEmphasized = labelLargeEmphasized.copy(
-            fontFamily = labelEmphasized,
-            fontSize = 18.sp,
-            lineHeight = 22.sp,
-        ),
+        titleSmall = titleSmall.copy(fontFamily = bodyEmphasized, fontSize = 16.sp, lineHeight = 22.sp),
+        titleMedium = titleMedium.copy(fontFamily = bodyEmphasized, fontSize = 18.sp, lineHeight = 24.sp),
+        titleLarge = titleLarge.copy(fontFamily = bodyEmphasized, fontSize = 21.sp, lineHeight = 27.sp),
+        titleSmallEmphasized = titleSmallEmphasized.copy(fontFamily = bodyEmphasized, fontSize = 16.sp, lineHeight = 22.sp),
+        titleMediumEmphasized = titleMediumEmphasized.copy(fontFamily = bodyEmphasized, fontSize = 18.sp, lineHeight = 24.sp),
+        titleLargeEmphasized = titleLargeEmphasized.copy(fontFamily = bodyEmphasized, fontSize = 21.sp, lineHeight = 27.sp),
+        headlineSmall = headlineSmall.copy(fontFamily = bodyEmphasized, fontSize = 23.sp, lineHeight = 29.sp),
+        headlineMedium = headlineMedium.copy(fontFamily = bodyEmphasized, fontSize = 26.sp, lineHeight = 32.sp),
+        headlineLarge = headlineLarge.copy(fontFamily = bodyEmphasized, fontSize = 29.sp, lineHeight = 36.sp),
+        bodySmall = bodySmall.copy(fontFamily = body, fontSize = 12.sp, lineHeight = 17.sp),
+        bodyMedium = bodyMedium.copy(fontFamily = body, fontSize = 14.sp, lineHeight = 20.sp),
+        bodyLarge = bodyLarge.copy(fontFamily = body, fontSize = 16.sp, lineHeight = 23.sp),
+        bodySmallEmphasized = bodySmallEmphasized.copy(fontFamily = bodyEmphasized, fontSize = 12.sp, lineHeight = 17.sp),
+        bodyMediumEmphasized = bodyMediumEmphasized.copy(fontFamily = bodyEmphasized, fontSize = 14.sp, lineHeight = 20.sp),
+        bodyLargeEmphasized = bodyLargeEmphasized.copy(fontFamily = bodyEmphasized, fontSize = 16.sp, lineHeight = 23.sp),
+        labelSmall = labelSmall.copy(fontFamily = label, fontSize = 11.sp, lineHeight = 15.sp),
+        labelMedium = labelMedium.copy(fontFamily = label, fontSize = 13.sp, lineHeight = 18.sp),
+        labelLarge = labelLarge.copy(fontFamily = label, fontSize = 15.sp, lineHeight = 20.sp),
+        labelSmallEmphasized = labelSmallEmphasized.copy(fontFamily = labelEmphasized, fontSize = 11.sp, lineHeight = 15.sp),
+        labelMediumEmphasized = labelMediumEmphasized.copy(fontFamily = labelEmphasized, fontSize = 14.sp, lineHeight = 19.sp),
+        labelLargeEmphasized = labelLargeEmphasized.copy(fontFamily = labelEmphasized, fontSize = 15.sp, lineHeight = 20.sp)
     )
 }
 
