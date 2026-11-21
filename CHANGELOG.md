@@ -6,6 +6,13 @@ This fork is based on [LibreBuds](https://github.com/librebuds/librebuds), with 
 
 ## Unreleased — call audio coexistence safeguard (alpha only)
 
+### Optional voice-note route diagnostic (alpha only)
+- Adds a **manual, 60-second Bluetooth voice-note test** in app Settings for recording comparisons in WhatsApp or Telegram.
+- Off by default; selects a Bluetooth SCO / LE headset communication device through Android's public API on an explicit tap, and releases that route after 60 seconds, a stop tap, a call-mode change or service destruction.
+- Does not record audio, request microphone capture permission, force Android into communication mode or override an active call. Android/WhatsApp can decline or override the requested route. It is a diagnostic experiment, **not an established microphone fix**.
+- Design is independent, informed by public Android audio routing documentation and the general approach used by LiveClearMic. No LiveClearMic code, names, brand assets or licensed implementation is copied.
+
+
 - During Android and WhatsApp calls, **pause an existing vendor RFCOMM control session as well as deferring automatic reconnect attempts**, to remove all background earbud-setting requests from the call period. Android's Bluetooth headset audio connection is not disconnected.
 - Listen for Android communication-mode and Bluetooth headset audio-state changes so normal auto-connect can resume after calls. While calling, in-app earbud controls may temporarily become unavailable; the app reconnects its vendor control session after the call.
 - Add regression tests for regular calls, WhatsApp-style VoIP calls, active headset audio and normal music playback.
