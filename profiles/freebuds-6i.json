@@ -20,6 +20,61 @@
     },
     "anc": {
       "verified": null
+    },
+    "gestures": {
+      "verified": null,
+      "doubleTap": {
+        "inCall": true,
+        "options": {
+          "1": "pause",
+          "2": "next",
+          "7": "previous",
+          "0": "assistant",
+          "-1": "off"
+        },
+        "inCallOptions": {
+          "0": "answer",
+          "-1": "off"
+        }
+      },
+      "tripleTap": {
+        "options": {
+          "2": "next",
+          "7": "previous",
+          "-1": "off"
+        }
+      },
+      "longPress": {
+        "inCall": true,
+        "options": {
+          "3": "toggle_anc",
+          "10": "switch_anc",
+          "0": "assistant",
+          "-1": "off"
+        },
+        "hiddenOptions": {
+          "15": "quick_play"
+        },
+        "inCallOptions": {
+          "0": "reject",
+          "-1": "off"
+        }
+      },
+      "noiseCycle": {
+        "options": {
+          "1": "off_on",
+          "2": "off_on_awareness",
+          "3": "on_awareness",
+          "4": "off_awareness"
+        }
+      },
+      "swipe": {
+        "bothSides": true,
+        "options": {
+          "0": "volume",
+          "-1": "off"
+        }
+      }
     }
   }
 }
