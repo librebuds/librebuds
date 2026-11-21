@@ -117,7 +117,7 @@ jobs:
           "$apksigner" verify "$candidate"
           "$aapt" dump badging "$candidate" | tee "$RUNNER_TEMP/alpha-badging.txt"
           grep -q "package: name='io.github.librebuds.alpha'" "$RUNNER_TEMP/alpha-badging.txt"
-          grep -q "versionName='1.0.0-alpha.1'" "$RUNNER_TEMP/alpha-badging.txt"
+          grep -q "versionName='1.1.0-alpha.1'" "$RUNNER_TEMP/alpha-badging.txt"
           cp "$candidate" "$RUNNER_TEMP/librebuds-plus-alpha.apk"
           (cd "$RUNNER_TEMP" && sha256sum librebuds-plus-alpha.apk > librebuds-plus-alpha.apk.sha256)
 
@@ -140,13 +140,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="v1.0.0-alpha.${GITHUB_RUN_NUMBER}"
+          tag="v1.1.0-alpha.${GITHUB_RUN_NUMBER}"
           cat > "$RUNNER_TEMP/alpha-notes.md" <<EOF
           # LibreBuds+ experimental alpha
           
           Commit: \`${GITHUB_SHA}\`
           Android package: \`io.github.librebuds.alpha\` (installs alongside stable \`io.github.librebuds\`)
-          Version: \`1.0.0-alpha.1\`
+          Version: \`1.1.0-alpha.1\`
           Signing: \`${ALPHA_SIGNING}\`
           
           **Experimental:** FreeBuds 6i remains on the original backend. PairFree multi-brand adapters
