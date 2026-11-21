@@ -39,6 +39,7 @@ import io.github.librebuds.protocol.command.FeatureSwitch
 import io.github.librebuds.protocol.command.PinchSlot
 import io.github.librebuds.protocol.command.Side
 import io.github.librebuds.state.SettingChange
+import io.github.librebuds.ui.components.EqualizerCurve
 import io.github.librebuds.ui.components.StyledBottomSheet
 import io.github.librebuds.ui.components.StyledButton
 import io.github.librebuds.ui.components.StyledInputField
@@ -236,6 +237,11 @@ private fun CustomEqualizerEditor(preset: CustomPreset, existing: Boolean, onCha
     fun currentName() = name.text.toString().trim().take(Equalizer.MAX_NAME_LENGTH).ifEmpty { preset.id.toString() }
     Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         StyledInputField(inputState = name, focusRequester = focus, placeholder = stringResource(R.string.custom_preset_name))
+        EqualizerCurve(
+            gains = gains.toList(),
+            minGain = Equalizer.MIN_GAIN,
+            maxGain = Equalizer.MAX_GAIN
+        )
         BAND_LABELS.forEachIndexed { band, label ->
             CommittingSlider(
                 label = stringResource(R.string.eq_band_hz, label),
