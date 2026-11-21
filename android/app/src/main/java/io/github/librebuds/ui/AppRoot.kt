@@ -56,6 +56,7 @@ fun AppRoot(
     onSaveDiagnostics: () -> Unit = {}
 ) {
     var designSystem by remember { mutableStateOf(preferences.designSystem) }
+    var amoledBlack by remember { mutableStateOf(preferences.amoledBlack) }
     var showOffMode by remember { mutableStateOf(preferences.showOffMode) }
     var showIsland by remember { mutableStateOf(preferences.showIsland) }
     var popupEnabled by remember { mutableStateOf(preferences.popupEnabled) }
@@ -113,7 +114,7 @@ fun AppRoot(
     }
     val backLabel: @Composable () -> String? = { stack.entries.getOrNull(stack.entries.lastIndex - 1)?.let { titleOf(it) } }
 
-    LibreBudsTheme(m3eEnabled = designSystem == DesignSystem.Material) {
+    LibreBudsTheme(m3eEnabled = designSystem == DesignSystem.Material, amoledBlack = amoledBlack) {
         screenStates.SaveableStateProvider(stack.topKey()) {
             when (val top = stack.top) {
                 Route.Onboarding -> OnboardingScreen(preferences = preferences, onDone = { stack = stack.finishOnboarding() })
@@ -143,6 +144,11 @@ fun AppRoot(
                     val overlay = rememberOverlayAccess(preferences)
                     SettingsScreen(
                         designSystem = designSystem,
+                        amoledBlack = amoledBlack,
+                        onAmoledBlackChange = {
+                            amoledBlack = it
+                            preferences.amoledBlack = it
+                        },
                         onDesignSystemChange = {
                             designSystem = it
                             preferences.designSystem = it

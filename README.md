@@ -72,7 +72,7 @@ Which settings appear depends on what your earbuds report. Settings are model-de
 | --- | --- | --- | --- |
 | FreeBuds 5 | ✅ Tested on hardware | Full | Model animation |
 | FreeBuds Pro 5 | ✅ Tested on hardware | Full | Model animation |
-| FreeBuds 6i | 🟡 Supported; hardware testing welcome | Battery, noise control, awareness, gestures, EQ, low latency, multipoint and model-specific settings | FreeBuds Pro 5 artwork |
+| FreeBuds 6i | 🟡 Supported in app; hardware testing welcome | Battery, noise control, awareness, gestures, EQ, low latency, sound quality, multipoint, wear detection, single-earbud ANC, Find Earbuds, language and rest reminders | FreeBuds Pro 5 artwork |
 | FreeBuds 6 | 🟡 Expected to work | Full | Model animation |
 | FreeBuds Pro 2 | 🟡 Expected to work | Full | Model animation |
 | FreeBuds Pro 3 | 🟡 Expected to work | Full | Model animation |
