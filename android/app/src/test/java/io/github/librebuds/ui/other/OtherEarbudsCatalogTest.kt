@@ -13,6 +13,15 @@ class OtherEarbudsCatalogTest {
         KnownModel("Samsung", "Galaxy Buds2 Pro")
     )
 
+    @Test fun onlyExactRecognizedProductsGetPairFreeStudioArt() {
+        val samsung = OtherEarbud("00:11:22:33:44:55", "Galaxy Buds3 Pro", "Samsung", null, true, 80)
+        val sony = OtherEarbud("00:11:22:33:44:56", "WF-1000XM5", "Sony", "WF-1000XM5", true, null)
+        val unknown = OtherEarbud("00:11:22:33:44:57", "Galaxy Buds4", "Samsung", null, true, null)
+        assertEquals("pairfree-samsung-buds3pro", samsung.toRow().profileId)
+        assertEquals("pairfree-sony-wfxm5", sony.toRow().profileId)
+        assertNull(unknown.toRow().profileId)
+    }
+
     @Test fun exactNameIgnoresPunctuationAndCase() {
         assertEquals("Sony", OtherEarbudsCatalog.match("WF 1000XM5", models)?.brand)
         assertEquals("SOUNDPEATS", OtherEarbudsCatalog.match("air5 pro+", models)?.brand)
