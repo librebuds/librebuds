@@ -86,6 +86,8 @@ This fork keeps **all existing LibreBuds FreeBuds features and the exact same Qu
 Use `git clone --recurse-submodules https://github.com/vnxrgb/librebuds-6i.git` and build the multi-brand feature branch. For an existing checkout, run `git submodule update --init --recursive` before running `./gradlew :app:assembleDebug` in `android/`. The upstream PairFree modules are pinned to commit `af534dca43627a9c76903fbb9a118ea4a783c856`; changing that commit must be audited and tested.
 
 
+See **[cross-brand feature matrix and testing limitations](docs/MULTIBRAND_COMPATIBILITY.md)** for a per-family summary of what is working, experimental, read-only or not implemented. The experimental branch additionally probes **TOZO A/J GATT services** for battery-only reads based on MIT-licensed BluntyBuds protocol research; ANC, EQ and gestures are intentionally disabled until tested on real TOZO hardware. Sources reviewed: [BluntyBuds](https://github.com/arkivx0/BluntyBuds), [earshot](https://github.com/HellzYeahh/earshot) and [DevPods](https://github.com/ORION2809/DevPods). These projects' tracked graphics are predominantly app screenshots/icons, **not device-specific product photography**, so they have not been substituted for LibreBuds device renders. Existing FreeBuds 6i art and controller remain unchanged.
+
 ## Features
 
 ### QuickBuds-inspired interface
