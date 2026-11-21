@@ -102,7 +102,7 @@ androidComponents {
 // PairFree transport code lives in the submodule's app source tree.
 // Android's built-in Kotlin compilation needs a Kotlin source root, not a
 // java source root, to include these Bluetooth adapter classes.
-kotlin.sourceSets.named("main") {
+android.sourceSets.named("main") {
     kotlin.srcDir("../../third_party/PairFree/android/app/src/main/kotlin/io/github/omegadestroyer/pairfree/bluetooth")
 }
 
