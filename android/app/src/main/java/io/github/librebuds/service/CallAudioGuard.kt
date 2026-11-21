@@ -15,3 +15,7 @@ internal fun shouldDeferControlConnect(audioMode: Int, headsetAudioActive: Boole
         audioMode == AudioManager.MODE_IN_CALL ||
         audioMode == AudioManager.MODE_IN_COMMUNICATION ||
         audioMode == AudioManager.MODE_CALL_SCREENING
+
+/** Manual voice-note tests must never compete with an established telephone/VoIP call. */
+internal fun canStartVoiceNoteRouteTest(audioMode: Int, bluetoothHeadsetAvailable: Boolean): Boolean =
+    audioMode == AudioManager.MODE_NORMAL && bluetoothHeadsetAvailable
