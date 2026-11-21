@@ -80,9 +80,15 @@ object OtherEarbudsCatalog {
         .replace(Regex("[^a-z0-9]+"), " ").trim()
 
     /** Huawei's existing control stack must always take priority over generic discovery. */
-    fun isHuaweiManaged(name: String): Boolean =
-        name.contains("freebuds", ignoreCase = true) ||
-        name.startsWith("HUAWEI ", ignoreCase = true)
+    fun isHuaweiManaged(name: String): Boolean {
+        val n = name.trim().lowercase(Locale.ROOT)
+        // Huawei's protocol also powers FreeClip / FreeArc / FreeLace / eyewear.
+        // Keep them on the original controller, never PairFree's generic driver.
+        // Avoid matching arbitrary foreign products merely containing these words.
+        return n.startsWith("huawei ") ||
+            listOf("freebuds", "freeclip", "freearc", "freelace", "huawei eyewear",
+                "eyewear 2").any { prefix -> n == prefix || n.startsWith("$prefix ") }
+    }
 
     /**
      * A recognizable family name is useful for display even when the exact model
