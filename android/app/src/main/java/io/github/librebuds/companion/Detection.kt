@@ -41,6 +41,9 @@ fun detectFreeBuds(bonded: List<BondedDevice>, registry: ProfileRegistry, known:
     val knownUpper = known.mapTo(mutableSetOf()) { it.uppercase() }
     return bonded.mapNotNull { device ->
         val profile = registry.match(btName = device.name)
+        // The upstream profile catalog also includes a Huawei smart power bank.
+        // This is an earbuds UI: do not try to open an audio/control session to it.
+        if (profile.id.startsWith("smart-powerbank")) return@mapNotNull null
         val recognised = profile.id != ProfileRegistry.GENERIC.id
         val spp = device.uuids.any { it.equals(SPP_UUID, ignoreCase = true) }
         // Keep historical renamed FreeBuds recognition, but avoid treating a paired Huawei
