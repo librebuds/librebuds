@@ -251,4 +251,8 @@
     <string name="other_media_volume_note">Changes Android media volume for the current audio output, not a proprietary earbud setting.</string>
     <string name="other_vendor_link">Vendor Bluetooth controls (experimental)</string>
     <string name="other_eq_presets">Earbud EQ presets</string>
+    <string name="other_playback">Media playback</string>
+    <string name="other_previous">Previous</string>
+    <string name="other_play_pause">Play/Pause</string>
+    <string name="other_next">Next</string>
 </resources>
