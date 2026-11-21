@@ -67,7 +67,7 @@ fun NoiseControlSettings(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
+                .clip(RoundedCornerShape(30.dp))
                 .background(colors.surfaceContainerHigh)
                 .padding(4.dp)
                 .selectableGroup(),
@@ -85,8 +85,8 @@ fun NoiseControlSettings(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(92.dp)
-                        .clip(RoundedCornerShape(18.dp))
+                        .height(88.dp)
+                        .clip(RoundedCornerShape(26.dp))
                         .background(fill.value)
                         .selectable(
                             selected = active,
