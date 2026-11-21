@@ -64,7 +64,7 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
         pair.name.startsWith("Nothing ", ignoreCase = true) ||
         pair.name.startsWith("CMF ", ignoreCase = true)
     val controller = remember(context, pair.address, isNothing) {
-        if (isNothing) NothingController(context.applicationContext, pair.address) else null
+        if (isNothing) NothingController(context.applicationContext, pair.address, pair.name) else null
     }
     val scope = rememberCoroutineScope()
     val nothingStatus = controller?.state?.collectAsStateWithLifecycle()?.value
