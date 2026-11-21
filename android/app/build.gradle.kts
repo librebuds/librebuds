@@ -59,6 +59,17 @@ android {
             isMinifyEnabled = false
             signingConfig = signingConfigs.findByName("release")
         }
+        // Installs alongside stable, with its own app data and package identity.
+        create("alpha") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".alpha"
+            versionNameSuffix = "-alpha.1"
+            // For local/test CI builds use the Android debug key. When the stable
+            // fork keystore is supplied, alpha APKs use that key instead.
+            signingConfig = signingConfigs.findByName("release")
+                ?: signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+        }
     }
 
     compileOptions {
