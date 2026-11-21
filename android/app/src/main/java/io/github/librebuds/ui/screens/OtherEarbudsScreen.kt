@@ -220,7 +220,7 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                             }
                         }
                     }
-                    if (controller != null && nothingStatus?.ready == true && nothingStatus.eq != null) {
+                    if (controller != null && nothingStatus?.ready == true && nothingStatus.eq in 0..3) {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
