@@ -15,6 +15,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
+import io.github.librebuds.ui.other.NothingController
+import io.github.librebuds.ui.other.NothingProtocol
+import io.github.librebuds.ui.components.NoiseControlSettings
+import io.github.librebuds.ui.components.BatteryView
+import io.github.librebuds.ui.model.Battery
+import io.github.librebuds.ui.model.BatteryComponent
+import io.github.librebuds.ui.model.BatteryStatus
+import io.github.librebuds.ui.model.NoiseControlMode
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.material3.Surface
@@ -47,6 +60,28 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
     val audioManager = remember(context) { context.getSystemService(AudioManager::class.java) }
     val maxVolume = remember(audioManager) { audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC)?.coerceAtLeast(1) ?: 1 }
     var volume by remember(audioManager) { mutableFloatStateOf(audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC)?.toFloat() ?: 0f) }
+    val isNothing = pair.brand == "Nothing / CMF" ||
+        pair.name.startsWith("Nothing ", ignoreCase = true) ||
+        pair.name.startsWith("CMF ", ignoreCase = true)
+    val controller = remember(context, pair.address, isNothing) {
+        if (isNothing) NothingController(context.applicationContext, pair.address) else null
+    }
+    val scope = rememberCoroutineScope()
+    val nothingStatus = controller?.state?.collectAsStateWithLifecycle()?.value
+    LaunchedEffect(controller, pair.connected) {
+        if (pair.connected) controller?.run() else controller?.close()
+    }
+    DisposableEffect(controller) {
+        onDispose { controller?.close() }
+    }
+    val detailedBattery = nothingStatus?.battery?.let { data ->
+        listOfNotNull(
+            data[2]?.let { Battery(BatteryComponent.LEFT, it, BatteryStatus.NOT_CHARGING) },
+            data[4]?.let { Battery(BatteryComponent.CASE, it, BatteryStatus.NOT_CHARGING) },
+            data[3]?.let { Battery(BatteryComponent.RIGHT, it, BatteryStatus.NOT_CHARGING) }
+        )
+    }.orEmpty()
+
     StyledScaffold(
         title = pair.label,
         showBackButton = true,
@@ -67,7 +102,18 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
             )
             when (page) {
                 0 -> {
-                    DetailCard(
+                    if (pair.connected && detailedBattery.isNotEmpty()) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = RoundedCornerShape(24.dp)
+                        ) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(stringResource(R.string.device_battery_status), style = MaterialTheme.typography.titleSmall)
+                                BatteryView(detailedBattery)
+                            }
+                        }
+                    } else DetailCard(
                         title = stringResource(R.string.device_battery_status),
                         description = if (pair.connected) {
                             pair.battery?.let { "${pair.name}: $it" }
@@ -78,10 +124,48 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                         title = stringResource(R.string.other_connected_audio),
                         description = stringResource(if (pair.connected) R.string.buds_connected else R.string.not_connected)
                     )
-                    DetailCard(
-                        title = stringResource(R.string.other_controls_note_title),
-                        description = stringResource(R.string.other_controls_note)
-                    )
+                    if (controller != null && pair.connected && nothingStatus != null) {
+                        DetailCard(
+                            title = stringResource(R.string.other_vendor_link),
+                            description = nothingStatus.status + (nothingStatus.error?.let { " — $it" } ?: "")
+                        )
+                        if (nothingStatus.ready && nothingStatus.noise != null) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                shape = RoundedCornerShape(24.dp)
+                            ) {
+                                Column(Modifier.padding(14.dp)) {
+                                    NoiseControlSettings(
+                                        selected = when (nothingStatus.noise) {
+                                            NothingProtocol.OFF -> NoiseControlMode.OFF
+                                            NothingProtocol.TRANSPARENCY -> NoiseControlMode.AWARENESS
+                                            else -> NoiseControlMode.NOISE_CANCELLATION
+                                        },
+                                        modes = listOf(
+                                            NoiseControlMode.OFF,
+                                            NoiseControlMode.NOISE_CANCELLATION,
+                                            NoiseControlMode.AWARENESS
+                                        ),
+                                        onSelected = { selected ->
+                                            val mode = when (selected) {
+                                                NoiseControlMode.OFF -> NothingProtocol.OFF
+                                                NoiseControlMode.AWARENESS -> NothingProtocol.TRANSPARENCY
+                                                NoiseControlMode.NOISE_CANCELLATION -> NothingProtocol.ANC_HIGH
+                                            }
+                                            scope.launch { controller.changeNoise(mode) }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (controller == null || nothingStatus?.noise == null) {
+                        DetailCard(
+                            title = stringResource(R.string.other_controls_note_title),
+                            description = stringResource(R.string.other_controls_note)
+                        )
+                    }
                 }
                 1 -> {
                     if (pair.connected) {
@@ -107,10 +191,28 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                             }
                         }
                     }
-                    DetailCard(
-                        title = stringResource(R.string.other_controls_note_title),
-                        description = stringResource(R.string.other_controls_note)
-                    )
+                    if (controller != null && nothingStatus?.ready == true && nothingStatus.eq != null) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = RoundedCornerShape(24.dp)
+                        ) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(stringResource(R.string.other_eq_presets), style = MaterialTheme.typography.titleSmall)
+                                PremiumSegmentedTabs(
+                                    labels = listOf("Balanced", "Voice", "Treble", "Bass"),
+                                    selected = nothingStatus.eq.coerceIn(0, 3),
+                                    onSelect = { scope.launch { controller.changeEq(it) } }
+                                )
+                            }
+                        }
+                    }
+                    if (controller == null || nothingStatus?.eq == null) {
+                        DetailCard(
+                            title = stringResource(R.string.other_controls_note_title),
+                            description = stringResource(R.string.other_controls_note)
+                        )
+                    }
                     StyledButton(
                         onClick = {
                             context.startActivity(
