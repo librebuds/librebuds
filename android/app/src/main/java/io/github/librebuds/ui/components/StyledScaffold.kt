@@ -130,15 +130,13 @@ fun StyledScaffold(
                                         Spacer(modifier = Modifier.width(12.dp))
                                         FilledTonalIconButton(
                                             onClick = onNavigateBack,
-                                            modifier = Modifier
-                                                .minimumInteractiveComponentSize()
-                                                .size(IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Narrow)),
-                                            shape = IconButtonDefaults.mediumRoundShape
+                                            modifier = Modifier.size(44.dp),
+                                            shape = RoundedCornerShape(15.dp)
                                         ) {
                                             Icon(
                                                 Icons.AutoMirrored.Default.ArrowBack,
                                                 contentDescription = stringResource(R.string.navigate_back),
-                                                modifier = Modifier.size(IconButtonDefaults.mediumIconSize),
+                                                modifier = Modifier.size(22.dp),
                                             )
                                         }
                                     }
@@ -151,7 +149,7 @@ fun StyledScaffold(
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.padding(start = if (showBackButton) 8.dp else 12.dp, end = 12.dp),
-                                        style = MaterialTheme.typography.titleSmall
+                                        style = MaterialTheme.typography.titleLarge
                                     )
                                 }
                             },
