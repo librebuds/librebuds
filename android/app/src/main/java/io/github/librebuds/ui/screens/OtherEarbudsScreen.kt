@@ -165,7 +165,7 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                             }
                         }
                     }
-                    if (controller == null || nothingStatus?.noise == null) {
+                    if (controller == null || (nothingStatus?.noise == null && vendorGroups.isEmpty())) {
                         DetailCard(
                             title = stringResource(R.string.other_controls_note_title),
                             description = stringResource(R.string.other_controls_note)
@@ -249,7 +249,7 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                             }
                         }
                     }
-                    if (controller == null || nothingStatus?.eq == null) {
+                    if (controller == null || (nothingStatus?.eq == null && vendorEq == null && vendorGroups.isEmpty())) {
                         DetailCard(
                             title = stringResource(R.string.other_controls_note_title),
                             description = stringResource(R.string.other_controls_note)
@@ -314,6 +314,15 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                     DetailCard(
                         title = stringResource(R.string.other_brand),
                         description = pair.brand ?: stringResource(R.string.other_generic)
+                    )
+                    DetailCard(
+                        title = stringResource(R.string.other_vendor_link),
+                        description = when {
+                            !pair.connected -> "Bluetooth audio disconnected; vendor controls are unavailable."
+                            nothingStatus?.ready == true -> "Vendor control channel connected. Available controls depend on the reported model capabilities."
+                            nothingStatus?.error != null -> "Vendor control unavailable: ${nothingStatus.error}"
+                            else -> "Bluetooth audio recognized. Checking whether a compatible vendor control protocol is available."
+                        }
                     )
                     DetailCard(
                         title = stringResource(R.string.other_support_source),
