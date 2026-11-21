@@ -73,12 +73,22 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
     val pairfree = controller as? PairFreeController
     val vendorGroups = pairfree?.groups?.collectAsStateWithLifecycle()?.value.orEmpty()
     val vendorEq = pairfree?.eqState?.collectAsStateWithLifecycle()?.value
-    LaunchedEffect(controller, pair.connected) {
-        if (pair.connected) controller?.run() else controller?.close()
+    // Galaxy Buds audio status can be missing from cached A2DP/HFP proxies even when
+    // Android has paired the device. Probe Samsung's vendor link when its screen is open;
+    // the PairFree transport handles a genuinely disconnected device safely.
+    // Preserve the original connected-only behavior for every other brand.
+    val samsungProbe = pair.brand == "Samsung" || pair.name.startsWith("Galaxy Buds", ignoreCase = true)
+    val shouldProbeVendor = pair.connected || samsungProbe
+    LaunchedEffect(controller, shouldProbeVendor) {
+        if (shouldProbeVendor) controller?.run() else controller?.close()
     }
     DisposableEffect(controller) {
         onDispose { controller?.close() }
     }
+    // A successful Samsung vendor handshake is authoritative for vendor controls
+    // even when Android's cached audio profile status has not caught up.
+    val vendorConnected = nothingStatus?.ready == true
+    val vendorAvailable = pair.connected || (samsungProbe && vendorConnected)
     val detailedBattery = nothingStatus?.battery?.let { data ->
         listOfNotNull(
             data[2]?.let { Battery(BatteryComponent.LEFT, it, BatteryStatus.NOT_CHARGING) },
@@ -107,7 +117,7 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
             )
             when (page) {
                 0 -> {
-                    if (pair.connected && detailedBattery.isNotEmpty()) {
+                    if (vendorAvailable && detailedBattery.isNotEmpty()) {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -129,7 +139,7 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                         title = stringResource(R.string.other_connected_audio),
                         description = stringResource(if (pair.connected) R.string.buds_connected else R.string.not_connected)
                     )
-                    if (controller != null && pair.connected && nothingStatus != null) {
+                    if (controller != null && shouldProbeVendor && nothingStatus != null) {
                         DetailCard(
                             title = stringResource(R.string.other_vendor_link),
                             description = nothingStatus.status + (nothingStatus.error?.let { " — $it" } ?: "")
@@ -183,7 +193,7 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                         onSelect = { controlsSection = it }
                     )
                     if (controlsSection == 0) {
-                    if (pair.connected) {
+                    if (vendorAvailable) {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -318,7 +328,7 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                     DetailCard(
                         title = stringResource(R.string.other_vendor_link),
                         description = when {
-                            !pair.connected -> "Bluetooth audio disconnected; vendor controls are unavailable."
+                            !pair.connected && !samsungProbe -> "Bluetooth audio disconnected; vendor controls are unavailable."
                             nothingStatus?.ready == true -> "Vendor control channel connected. Available controls depend on the reported model capabilities."
                             nothingStatus?.error != null -> "Vendor control unavailable: ${nothingStatus.error}"
                             else -> "Bluetooth audio recognized. Checking whether a compatible vendor control protocol is available."
