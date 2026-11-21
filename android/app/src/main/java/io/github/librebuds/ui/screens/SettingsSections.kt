@@ -95,7 +95,7 @@ fun DeviceSettingsSections(
                 contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                 shape = RoundedCornerShape(18.dp)
             ) {
-                androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) {
+                androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
                     Text(stringResource(label), maxLines = 1, style = MaterialTheme.typography.labelMediumEmphasized)
                 }
             }
