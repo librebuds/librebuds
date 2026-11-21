@@ -1,0 +1,790 @@
+# PairFree model-name catalog (names only; not device protocol or feature verification)
+# Source: https://github.com/Omega-Destroyer/PairFree at af534dca43627a9c76903fbb9a118ea4a783c856
+# License: GPL-3.0; used with attribution in NOTICE and README.
+# brand<TAB>model; local Bluetooth discovery only
+soundpeats	ECHO
+soundpeats	Air3 Deluxe HS
+soundpeats	Air3 Pro
+soundpeats	Air3Pro
+soundpeats	Air3
+soundpeats	Air3-Deluxe
+soundpeats	Air4
+soundpeats	Air4 Lite
+soundpeats	Air4 Pro
+soundpeats	Air5
+soundpeats	Air5 Lite
+soundpeats	Air5 Pro
+soundpeats	Air5 Pro+
+soundpeats	Air6 HS
+soundpeats	Air6 Lite
+soundpeats	Air6 Pro
+soundpeats	AirClip
+soundpeats	Arc
+soundpeats	Aura Nebula
+soundpeats	Breezy
+soundpeats	C30
+soundpeats	Capsule3 Pro
+soundpeats	Capsule3 Pro+
+soundpeats	CC3 Pro
+soundpeats	Chasers
+soundpeats	ChatFree
+soundpeats	Clear
+soundpeats	Clear Dot
+soundpeats	Clear-Pods
+soundpeats	Clip1
+soundpeats	Cove Pro
+soundpeats	CyberGear
+soundpeats	Engine 4
+soundpeats	Force Pro
+soundpeats	GoFree
+soundpeats	GoFree 2
+soundpeats	GoFree 2+
+soundpeats	HearFit
+soundpeats	Hi Listening
+soundpeats	Life
+soundpeats	Life3
+soundpeats	LinkFree
+soundpeats	Mini HS
+soundpeats	Mini Pro
+soundpeats	Mini Pro HS
+soundpeats	Opera03
+soundpeats	Opera05
+soundpeats	PearlClip
+soundpeats	PearlClip Pro
+soundpeats	POP Clip
+soundpeats	POP Clip2
+soundpeats	Q3 Pro
+soundpeats	Q30 HD+
+soundpeats	Q35 HD+
+soundpeats	Q40 HD
+soundpeats	RunFree
+soundpeats	RunFree HS
+soundpeats	RunFree Lite
+soundpeats	RunFree Lite2
+soundpeats	Sonic
+soundpeats	Sonic Pro
+soundpeats	SOUNDOEATS Q35 HD+
+soundpeats	SOUNDPEAT GoFree 2s
+soundpeats	Space
+soundpeats	Space Lite
+soundpeats	Space Pro
+soundpeats	T3 Pro
+soundpeats	TrueAir2
+soundpeats	TRUEFREE C1
+soundpeats	TRUEFREE soft
+soundpeats	TRUEFREE Clip C10
+soundpeats	TRUEFREE F2
+soundpeats	Truengine 3 SE
+soundpeats	Truengine 3SE
+soundpeats	Wings2
+soundcore	Anker AeroClip 2
+soundcore	Anker Sleep Earbuds 4
+soundcore	Anker Sleep Earbuds 4 Pro
+soundcore	Anker soundcore Q31i, soundcore Q31i
+soundcore	Anker Space 2 Pro
+soundcore	Anker Space 2 Pro Max
+soundcore	Liberty Buds
+soundcore	Liberty Buds 2
+soundcore	A20i, soundcore A25i
+soundcore	soundcore A30i
+soundcore	AeroClip
+soundcore	soundcore AeroClip 2 Pro
+soundcore	soundcore AeroFit
+soundcore	soundcore AeroFit 2
+soundcore	AeroFit 2 AI Assistant
+soundcore	soundcore AeroFit 2 Pro
+soundcore	soundcore AeroFit Pro
+soundcore	C30i
+soundcore	soundcore C40i
+soundcore	C50i
+soundcore	Frames
+soundcore	soundcore H30i
+soundcore	soundcore K20i
+soundcore	Liberty 2
+soundcore	Liberty 2 Pro
+soundcore	Liberty 2 Pro+
+soundcore	Liberty 3 Pro
+soundcore	Liberty 4
+soundcore	Liberty 4 NC
+soundcore	Liberty 4 Pro
+soundcore	Liberty 5
+soundcore	soundcore Liberty 5 Pro
+soundcore	soundcore Liberty 5 Pro Max
+soundcore	Liberty Air 2 Pro
+soundcore	Liberty Air2
+soundcore	Liberty Air 2
+soundcore	Life 2 Neo
+soundcore	Q10i
+soundcore	Life A1
+soundcore	Life A2 NC
+soundcore	Life A2 NC+
+soundcore	Life A3i
+soundcore	A3i
+soundcore	Life Dot 2 NC
+soundcore	Life Dot 2 XR
+soundcore	Life Dot 2S
+soundcore	Liberty Neo 2
+soundcore	Life Dot 3i
+soundcore	Dot 3i
+soundcore	Life NC
+soundcore	Life Note 3
+soundcore	Life Note 3i
+soundcore	Note 3i
+soundcore	Life Note 3S
+soundcore	soundcore Life Note C
+soundcore	Life P2 Mini, soundcore P2 Mini
+soundcore	Life P3
+soundcore	Life P3i
+soundcore	P3i
+soundcore	soundcore Life Q20, soundcore Q20
+soundcore	Life Q20+, soundcore Life Q20+ SE
+soundcore	Life Q35
+soundcore	Q35
+soundcore	Life Tune
+soundcore	Tune
+soundcore	Life Tune XR
+soundcore	Life Tune Pro
+soundcore	Motion+
+soundcore	P20i
+soundcore	P25i
+soundcore	R50i
+soundcore	P30i
+soundcore	R50i NC
+soundcore	P31i
+soundcore	P40i
+soundcore	soundcore P41i
+soundcore	soundcore P42i
+soundcore	Q11i
+soundcore	Q20I
+soundcore	soundcore Q20i Plus
+soundcore	soundcore Q21i NC
+soundcore	Q30
+soundcore	Life Q30
+soundcore	soundcore R50i VI
+soundcore	R60i NC
+soundcore	Sleep A10
+soundcore	Sleep A20
+soundcore	Sleep A30
+soundcore	Sleep A30 Special
+soundcore	Space A40
+soundcore	Space One, soundcore CS 30Q
+soundcore	Space One Pro
+soundcore	Space Q45
+soundcore	Sport X10
+soundcore	Sport X20
+soundcore	V20i
+soundcore	soundcore V30i
+soundcore	soundcore V40i
+soundcore	Vortex
+soundcore	VR P10
+soundcore	Space 2
+samsung	Buds
+samsung	Buds+
+samsung	Buds Live
+samsung	Buds Pro
+samsung	Buds2
+samsung	Buds2 Pro
+samsung	Buds FE
+samsung	Buds Core
+samsung	Buds3
+samsung	Buds3 Pro
+samsung	Buds3 FE
+samsung	Buds4
+samsung	Buds4 Pro
+samsung	Buds On
+sony	WH-1000XM2
+sony	WH-1000XM3
+sony	WH-1000XM4
+sony	WH-1000XM5
+sony	WH-1000XM6
+sony	WH-CH720N
+sony	ULT WEAR
+sony	WF-1000XM3
+sony	WF-1000XM4
+sony	WF-1000XM5
+sony	WF-1000XM6
+sony	WF-SP800N
+sony	WF-C500
+sony	WF-C510
+sony	WF-C700N
+sony	WF-C710N
+sony	LinkBuds
+sony	LinkBuds S
+sony	LinkBuds UC
+sony	LinkBuds Open
+sony	LinkBuds Fit
+sony	LinkBuds Clip
+sony	WI-C100
+sony	WI-SP600N
+bose	QuietComfort 35
+bose	QuietComfort 35 Series 2
+bose	NC 700 Headphones
+bose	QC 45
+bose	QuietComfort Headphones
+bose	QC Ultra Headphones
+bose	QC Ultra 2 HP
+bose	QC 2 HP
+bose	SoundSport Free
+bose	Sport Earbuds
+bose	QuietComfort Earbuds
+bose	Sport Open Earbuds
+bose	QC Earbuds II
+bose	Ultra Open Earbuds
+bose	QC Ultra Earbuds
+bose	QC Ultra 2 Earbuds
+bose	Ultra Open 2 Earbuds
+bose	SoundSport
+bose	SoundSport Pulse
+bose	QuietControl 30
+jbl	CLUB ONE
+jbl	LIVE460NC
+jbl	LIVE660NC
+jbl	TOUR ONE
+jbl	TOUR ONE M2
+jbl	Tune 520BT
+jbl	Tune 720BT
+jbl	Tune 525BT
+jbl	Live 670NC
+jbl	Live 770NC
+jbl	Quantum 360X
+jbl	Quantum 360P
+jbl	Live 675NC
+jbl	Junior 320BT
+jbl	Junior 470NC
+jbl	Quantum 360
+jbl	Tour One M3
+jbl	Live 775NC
+jbl	Tune 527BT
+jbl	Tune 135BT
+jbl	Tune 235BT
+jbl	Junior Free
+jbl	Endurance Run 3 Wireless
+jbl	Endurance Pace
+jbl	Tune 530BT
+jbl	Tune 730BT
+jbl	Tune 680NC
+jbl	Tune 780NC
+jbl	Live 680NC
+jbl	Live 780NC
+jbl	Tune 785NC
+jbl	Tune 520BT2
+jbl	Tune 535BT
+jbl	Tune 735BT
+jbl	Tune 670NC
+jbl	Tune 770NC
+jbl	Quantum910X
+jbl	Quantum910P
+jbl	Quantum910
+jbl	Tune 775NC
+jbl	Tune 777NC
+jbl	LIVE220BT
+jbl	LIVE400BT
+jbl	LIVE500BT
+jbl	LIVE650BTNC
+jbl	CLUB700BT
+jbl	CLUB950NC
+jbl	UA PROJECT ROCK
+jbl	RFL FLOW PRO
+jbl	TUNE130NC TWS
+jbl	TUNE230NC TWS
+jbl	TUNE235NC TWS
+jbl	ENDURANCE RACE TWS
+jbl	LIVE PRO 2 TWS
+jbl	Endurance Peak 3
+jbl	TUNE FLEX
+jbl	WAVE FLEX
+jbl	WAVE BUDS
+jbl	WAVE BEAM
+jbl	LIVE FLEX
+jbl	TOUR PRO 2
+jbl	Tune 245NC TWS
+jbl	TUNE BEAM
+jbl	TUNE BUDS
+jbl	Soundgear Sense
+jbl	Live Beam 3
+jbl	Live Flex 3
+jbl	Wave Buds 2
+jbl	Wave Flex 2
+jbl	Tune Buds 2
+jbl	Tune Flex 2
+jbl	Tune Beam 2
+jbl	Vibe Flex 2
+jbl	Vibe Buds 2
+jbl	Sense Lite
+jbl	Endurance Zone
+jbl	Soundgear Clips
+jbl	Endurance Peak 4
+jbl	Sense Pro
+jbl	Tune 255NC
+jbl	Smart Tx
+jbl	Live Beam 4
+jbl	Live Buds 4
+jbl	Live Flex 4
+jbl	Vibe Buds 3
+jbl	Vibe Beam 3
+jbl	Vibe Flex 3
+jbl	Wave Buds 3
+jbl	Wave Beam 3
+jbl	Wave Flex 3
+jbl	Tune Buds 3
+jbl	Tune Beam 3
+jbl	Tune Flex 3
+jbl	CLUB PRO+ TWS
+jbl	REFLECT MINI NC
+jbl	LIVE FREE NC+ TWS
+jbl	LIVE FREE 2 TWS
+jbl	Reflect Aero
+jbl	Quantum TWS
+jbl	Quantum TWS Air
+jbl	Live Buds 3
+jbl	Tour Pro 3
+jbl	Endurance Race 2
+jbl	Wave Beam 2
+jbl	Vibe Beam 2
+jbl	LIVE300TWS
+jbl	LIVE PRO+ TWS
+jbl	TOUR PRO+ TWS
+jbl	Soundgear Frames
+apple	AirPods (1st generation)
+apple	AirPods (2nd generation)
+apple	AirPods (3rd generation)
+apple	AirPods 4
+apple	AirPods 4 with Active Noise Cancellation
+apple	AirPods 5
+apple	AirPods 5 with Wireless Charging Case
+apple	AirPods Pro
+apple	AirPods Pro 2 (Lightning)
+apple	AirPods Pro 2 (USB-C)
+apple	AirPods Pro 3
+apple	AirPods Max
+apple	AirPods Max (USB-C)
+apple	AirPods Max 2
+apple	Powerbeats3
+apple	Powerbeats4
+apple	Powerbeats Pro
+apple	Powerbeats Pro 2
+apple	Powerbeats Fit
+apple	BeatsX
+apple	Beats Flex
+apple	Beats Fit Pro
+apple	Beats Studio Buds
+apple	Beats Studio Buds +
+apple	Beats Solo Buds
+apple	Beats Solo3
+apple	Beats Solo Pro
+apple	Beats Solo 4
+apple	Beats Studio3
+apple	Beats Studio Pro
+nothing	Nothing Ear (2)
+nothing	Nothing Ear (stick)
+nothing	Nothing Ear (a)
+nothing	Nothing Ear
+nothing	Nothing Ear (3)
+nothing	Nothing Ear (open)
+nothing	Nothing Ear (1)
+nothing	Nothing (project 24272)
+nothing	Nothing Ear (3a)
+nothing	CMF Buds Pro
+nothing	CMF Buds
+nothing	CMF Buds Pro 2
+nothing	CMF Buds 2
+nothing	CMF Buds 2 Plus
+nothing	CMF Buds 2a
+nothing	Nothing Headphone (1)
+nothing	CMF Headphone Pro
+nothing	CMF Neckband Pro
+pixel	Pixel Buds
+pixel	Pixel Buds A-Series
+pixel	Pixel Buds Pro
+pixel	Pixel Buds Pro 2
+pixel	Pixel Buds 2a
+qcy	QCY AilyBuds Clear
+qcy	QCY AilyBuds E10
+qcy	QCY AilyBuds E20
+qcy	QCY AilyBuds E50
+qcy	QCY AilyBuds Lite
+qcy	QCY AilyBuds Pro
+qcy	QCY AilyBuds Pro+
+qcy	QCY AilyPods
+qcy	QCY Ailypods Neo
+qcy	QCY AilyPodsBuds Lite
+qcy	QCY Air
+qcy	QCY ArcBuds
+qcy	QCY ArcBuds Lite
+qcy	QCY AT02
+qcy	QCY BARAM
+qcy	QCY Buds
+qcy	QCY Buds ANC
+qcy	QCY C1
+qcy	QCY C1 CANAL
+qcy	QCY C1 OPEN
+qcy	QCY C2
+qcy	QCY Crossky C10
+qcy	QCY Crossky C30
+qcy	QCY Crossky C30S
+qcy	QCY Crossky C50
+qcy	QCY Crossky C50i
+qcy	QCY Crossky C50S
+qcy	QCY Crossky GTR
+qcy	QCY Crossky GTR2
+qcy	QCY Crossky Link
+qcy	QCY Crossky Link2
+qcy	QCY Crossky R50
+qcy	QCY Crossky R70
+qcy	QCY CT01 APP
+qcy	QCY CT03
+qcy	QCY CT06 BlueTooth 6.0
+qcy	QCY DT06
+qcy	QCY DT08
+qcy	QCY DT10
+qcy	QCY Era 5
+qcy	QCY Era 7
+qcy	QCY FairyBuds
+qcy	QCY G1
+qcy	QCY H2
+qcy	QCY H2 Pro
+qcy	QCY H2APP PRO HEADSET
+qcy	QCY H2S Lite
+qcy	QCY H3
+qcy	QCY H3 ANC HEADSET
+qcy	QCY H3 Lite
+qcy	QCY H3 Lite ANC APP
+qcy	QCY H3 Pro
+qcy	QCY H3 PRO ANC
+qcy	QCY H3S
+qcy	QCY H3S EXTREME ANC
+qcy	QCY H4
+qcy	QCY H4 ANC HEADSET
+qcy	QCY HEROAD GT2
+qcy	QCY Heroad V200
+qcy	QCY Heroad VT200
+qcy	QCY HT01
+qcy	QCY HT01C
+qcy	QCY HT02
+qcy	QCY HT03
+qcy	QCY HT03S
+qcy	QCY HT07 ANC APP
+qcy	QCY HT08
+qcy	QCY HT08 MeloBuds Pro Plus
+qcy	QCY HT10 Hires ANC APP
+qcy	QCY HT10ANC APP
+qcy	QCY HT12 MeloBuds N50
+qcy	QCY HT16 MeloBuds
+qcy	QCY HT19 MeloBuds DUAL BT6
+qcy	QCY HT20 MeloBuds NEO BT6
+qcy	QCY HT27
+qcy	QCY M10
+qcy	QCY M18
+qcy	QCY MeloBuds A30
+qcy	QCY Melobuds ANC
+qcy	QCY MeloBuds HT18 Lite
+qcy	QCY MeloBuds N20
+qcy	QCY MeloBuds N20 Pro
+qcy	QCY MeloBuds N30
+qcy	QCY MeloBuds N50
+qcy	QCY MeloBuds N60
+qcy	QCY MeloBuds N65
+qcy	QCY MeloBuds N70
+qcy	QCY MeloBuds N70i
+qcy	QCY MeloBuds Neo
+qcy	QCY MeloBuds Pro
+qcy	QCY QT10
+qcy	QCY QT10 Pro
+qcy	QCY QT10S
+qcy	QCY QT11
+qcy	QCY QT12
+qcy	QCY QT12S
+qcy	QCY QT16
+qcy	QCY RACE
+qcy	QCY T11S
+qcy	QCY T13
+qcy	QCY T13 ANC
+qcy	QCY T13 ANC2
+qcy	QCY T13 ANC2 APP
+qcy	QCY T13 Plus
+qcy	QCY T13 Pro
+qcy	QCY T13 PRO ANC BT6
+qcy	QCY T13X
+qcy	QCY T13X APP
+qcy	QCY T17
+qcy	QCY T17S
+qcy	QCY T18
+qcy	QCY T19
+qcy	QCY T1C
+qcy	QCY T1C Pro
+qcy	QCY T1S
+qcy	QCY T1X
+qcy	QCY T29 APP
+qcy	QCY T2C
+qcy	QCY T3
+qcy	QCY T30 AIR
+qcy	QCY T31 MeloBuds Neo
+qcy	QCY T33 APP
+qcy	QCY T4
+qcy	QCY T41 Motif
+qcy	QCY T43 Buds
+qcy	QCY T4S
+qcy	QCY T5
+qcy	QCY T5 Pro
+qcy	QCY T5S
+qcy	QCY T6
+qcy	QCY T7
+qcy	QCY T7S
+qcy	QCY T8
+qcy	QCY T8S
+qcy	QCY T9
+qcy	QCY T9S
+qcy	QCY TWS HT05
+qcy	QCY TWS HT07
+qcy	QCY TWS QT26
+qcy	QCY TWS QT27
+qcy	QCY TWS QT29
+qcy	QCY-T22APP
+qcy	QCY-T35 AilyBuds
+qcy	QCY-T37 ANC AilyBuds
+1more	1MORE Aero
+1more	1MORE AERO Q32
+1more	1MORE ColorBuds 2
+1more	1MORE ComfoBuds 2
+1more	1MORE ComfoBuds Mini
+1more	1MORE ComfoBuds Pro
+1more	1MORE EVO
+1more	1MORE Fit
+1more	1MORE Fit SE
+1more	1MORE G50
+1more	1MORE HQ20
+1more	1MORE HQ31
+1more	1MORE HQ36
+1more	1MORE HQ51
+1more	1MORE HQ60
+1more	1MORE NANO
+1more	1MORE PistonBuds Pro
+1more	1MORE PistonBuds PRO Q30
+1more	1MORE Q12
+1more	1MORE Q21
+1more	1MORE Q22
+1more	1MORE Q50
+1more	1MORE S-31
+1more	1MORE S10AI
+1more	1MORE S10S
+1more	1MORE S11
+1more	1MORE S12
+1more	1MORE S15
+1more	1MORE S20
+1more	1MORE S20NOVA
+1more	1MORE S20PRO
+1more	1MORE S20Ultra
+1more	1MORE S21
+1more	1MORE S21Air
+1more	1MORE S22
+1more	1MORE S22Ultra
+1more	1MORE S25
+1more	1MORE S31
+1more	1MORE S32
+1more	1MORE S51
+1more	1MORE S52
+1more	1MORE S70
+1more	1MORE S90
+1more	1MORE SonoFlow
+1more	1MORE SonoFlow QC30
+1more	1MORE SonoFlow S
+1more	1MORE SonoFlow SE
+1more	1MORE Z30
+earfun	ATVEL Tune Pro Q7
+earfun	ATVEL Tune S5 Pro
+earfun	ATVEL Tune S5 ProX
+earfun	EarFun Air
+earfun	EarFun Air 2
+earfun	EarFun Air 2 NC
+earfun	EarFun Air Life
+earfun	EarFun Air Pro 2
+earfun	EarFun Air Pro 3
+earfun	EarFun Air Pro 4
+earfun	EarFun Air Pro 4+
+earfun	EarFun Air Pro 4i
+earfun	EarFun Air Pro 5
+earfun	EarFun Air Pro SV
+earfun	EarFun Air S
+earfun	EarFun Clip
+earfun	EarFun Clip 2
+earfun	EarFun Free 1S
+earfun	EarFun Free 2S
+earfun	EarFun Free Pro 3
+earfun	EarFun OpenJump
+earfun	EarFun Tune Pro
+earfun	EarFun Wave Life
+earfun	EarFun Wave Pro
+earfun	EarFun Wave Pro 2
+earfun	EarFun Wave Pro X
+cambridge	Melomania 1+
+cambridge	Melomania Touch
+cambridge	Melomania A100
+cambridge	Melomania A100 SE
+cambridge	Melomania M100
+cambridge	Melomania P100
+cambridge	Melomania P100 SE
+cambridge	Melomania X100
+oneplus	OPPO Enco M31
+oneplus	OnePlus BulletsWireless Z2 ANC
+oneplus	OnePlus Bullets Wireless Z3
+oneplus	OPPO Enco Free
+oneplus	OnePlus Buds
+oneplus	OPPO Enco W31
+oneplus	OnePlus Buds Z
+oneplus	OPPO Enco W51
+oneplus	OnePlus Buds Pro
+oneplus	OnePlus Buds Z2
+oneplus	OPPO Enco X
+oneplus	OnePlus Nord Buds
+oneplus	OPPO Enco Air
+oneplus	OPPO Enco Play
+oneplus	OnePlus Nord Buds CE
+oneplus	OPPO Enco Free2
+oneplus	OnePlus Buds Pro 2
+oneplus	OPPO Enco Buds
+oneplus	OnePlus Nord Buds 2
+oneplus	OPPO Enco Air Lite
+oneplus	OnePlus Nord Buds 2r
+oneplus	OPPO Enco R
+oneplus	OPPO Enco Air2
+oneplus	OnePlus Buds Pro 2R
+oneplus	OPPO Enco Air2 Pro
+oneplus	OPPO Enco X2
+oneplus	OnePlus Buds 3
+oneplus	OPPO Enco Free2i
+oneplus	OnePlus Buds Pro 3
+oneplus	OnePlus Nord Buds 3 Pro
+oneplus	OPPO Enco Buds2
+oneplus	OPPO Enco Air3
+oneplus	OPPO Enco R Pro
+oneplus	OnePlus Nord Buds 3
+oneplus	OnePlus Buds 4
+oneplus	OnePlus Nord Buds 3r
+oneplus	OPPO Enco Air3 Pro
+oneplus	OPPO Enco X3i
+oneplus	OPPO Enco Air3i
+oneplus	OPPO Enco X3
+oneplus	OPPO Enco Air3s
+oneplus	OPPO Enco Air4 Pro
+oneplus	OPPO Enco Buds2 Pro
+oneplus	OPPO Enco Air4
+oneplus	OPPO Enco Buds3
+oneplus	OPPO Enco Buds3 Pro
+oneplus	OPPO Enco Clip
+oneplus	OPPO Enco X3s
+oneplus	OPPO Enco Air5s
+oneplus	OPPO Enco Air5
+oneplus	OPPO Enco Clip2
+sennheiser	Accentum
+sennheiser	Accentum Plus
+sennheiser	Accentum True Wireless
+sennheiser	CX 200 True Wireless
+sennheiser	CX Sport True Wireless
+sennheiser	CX Plus True Wireless
+sennheiser	CX 500BT True Wireless
+sennheiser	Momentum 4 Wireless
+sennheiser	Momentum Sport
+sennheiser	Momentum True Wireless 3
+sennheiser	Momentum True Wireless 4
+sennheiser	Momentum 5 Wireless
+sennheiser	Momentum True Wireless 5
+sennheiser	HDB 630
+sennheiser	HDR 275 / 255
+sennheiser	CX 350BT (GAIA v2)
+sennheiser	HD 250BT (GAIA v2)
+sennheiser	HD 350BT (GAIA v2)
+sennheiser	HD 450BT (GAIA v2)
+sennheiser	HD 450SE (GAIA v2)
+sennheiser	HD 458BT (GAIA v2)
+sennheiser	IE 80S BT (GAIA v2)
+sennheiser	CX 400BT True Wireless (GAIA v2)
+sennheiser	Momentum True Wireless (GAIA v2)
+sennheiser	Momentum True Wireless 2 (GAIA v2)
+sennheiser	Momentum 3 Wireless (Nautilus)
+sennheiser	PXC 550 (Nautilus)
+sennheiser	PXC 550-II (Nautilus)
+jabra	Jabra Connect 5t
+jabra	Jabra Elite 10
+jabra	Jabra Elite 10 Gen 2
+jabra	Jabra Elite 2
+jabra	Jabra Elite 3
+jabra	Jabra Elite 3 Active
+jabra	Jabra Elite 4
+jabra	Jabra Elite 4 Active
+jabra	Jabra Elite 45e
+jabra	Jabra Elite 45h
+jabra	Jabra Elite 5
+jabra	Jabra Elite 65e
+jabra	Jabra Elite 65t
+jabra	Jabra Elite 7 Active
+jabra	Jabra Elite 7 Pro
+jabra	Jabra Elite 7 Sport
+jabra	Jabra Elite 75t
+jabra	Jabra Elite 8 Active
+jabra	Jabra Elite 8 Active Gen 2
+jabra	Jabra Elite 85h
+jabra	Jabra Elite 85t
+jabra	Jabra Elite Active 45e
+jabra	Jabra Elite Active 65t
+jabra	Jabra Elite Active 75t
+jabra	Jabra Elite Flex
+jabra	Jabra Evolve 65e
+jabra	Jabra Evolve 65t
+jabra	Jabra Evolve2 55
+jabra	Jabra Evolve2 65
+jabra	Jabra Evolve2 65 Flex
+jabra	Jabra Evolve2 75
+jabra	Jabra Evolve2 85
+jabra	Jabra Evolve2 Buds
+jabra	Jabra Speak2 75
+skullcandy	Crusher ANC
+skullcandy	Crusher Evo
+skullcandy	Indy ANC
+skullcandy	Indy Fuel
+skullcandy	Indy Evo
+skullcandy	Push Ultra
+skullcandy	Push Active
+skullcandy	Grind
+skullcandy	Grind Fuel
+skullcandy	Crusher ANC 2
+skullcandy	Rail
+skullcandy	Rail ANC
+skullcandy	Method 360 ANC
+skullcandy	Method 540 ANC
+skullcandy	Jib True XT2
+skullcandy	Dime 2
+skullcandy	Dime XT2
+skullcandy	Sesh ANC
+skullcandy	Mod
+skullcandy	Riff Wireless 2
+skullcandy	PLYR
+skullcandy	SLYR Pro Wireless
+skullcandy	Push ANC Active
+skullcandy	Sesh ANC Active
+skullcandy	Icon ANC
+skullcandy	Dime Evo
+skullcandy	AVIATOR 900 ANC
+skullcandy	Hesh 360
+skullcandy	Hesh 540 ANC
+skullcandy	Crusher PLYR 720
+skullcandy	Crusher PLYR 720 XBOX
+skullcandy	Crusher 540 Active
+skullcandy	Push 720 Open
+skullcandy	Icon 180
+skullcandy	Push 540 Open
+skullcandy	Terrain Mini
+skullcandy	Terrain
+skullcandy	Terrain XL
+skullcandy	Dime 360
+skullcandy	Crusher 720
+skullcandy	Crusher 1080 ANC
+skullcandy	Session 360
+skullcandy	Session 540
+skullcandy	Session 720
+skullcandy	Session 900
+skullcandy	Smokin' Buds 360
+skullcandy	DIME 540 ANC
+skullcandy	Smokin' Buds 360H
+skullcandy	Smokin' Buds 360S
+skullcandy	Crusher 900 ANC
+skullcandy	Push 180 Open
