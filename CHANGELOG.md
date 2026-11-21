@@ -4,6 +4,14 @@ All notable changes to the **LibreBuds+** community fork are documented here.
 
 This fork is based on [LibreBuds](https://github.com/librebuds/librebuds), with interface inspiration from [QuickBuds by spizganed](https://github.com/spizganed/QuickBuds). See [NOTICE](NOTICE) and [LICENSE](LICENSE) for acknowledgments and license terms.
 
+## Unreleased — call audio coexistence safeguard (alpha only)
+
+- Defer **automatic** FreeBuds vendor-control reconnect attempts while Android reports an in-call / VoIP communication mode or an active Bluetooth headset call-audio connection.
+- Listen for Android communication-mode and Bluetooth headset audio-state changes so normal auto-connect can resume after calls.
+- Add regression tests for regular calls, WhatsApp-style VoIP calls, active headset audio and normal music playback.
+- This is a precaution against vendor Bluetooth control traffic overlapping call setup; it does **not** change the WhatsApp microphone route, microphone gain, Bluetooth codec or the earbuds firmware. **The recorded issue is not yet proven to originate in LibreBuds+.**
+- Test WhatsApp call audio on FreeBuds 6i against stable v1.1.0 with identical phone settings before promoting this build to stable.
+
 ## [1.1.0] — 2026-11-21
 
 LibreBuds+ name and first **multi-brand preview in a stable FreeBuds-focused build**. HUAWEI FreeBuds 6i operation was confirmed by the owner using the alpha APK; **other manufacturer controls remain experimental**.
