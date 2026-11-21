@@ -19,6 +19,16 @@ class CallAudioGuardTest {
         assertTrue(shouldDeferControlConnect(AudioManager.MODE_NORMAL, true))
     }
 
+    @Test fun routingTestRefusesActiveVoipCall() {
+        assertFalse(canStartVoiceNoteRouteTest(AudioManager.MODE_IN_COMMUNICATION, true))
+        assertFalse(canStartVoiceNoteRouteTest(AudioManager.MODE_IN_CALL, true))
+    }
+
+    @Test fun routingTestRequiresBluetoothHeadset() {
+        assertFalse(canStartVoiceNoteRouteTest(AudioManager.MODE_NORMAL, false))
+        assertTrue(canStartVoiceNoteRouteTest(AudioManager.MODE_NORMAL, true))
+    }
+
     @Test fun normalMusicListeningStillAllowsConnection() {
         assertFalse(shouldDeferControlConnect(AudioManager.MODE_NORMAL, false))
     }
