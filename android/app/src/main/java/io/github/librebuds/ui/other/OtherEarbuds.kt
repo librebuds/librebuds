@@ -51,6 +51,11 @@ object OtherEarbudsCatalog {
     private fun normalize(value: String): String = value.lowercase(Locale.ROOT)
         .replace(Regex("[^a-z0-9]+"), " ").trim()
 
+    /** Huawei's existing control stack must always take priority over generic discovery. */
+    fun isHuaweiManaged(name: String): Boolean =
+        name.contains("freebuds", ignoreCase = true) ||
+        name.startsWith("HUAWEI ", ignoreCase = true)
+
     /** Explicit earbud/headphone names that do not appear in the imported model table. */
     fun looksLikeHeadphones(name: String): Boolean {
         val n = normalize(name)
@@ -86,7 +91,7 @@ fun readOtherEarbuds(context: Context, catalog: List<KnownModel>): List<OtherEar
     return try {
         adapter.bondedDevices.orEmpty().mapNotNull { device ->
             val name = device.name ?: return@mapNotNull null
-            if (name.contains("freebuds", ignoreCase = true) || name.startsWith("HUAWEI ", ignoreCase = true)) {
+            if (OtherEarbudsCatalog.isHuaweiManaged(name)) {
                 return@mapNotNull null // Existing LibreBuds protocol always takes priority.
             }
             val match = OtherEarbudsCatalog.match(name, catalog)
