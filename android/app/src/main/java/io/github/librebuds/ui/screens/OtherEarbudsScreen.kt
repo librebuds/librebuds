@@ -23,6 +23,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import io.github.librebuds.ui.other.VendorProtocols
+import io.github.librebuds.ui.other.shouldProbeVendorWhenViewed
 import io.github.librebuds.ui.other.PairFreeController
 import io.github.omegadestroyer.pairfree.protocol.SettingTab
 import io.github.librebuds.ui.other.NothingProtocol
@@ -77,8 +78,9 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
     // Android has paired the device. Probe Samsung's vendor link when its screen is open;
     // the PairFree transport handles a genuinely disconnected device safely.
     // Preserve the original connected-only behavior for every other brand.
-    val samsungProbe = pair.brand == "Samsung" || pair.name.startsWith("Galaxy Buds", ignoreCase = true)
-    val shouldProbeVendor = pair.connected || samsungProbe
+    val samsungProbe = (pair.brand == "Samsung" || pair.name.startsWith("Galaxy Buds", ignoreCase = true)) &&
+        !pair.name.contains("FreeBuds", ignoreCase = true)
+    val shouldProbeVendor = shouldProbeVendorWhenViewed(pair.name, pair.brand, pair.connected)
     LaunchedEffect(controller, shouldProbeVendor) {
         if (shouldProbeVendor) controller?.run() else controller?.close()
     }
