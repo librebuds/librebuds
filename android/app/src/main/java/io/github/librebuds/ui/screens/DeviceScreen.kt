@@ -43,6 +43,7 @@ import io.github.librebuds.ui.SettingsViewModel
 import io.github.librebuds.ui.components.AboutCard
 import io.github.librebuds.ui.components.BatteryView
 import io.github.librebuds.ui.components.NoiseControlSettings
+import io.github.librebuds.ui.components.QuickActionsPanel
 import io.github.librebuds.ui.components.StyledButton
 import io.github.librebuds.ui.components.StyledIconButton
 import io.github.librebuds.ui.components.StyledScaffold
@@ -193,6 +194,7 @@ fun DeviceScreen(
             }
             // Like noise control, settings only show while connected: a change could not be sent otherwise.
             if (ui.state.isConnected) {
+                QuickActionsPanel(settings.model, onChange = settingsViewModel::apply, onOpenMultipoint = onOpenMultipoint)
                 DeviceSettingsSections(settings, onChange = settingsViewModel::apply, onOpenMultipoint = onOpenMultipoint, onRing = settingsViewModel::ring)
                 settings.error?.let { error ->
                     Text(
