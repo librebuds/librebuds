@@ -27,7 +27,7 @@ Updated: 2026-11-21. **The feature status below applies to this fork, not to ups
 - All recognized Huawei FreeBuds, FreeClip, FreeArc, FreeLace, Lipstick, Studio, and Eyewear models use the **original Huawei SPP controller**, not PairFree's unrelated-brand driver.
 - The model registry now recognizes complete known Bluetooth names case-insensitively, tolerates extra whitespace, an optional `HUAWEI ` prefix, and a factory-style `(A1B2)` suffix without confusing similar models (for example FreeBuds 6 vs 6i).
 - Adds conservative profiles for **FreeBuds SE 3**, **FreeBuds Lite**, and **FreeLace Lite**. These request basic battery information only; no unverified ANC, EQ or gesture commands are enabled.
-- Hardware identifiers still take precedence over name matching. Unknown Huawei models retain a limited generic profile where the headset exposes the Huawei control channel.
+- Hardware identifiers still take precedence over name matching. Huawei-branded audio family names can now be discovered even before Android caches the SPP UUID; this only lists the paired product and does not prove the proprietary control link exists or will connect. Huawei watches are excluded. Unknown models retain a limited generic profile only where a Huawei protocol session succeeds.
 - **Important:** Sharing a Huawei SPP transport does not mean identical feature sets or guaranteed compatibility. Model-specific support beyond confirmed hardware remains experimental and must be verified using actual earbuds. Bluetooth audio pairing is always managed by Android.
 
 ## New cross-brand experimental support (PairFree)
