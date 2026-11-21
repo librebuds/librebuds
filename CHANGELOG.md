@@ -6,8 +6,8 @@ This fork is based on [LibreBuds](https://github.com/librebuds/librebuds), with 
 
 ## Unreleased — call audio coexistence safeguard (alpha only)
 
-- Defer **automatic** FreeBuds vendor-control reconnect attempts while Android reports an in-call / VoIP communication mode or an active Bluetooth headset call-audio connection.
-- Listen for Android communication-mode and Bluetooth headset audio-state changes so normal auto-connect can resume after calls.
+- During Android and WhatsApp calls, **pause an existing vendor RFCOMM control session as well as deferring automatic reconnect attempts**, to remove all background earbud-setting requests from the call period. Android's Bluetooth headset audio connection is not disconnected.
+- Listen for Android communication-mode and Bluetooth headset audio-state changes so normal auto-connect can resume after calls. While calling, in-app earbud controls may temporarily become unavailable; the app reconnects its vendor control session after the call.
 - Add regression tests for regular calls, WhatsApp-style VoIP calls, active headset audio and normal music playback.
 - This is a precaution against vendor Bluetooth control traffic overlapping call setup; it does **not** change the WhatsApp microphone route, microphone gain, Bluetooth codec or the earbuds firmware. **The recorded issue is not yet proven to originate in LibreBuds+.**
 - Test WhatsApp call audio on FreeBuds 6i against stable v1.1.0 with identical phone settings before promoting this build to stable.
