@@ -60,6 +60,7 @@ class PairFreeController(
     }
 
     override suspend fun run() {
+        samsungDiagnostic("vendor connection attempt started")
         if (OtherEarbudsCatalog.isHuaweiManaged(deviceName)) {
             _state.value = NothingStatus(error = "Huawei earbuds use the original FreeBuds controller.")
             return
@@ -168,6 +169,7 @@ class PairFreeController(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (exception: Exception) {
+            samsungDiagnostic("vendor connection exception: ${exception.javaClass.simpleName}")
             _state.value = _state.value.copy(status = "Connection unavailable", ready = false,
                 error = exception.message ?: "Could not initialize vendor control")
         }
