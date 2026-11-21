@@ -2,6 +2,8 @@
 package io.github.librebuds.ui.screens
 
 import android.content.Intent
+import android.media.AudioManager
+import kotlin.math.roundToInt
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,6 +14,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +44,9 @@ import io.github.librebuds.ui.components.StyledScaffold
 fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     var page by rememberSaveable(pair.address) { mutableIntStateOf(0) }
+    val audioManager = remember(context) { context.getSystemService(AudioManager::class.java) }
+    val maxVolume = remember(audioManager) { audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC)?.coerceAtLeast(1) ?: 1 }
+    var volume by remember(audioManager) { mutableFloatStateOf(audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC)?.toFloat() ?: 0f) }
     StyledScaffold(
         title = pair.label,
         showBackButton = true,
@@ -76,6 +84,29 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                     )
                 }
                 1 -> {
+                    if (pair.connected) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = RoundedCornerShape(24.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Text(stringResource(R.string.other_media_volume), style = MaterialTheme.typography.titleSmall)
+                                Text(stringResource(R.string.other_media_volume_note), style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Slider(
+                                    value = volume.coerceIn(0f, maxVolume.toFloat()),
+                                    onValueChange = { newValue ->
+                                        volume = newValue
+                                        try {
+                                            audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, newValue.roundToInt(), 0)
+                                        } catch (_: SecurityException) { /* System can restrict volume changes. */ }
+                                    },
+                                    valueRange = 0f..maxVolume.toFloat()
+                                )
+                            }
+                        }
+                    }
                     DetailCard(
                         title = stringResource(R.string.other_controls_note_title),
                         description = stringResource(R.string.other_controls_note)
