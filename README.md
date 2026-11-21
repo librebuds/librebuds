@@ -9,8 +9,8 @@ A modern, QuickBuds-inspired interface for battery monitoring, noise control, so
 
 Built on [LibreBuds](https://github.com/librebuds/librebuds) · UI inspired by [QuickBuds](https://github.com/spizganed/QuickBuds) · Licensed under GPLv3.
 
-<a href="https://github.com/vnxrgb/librebuds-6i/releases"><img src="https://img.shields.io/github/v/release/vnxrgb/librebuds-6i?include_prereleases&label=fork%20release" alt="Latest fork release" /></a>
-<a href="https://github.com/vnxrgb/librebuds-6i/releases"><img src="https://img.shields.io/github/downloads/vnxrgb/librebuds-6i/total?label=fork%20downloads" alt="Fork downloads" /></a>
+<a href="https://github.com/vnxrgb/librebudsplus/releases"><img src="https://img.shields.io/github/v/release/vnxrgb/librebuds-6i?include_prereleases&label=fork%20release" alt="Latest fork release" /></a>
+<a href="https://github.com/vnxrgb/librebudsplus/releases"><img src="https://img.shields.io/github/downloads/vnxrgb/librebuds-6i/total?label=fork%20downloads" alt="Fork downloads" /></a>
 <a href="LICENSE"><img src="https://img.shields.io/github/license/librebuds/librebuds?color=blue" alt="License: GPL-3.0" /></a>
 <img src="https://img.shields.io/badge/Android-13%2B-3DDC84?logo=android&logoColor=white" alt="Android 13+" />
 <img src="https://img.shields.io/badge/platform-Android-3DDC84" alt="Platform: Android" />
@@ -18,7 +18,7 @@ Built on [LibreBuds](https://github.com/librebuds/librebuds) · UI inspired by [
 
 <br />
 
-<a href="https://github.com/vnxrgb/librebuds-6i/releases"><b>Download this fork</b></a> ·
+<a href="https://github.com/vnxrgb/librebudsplus/releases"><b>Download this fork</b></a> ·
 <a href="CHANGELOG.md">Changelog</a> ·
 <a href="#features">Features</a> ·
 <a href="#screenshots">Screenshots</a> ·
@@ -33,7 +33,7 @@ Built on [LibreBuds](https://github.com/librebuds/librebuds) · UI inspired by [
 > [!IMPORTANT]
 > **FreeBuds 6i is confirmed working by the owner on LibreBuds+ alpha.** Other brands are experimental or partial and must not be advertised as fully functional without real hardware tests.
 >
-> **Stable vs alpha:** Stable uses Android package `io.github.librebuds`; alpha uses `io.github.librebuds.alpha`, allowing side-by-side testing. Download only the version you intend from [GitHub Releases](https://github.com/vnxrgb/librebuds-6i/releases). This project preserves the original Huawei controller; experimental other-brand drivers remain capability-gated.
+> **Stable vs alpha:** Stable uses Android package `io.github.librebuds`; alpha uses `io.github.librebuds.alpha`, allowing side-by-side testing. Download only the version you intend from [GitHub Releases](https://github.com/vnxrgb/librebudsplus/releases). This project preserves the original Huawei controller; experimental other-brand drivers remain capability-gated.
 >
 > **Full compatibility report:** [Confirmed / previously tested / partially implemented / needs testing / generic Bluetooth fallback](docs/DEVICE_COMPATIBILITY.md). The [implementation notes](docs/MULTIBRAND_COMPATIBILITY.md) explain the upstream sources and limitations.
 
@@ -133,7 +133,7 @@ The following is a **status-by-evidence** summary, not a guarantee of manufactur
 | --- | --- | --- |
 | **HUAWEI FreeBuds 6i** | **Working — owner tested** | App and original Huawei controller verified on actual FreeBuds 6i; individual ANC, EQ, gestures, multipoint and charging-case features remain model- and firmware-dependent |
 | HUAWEI FreeBuds 5, FreeBuds Pro 5 | **Previously hardware-tested (inherited)** | Listed as tested in the original fork documentation, but not retested on this new multi-brand release |
-| Other Huawei FreeBuds, FreeBuds SE, FreeClip/FreeArc, FreeLace, Lipstick, W Buds and Eyewear families | **Needs testing** | Existing profile-dependent support, sometimes battery/noise-only; see full list in the matrix |
+| Other Huawei FreeBuds, FreeBuds SE, FreeClip/FreeArc, FreeLace, Lipstick, W Buds and Eyewear families | **Needs testing** | Shared Huawei SPP controller with strict per-model capability gates; alpha recognizes case/spacing/branding aliases, adds basic unverified profiles for SE 3, Lite and FreeLace Lite; see full compatibility matrix |
 | SOUNDPEATS, Soundcore, Samsung Galaxy Buds, Sony, Bose, JBL | **Needs testing (PairFree)** | Vendor-driver integration; battery, ANC, EQ and controls only when the actual matched device reports capability |
 | Nothing / CMF, Google Pixel Buds, QCY, 1MORE, EarFun | **Needs testing (PairFree)** | Model-dependent Bluetooth vendor support; no confirmation on hardware in this fork |
 | Cambridge Audio, OnePlus / OPPO, Sennheiser, Jabra, Skullcandy | **Needs testing (PairFree)** | Model-dependent vendor transport and controls; not validated in this fork |
@@ -143,11 +143,11 @@ The following is a **status-by-evidence** summary, not a guarantee of manufactur
 
 **Device imagery:** Original FreeBuds art is retained. Credited PairFree GPLv3 SVG vectors are included for exact matches to Galaxy Buds3 Pro, Sony WF-1000XM5, Soundcore A30i, Nothing Ear and AirPods Pro. Remaining devices use generic artwork; unrelated app screenshots/logos are not substituted. See [artwork credits](NOTICE).
 
-**Submit a test:** [Open a device compatibility issue](https://github.com/vnxrgb/librebuds-6i/issues) with model, Android version, and which controls you tested. Do not post private Bluetooth identifiers.
+**Submit a test:** [Open a device compatibility issue](https://github.com/vnxrgb/librebudsplus/issues) with model, Android version, and which controls you tested. Do not post private Bluetooth identifiers.
 
 ## Download and install
 
-1. Download an APK from [this fork’s GitHub Releases](https://github.com/vnxrgb/librebuds-6i/releases), or use an APK artifact from a successful [Android debug build](https://github.com/vnxrgb/librebuds-6i/actions/workflows/build-apk.yml). Release and debug APKs may have different signing keys; Android may not allow one to update the other in place.
+1. Download an APK from [this fork’s GitHub Releases](https://github.com/vnxrgb/librebudsplus/releases), or use an APK artifact from a successful [Android debug build](https://github.com/vnxrgb/librebuds-6i/actions/workflows/build-apk.yml). Release and debug APKs may have different signing keys; Android may not allow one to update the other in place.
 2. Open the APK on your phone and allow installs from your browser or file manager when asked.
 3. Start LibreBuds+ and grant the permissions on the welcome screen.
 
