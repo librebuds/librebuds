@@ -32,3 +32,7 @@ Third-party references:
   not cover the per-model earbud files (*_freebuds_*.webp).
 - Inter typeface (SIL Open Font License 1.1), loaded at runtime through Google Fonts.
 - Case animations (android/app/src/main/res/raw/popup_*.mp4): not covered by the statements above.
+
+- BluntyBuds (https://github.com/arkivx0/BluntyBuds, MIT), Copyright (c) 2026 arkivx0. TOZO protocol A/J GATT UUIDs, status frame formats and model names researched from its public Android source; this fork's TozoController is an independently adapted, read-only GATT battery adapter. MIT terms and copyright are retained here; full MIT text: https://github.com/arkivx0/BluntyBuds/blob/main/LICENSE.
+- earshot (https://github.com/HellzYeahh/earshot, MIT), Copyright (c) 2026 Earshot contributors: protocol capability and compatibility research only; no protocol implementation or artwork copied.
+- DevPods (https://github.com/ORION2809/DevPods): provider routing and compatibility architecture reference only; no code or images copied, root license not identified.
