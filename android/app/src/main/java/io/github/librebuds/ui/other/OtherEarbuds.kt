@@ -103,11 +103,11 @@ data class OtherEarbud(val address: String, val name: String, val brand: String?
     // PairFree's stylized product vectors are used only for known exact models.
     // A brand match alone must never show an incorrect model-specific product image.
     private fun exactModelArt(): String? = when {
-        brand == "Samsung" && model.equals("Buds3 Pro", ignoreCase = true) -> "pairfree-samsung-buds3pro"
-        brand == "Sony" && model.equals("WF-1000XM5", ignoreCase = true) -> "pairfree-sony-wfxm5"
-        brand == "Soundcore" && model.equals("soundcore A30i", ignoreCase = true) -> "pairfree-soundcore-a30i"
-        brand == "Nothing / CMF" && model.equals("Nothing Ear", ignoreCase = true) -> "pairfree-nothing-ear"
-        brand == "Apple / Beats" && model.equals("AirPods Pro", ignoreCase = true) -> "pairfree-apple-airpods-pro"
+        brand == "Samsung" && (model.equals("Buds3 Pro", ignoreCase = true) || name.equals("Galaxy Buds3 Pro", ignoreCase = true)) -> "pairfree-samsung-buds3pro"
+        brand == "Sony" && (model.equals("WF-1000XM5", ignoreCase = true) || name.equals("WF-1000XM5", ignoreCase = true)) -> "pairfree-sony-wfxm5"
+        brand == "Soundcore" && (model.equals("soundcore A30i", ignoreCase = true) || name.equals("soundcore A30i", ignoreCase = true)) -> "pairfree-soundcore-a30i"
+        brand == "Nothing / CMF" && (model.equals("Nothing Ear", ignoreCase = true) || name.equals("Nothing Ear", ignoreCase = true)) -> "pairfree-nothing-ear"
+        brand == "Apple / Beats" && (model.equals("AirPods Pro", ignoreCase = true) || name.equals("AirPods Pro", ignoreCase = true)) -> "pairfree-apple-airpods-pro"
         else -> null
     }
 
