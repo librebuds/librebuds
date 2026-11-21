@@ -9,6 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -32,6 +38,7 @@ import io.github.librebuds.protocol.command.Gesture
 import io.github.librebuds.protocol.command.Side
 import io.github.librebuds.state.SettingChange
 import io.github.librebuds.ui.SettingsUi
+import io.github.librebuds.ui.components.PremiumSegmentedTabs
 import io.github.librebuds.ui.components.StyledBottomSheet
 import io.github.librebuds.ui.components.StyledList
 import io.github.librebuds.ui.components.StyledListItem
@@ -76,19 +83,15 @@ fun DeviceSettingsSections(
 
     // Three focused groups replace the old endless list. All existing controls stay reachable.
     var section by remember { mutableStateOf(0) }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        listOf(R.string.device_section_audio, R.string.device_section_gestures, R.string.device_section_more).forEachIndexed { index, label ->
-            FilterChip(
-                modifier = Modifier.weight(1f),
-                selected = section == index,
-                onClick = { section = index },
-                label = { Text(stringResource(label), maxLines = 1) }
-            )
-        }
-    }
+    PremiumSegmentedTabs(
+        labels = listOf(
+            stringResource(R.string.device_section_audio),
+            stringResource(R.string.device_section_gestures),
+            stringResource(R.string.device_section_more)
+        ),
+        selected = section,
+        onSelect = { section = it }
+    )
     when (section) {
         0 -> {
             NoiseExtrasSection(model, note("anc", "singleBudAnc"), open, onChange)

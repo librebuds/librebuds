@@ -7,7 +7,6 @@ import io.github.librebuds.beacon.LastBeacon
 import io.github.librebuds.beacon.PopupTimes
 import io.github.librebuds.beacon.ScanMarker
 import io.github.librebuds.popup.PopupStyle
-import io.github.librebuds.ui.theme.DesignSystem
 import io.github.librebuds.ui.theme.AccentPreset
 
 class AppPreferences(context: Context) {
@@ -24,11 +23,6 @@ class AppPreferences(context: Context) {
     var amoledBlack: Boolean
         get() = prefs.getBoolean("amoled_black", false)
         set(value) = prefs.edit { putBoolean("amoled_black", value) }
-
-    var designSystem: DesignSystem
-        get() = runCatching { DesignSystem.valueOf(prefs.getString("design_system", DesignSystem.Material.name)!!) }
-            .getOrDefault(DesignSystem.Apple)
-        set(value) = prefs.edit { putString("design_system", value.name) }
 
     /** Whether a runtime permission request was ever launched; survives restarts. */
     fun wasRequested(permission: String): Boolean = prefs.getBoolean("requested_$permission", false)

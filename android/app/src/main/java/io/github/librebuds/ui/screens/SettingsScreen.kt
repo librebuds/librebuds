@@ -34,13 +34,10 @@ import io.github.librebuds.ui.components.StyledScaffold
 import io.github.librebuds.ui.components.StyledToggle
 import io.github.librebuds.ui.screens.onboarding.OverlayAccess
 import io.github.librebuds.ui.screens.onboarding.PermissionHintRow
-import io.github.librebuds.ui.theme.DesignSystem
 import io.github.librebuds.ui.theme.AccentPreset
 
 @Composable
 fun SettingsScreen(
-    designSystem: DesignSystem,
-    onDesignSystemChange: (DesignSystem) -> Unit,
     amoledBlack: Boolean,
     onAmoledBlackChange: (Boolean) -> Unit,
     accentPreset: AccentPreset,
@@ -77,11 +74,6 @@ fun SettingsScreen(
                 .padding(screenContentPadding())
         ) {
             StyledList(title = "Appearance") {
-                StyledToggle(
-                    label = stringResource(R.string.material_you_style),
-                    checked = designSystem == DesignSystem.Material,
-                    onCheckedChange = { onDesignSystemChange(if (it) DesignSystem.Material else DesignSystem.Apple) }
-                )
                 StyledToggle(
                     label = stringResource(R.string.amoled_black),
                     description = stringResource(R.string.amoled_black_description),

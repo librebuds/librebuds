@@ -31,7 +31,6 @@ import io.github.librebuds.ui.screens.SettingsScreen
 import io.github.librebuds.ui.screens.onboarding.OnboardingScreen
 import io.github.librebuds.ui.screens.onboarding.openAppDetailsSettings
 import io.github.librebuds.ui.screens.onboarding.rememberOverlayAccess
-import io.github.librebuds.ui.theme.DesignSystem
 import io.github.librebuds.ui.theme.AccentPreset
 import io.github.librebuds.ui.theme.LibreBudsTheme
 
@@ -56,7 +55,6 @@ fun AppRoot(
     onExportDiagnostics: () -> Unit = {},
     onSaveDiagnostics: () -> Unit = {}
 ) {
-    var designSystem by remember { mutableStateOf(preferences.designSystem) }
     var amoledBlack by remember { mutableStateOf(preferences.amoledBlack) }
     var accentPreset by remember { mutableStateOf(preferences.accentPreset) }
     var showOffMode by remember { mutableStateOf(preferences.showOffMode) }
@@ -116,7 +114,7 @@ fun AppRoot(
     }
     val backLabel: @Composable () -> String? = { stack.entries.getOrNull(stack.entries.lastIndex - 1)?.let { titleOf(it) } }
 
-    LibreBudsTheme(m3eEnabled = designSystem == DesignSystem.Material, amoledBlack = amoledBlack, accentPreset = accentPreset) {
+    LibreBudsTheme(amoledBlack = amoledBlack, accentPreset = accentPreset) {
         screenStates.SaveableStateProvider(stack.topKey()) {
             when (val top = stack.top) {
                 Route.Onboarding -> OnboardingScreen(preferences = preferences, onDone = { stack = stack.finishOnboarding() })
@@ -145,7 +143,6 @@ fun AppRoot(
                 Route.Settings -> {
                     val overlay = rememberOverlayAccess(preferences)
                     SettingsScreen(
-                        designSystem = designSystem,
                         amoledBlack = amoledBlack,
                         accentPreset = accentPreset,
                         onAccentPresetChange = {
@@ -155,10 +152,6 @@ fun AppRoot(
                         onAmoledBlackChange = {
                             amoledBlack = it
                             preferences.amoledBlack = it
-                        },
-                        onDesignSystemChange = {
-                            designSystem = it
-                            preferences.designSystem = it
                         },
                         showOffMode = showOffMode,
                         onShowOffModeChange = {

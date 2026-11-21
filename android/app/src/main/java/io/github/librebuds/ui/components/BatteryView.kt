@@ -76,9 +76,9 @@ private fun BatterySlot(
     val accent = if (part.level != null && part.level <= 20) colors.error else colors.primary
 
     Column(
-        modifier = modifier.padding(vertical = 3.dp),
+        modifier = modifier.padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(modifier = Modifier.size(70.dp), contentAlignment = Alignment.Center) {
             Canvas(modifier = Modifier.size(67.dp)) {

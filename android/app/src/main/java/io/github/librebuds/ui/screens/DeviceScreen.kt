@@ -53,6 +53,7 @@ import io.github.librebuds.ui.components.AboutCard
 import io.github.librebuds.ui.components.BatteryView
 import io.github.librebuds.ui.components.NoiseControlSettings
 import io.github.librebuds.ui.components.QuickActionsPanel
+import io.github.librebuds.ui.components.PremiumSegmentedTabs
 import io.github.librebuds.ui.components.StyledButton
 import io.github.librebuds.ui.components.StyledIconButton
 import io.github.librebuds.ui.components.StyledScaffold
@@ -148,34 +149,15 @@ fun DeviceScreen(
             }
             if (!current) return@Column
             // A clear three-part product interface replaces one endless settings page.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(18.dp))
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                listOf(R.string.device_tab_home, R.string.device_tab_controls, R.string.device_tab_details).forEachIndexed { index, title ->
-                    val active = selectedPage == index
-                    Surface(
-                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
-                            .clickable { selectedPage = index },
-                        shape = RoundedCornerShape(14.dp),
-                        color = if (active) MaterialTheme.colorScheme.surfaceContainerHighest
-                            else MaterialTheme.colorScheme.surfaceContainerLow,
-                        contentColor = if (active) MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                    ) {
-                        Text(
-                            text = stringResource(title),
-                            modifier = Modifier.padding(vertical = 12.dp, horizontal = 2.dp),
-                            style = MaterialTheme.typography.labelMediumEmphasized,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
+            PremiumSegmentedTabs(
+                labels = listOf(
+                    stringResource(R.string.device_tab_home),
+                    stringResource(R.string.device_tab_controls),
+                    stringResource(R.string.device_tab_details)
+                ),
+                selected = selectedPage,
+                onSelect = { selectedPage = it }
+            )
             when (selectedPage) {
                 0 -> {
                     if (batteries.isNotEmpty()) {

@@ -192,7 +192,7 @@ val MaterialTypography = Typography().run {
 )
 @Composable
 private fun TypographyPreview() {
-    LibreBudsTheme (m3eEnabled = true) {
+    LibreBudsTheme() {
         Box(
             modifier = Modifier
                 .fillMaxSize()

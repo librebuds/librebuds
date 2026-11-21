@@ -236,4 +236,7 @@
     <string name="device_section_audio">Audio</string>
     <string name="device_section_gestures">Gestures</string>
     <string name="device_section_more">More</string>
+    <string name="quick_wear_detection">Auto pause</string>
+    <string name="quick_multipoint">Multipoint</string>
+    <string name="quick_manage">Manage devices</string>
 </resources>
