@@ -76,7 +76,6 @@ private val QuickLight = lightColorScheme(
 @Composable
 fun LibreBudsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    m3eEnabled: Boolean = false,
     amoledBlack: Boolean = false,
     accentPreset: AccentPreset = AccentPreset.MINT,
     content: @Composable () -> Unit
@@ -94,14 +93,12 @@ fun LibreBudsTheme(
     ) else base
 
     CompositionLocalProvider(
-        LocalDesignSystem provides
-            if (m3eEnabled) DesignSystem.Material
-            else DesignSystem.Apple
+        LocalDesignSystem provides DesignSystem.Material
     ) {
         MaterialExpressiveTheme(
             colorScheme = colorScheme,
             motionScheme = MotionScheme.expressive(),
-            typography = if (m3eEnabled) MaterialTypography else AppleTypography,
+            typography = MaterialTypography,
             content = content
         )
     }
