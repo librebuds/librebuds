@@ -127,7 +127,7 @@ See **[cross-brand feature matrix and testing limitations](docs/MULTIBRAND_COMPA
 
 ## Supported models
 
-The following is a **status-by-evidence** summary, not a guarantee of manufacturer-wide compatibility. Read the [full device compatibility matrix](docs/DEVICE_COMPATIBILITY.md) for specific Huawei models, limitations and hardware-test requirements.
+The following is a **status-by-evidence** summary, not a guarantee of manufacturer-wide compatibility. Read the [full device compatibility matrix](docs/DEVICE_COMPATIBILITY.md) and [40-model Huawei support / artwork accuracy audit](docs/HUAWEI_MODEL_MATRIX.md) for model coverage, illustration placeholders, and hardware-test requirements.
 
 | Device / family | Status in this fork | Verified capabilities / caveats |
 | --- | --- | --- |
