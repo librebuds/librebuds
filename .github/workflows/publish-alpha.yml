@@ -57,9 +57,13 @@ jobs:
             echo 'Signing secrets not fully configured: alpha uses the CI debug key.'
           fi
 
-      - name: Run unit tests
+      # The alpha build type is a release-derived installable variant.
+      # AGP does not register a unit-test task for every custom build type by default.
+      # Run the existing debug unit-test suite against the same application source,
+      # then build and verify the separately packaged alpha APK below.
+      - name: Run shared source unit tests
         working-directory: android
-        run: ./gradlew :app:testAlphaUnitTest --no-daemon
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
 
       - name: Build installable alpha APK
         working-directory: android
