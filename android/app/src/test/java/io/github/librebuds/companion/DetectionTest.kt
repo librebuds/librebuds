@@ -37,6 +37,30 @@ class DetectionTest {
     }
 
     @Test
+    fun recognizesStrongHuaweiAudioNamesWhenAndroidHasNotCachedSppUuid() {
+        val names = listOf(
+            "HUAWEI FreeBuds SE 3", "HUAWEI FreeClip 2", "HUAWEI FreeArc",
+            "HUAWEI FreeLace Lite", "HUAWEI Eyewear 2", "HUAWEI W Buds"
+        )
+        val devices = names.mapIndexed { i, name ->
+            BondedDevice(name, "A0:00:00:00:00:${(i + 1).toString(16).padStart(2, '0')}", emptyList())
+        }
+        val found = detectFreeBuds(devices, registry, emptySet())
+        assertEquals(names.toSet(), found.map { it.name }.toSet())
+        assertTrue(found.all { it.profileId == "generic" })
+    }
+
+    @Test
+    fun huaweiWatchWithSppDoesNotBecomeHuaweiEarbuds() {
+        val result = detectFreeBuds(
+            listOf(BondedDevice("HUAWEI WATCH GT 5", "01:01:01:01:01:01", listOf(SPP_UUID))),
+            registry,
+            emptySet()
+        )
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
     fun vendorNameWithoutSppIsNotEnough() {
         val result = detectFreeBuds(listOf(BondedDevice("Huawei Watch GT", "11:11:11:11:11:11")), registry, emptySet())
         assertTrue(result.isEmpty())
