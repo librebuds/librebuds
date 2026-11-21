@@ -115,7 +115,7 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                         ) {
                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(stringResource(R.string.device_battery_status), style = MaterialTheme.typography.titleSmall)
-                                BatteryView(detailedBattery)
+                                BatteryView(detailedBattery, art = pair.art, profileId = pair.profileId)
                             }
                         }
                     } else DetailCard(
