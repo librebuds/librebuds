@@ -51,6 +51,18 @@ class DetectionTest {
     }
 
     @Test
+    fun cataloguedHuaweiPowerBankIsNotAnEarbud() {
+        val registryWithPowerBank = ProfileRegistry.fromJson(
+            listOf("""{"id":"smart-powerbank-100w-12k","name":"Smart PowerBank","match":{"btName":["HUAWEI Smart PowerBank(100W 12k)"]}}""")
+        )
+        val found = detectFreeBuds(
+            listOf(BondedDevice("HUAWEI Smart PowerBank(100W 12k)", "01:02:03:04:05:06", listOf(SPP_UUID))),
+            registryWithPowerBank, emptySet()
+        )
+        assertTrue(found.isEmpty())
+    }
+
+    @Test
     fun huaweiWatchWithSppDoesNotBecomeHuaweiEarbuds() {
         val result = detectFreeBuds(
             listOf(BondedDevice("HUAWEI WATCH GT 5", "01:01:01:01:01:01", listOf(SPP_UUID))),
