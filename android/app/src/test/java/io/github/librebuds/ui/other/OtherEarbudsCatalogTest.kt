@@ -27,6 +27,27 @@ class OtherEarbudsCatalogTest {
         assertEquals("SOUNDPEATS", OtherEarbudsCatalog.match("air5 pro+", models)?.brand)
     }
 
+    @Test fun galaxyBuds2ProMatchesPairFreeCatalogWithoutGalaxyPrefix() {
+        val upstream = listOf(
+            KnownModel("Samsung", "Buds2"),
+            KnownModel("Samsung", "Buds2 Pro"),
+            KnownModel("Samsung", "Buds3 Pro")
+        )
+        assertEquals("Buds2 Pro", OtherEarbudsCatalog.match("Galaxy Buds2 Pro", upstream)?.model)
+        assertEquals("Buds2 Pro", OtherEarbudsCatalog.match("Galaxy Buds2 Pro (A1B2)", upstream)?.model)
+        assertEquals("Buds2 Pro", OtherEarbudsCatalog.match("Samsung Galaxy Buds2 Pro (1a2f)", upstream)?.model)
+        assertEquals("Buds2 Pro", OtherEarbudsCatalog.match("Buds2 Pro", upstream)?.model)
+        assertEquals("Buds3 Pro", OtherEarbudsCatalog.match("Galaxy Buds3 Pro", upstream)?.model)
+    }
+
+    @Test fun galaxyMatchingDoesNotGuessWrongModel() {
+        val upstream = listOf(KnownModel("Samsung", "Buds2 Pro"))
+        assertNull(OtherEarbudsCatalog.match("Galaxy Buds2", upstream))
+        assertNull(OtherEarbudsCatalog.match("Galaxy Buds2 Pro charging case", upstream))
+        assertNull(OtherEarbudsCatalog.match("Gaming Galaxy Buds2 Pro Stereo", upstream))
+        assertNull(OtherEarbudsCatalog.match("Galaxy Buds2 Pro (NOT-SERIAL)", upstream))
+    }
+
     @Test fun doesNotMatchUnrelatedDeviceBySubstring() {
         assertNull(OtherEarbudsCatalog.match("My Sony WF-1000XM5 Car Stereo", models))
         assertNull(OtherEarbudsCatalog.match("Gaming PC", models))
