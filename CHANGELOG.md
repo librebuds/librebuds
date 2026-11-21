@@ -4,6 +4,14 @@ All notable changes to the **LibreBuds+** community fork are documented here.
 
 This fork is based on [LibreBuds](https://github.com/librebuds/librebuds), with interface inspiration from [QuickBuds by spizganed](https://github.com/spizganed/QuickBuds). See [NOTICE](NOTICE) and [LICENSE](LICENSE) for acknowledgments and license terms.
 
+## Unreleased — Huawei-family protocol compatibility (alpha only)
+
+- Prioritize Huawei's existing SPP controller for the whole FreeBuds / FreeClip / FreeArc / FreeLace / Eyewear family, avoiding accidental routing through PairFree's generic third-party driver.
+- Recognize previously cataloged Huawei models across case, whitespace, omitted `HUAWEI` branding, and a factory `(ABCD)` suffix, while rejecting extra words and ambiguous model substrings.
+- Add minimal, **unverified battery-only** model profiles for FreeBuds SE 3, FreeBuds Lite, and FreeLace Lite; don't guess unsupported proprietary feature controls.
+- Add regression tests; no changes to the proven FreeBuds 6i packet transport or model-specific settings.
+- Full compatibility for untested models and firmware is **not established** without device validation.
+
 ## Unreleased — call audio coexistence safeguard (alpha only)
 
 ### Optional voice-note route diagnostic (alpha only)
