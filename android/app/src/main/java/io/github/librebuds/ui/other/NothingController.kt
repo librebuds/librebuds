@@ -9,6 +9,8 @@ import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.content.pm.PackageManager
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +48,7 @@ class NothingController(private val context: Context, private val address: Strin
     private var socket: BluetoothSocket? = null
     private val parser = NothingProtocol.Parser()
     private var needsActivation = false
+    private var activeScope: CoroutineScope? = null
 
     @SuppressLint("MissingPermission")
     suspend fun run() {
@@ -78,6 +81,7 @@ class NothingController(private val context: Context, private val address: Strin
             // Read concurrently with the command writer; classic Bluetooth
             // InputStream.read() blocks without affecting the UI thread.
             kotlinx.coroutines.coroutineScope {
+                activeScope = this
                 launchReads(requests)
                 val buffer = ByteArray(2048)
                 while (coroutineContext.isActive) {
@@ -93,6 +97,7 @@ class NothingController(private val context: Context, private val address: Strin
             _state.value = _state.value.copy(status = "Connection unavailable", ready = false,
                 error = e.message ?: "Device refused the control channel")
         } finally {
+            activeScope = null
             close()
             _state.value = _state.value.copy(ready = false)
         }
@@ -101,7 +106,7 @@ class NothingController(private val context: Context, private val address: Strin
     private fun kotlinx.coroutines.CoroutineScope.launchReads(requests: List<Int>) = launch {
         for (command in requests) {
             if (!isActive) break
-            send(command)
+            send(command, if (command == NothingProtocol.GET_NOISE) byteArrayOf(3) else byteArrayOf())
             delay(180)
         }
         // Poll device battery and noise while the controls screen is open.
@@ -109,7 +114,7 @@ class NothingController(private val context: Context, private val address: Strin
             delay(30000)
             send(NothingProtocol.GET_BATTERY)
             delay(180)
-            send(NothingProtocol.GET_NOISE)
+            send(NothingProtocol.GET_NOISE, byteArrayOf(3))
         }
     }
 
@@ -120,7 +125,7 @@ class NothingController(private val context: Context, private val address: Strin
             needsActivation = true
             // Activation is handled by a response to the version read, not
             // continuously spammed on devices which don't need it.
-            kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+            activeScope?.launch {
                 send(0xF001)
                 delay(150)
                 send(NothingProtocol.GET_BATTERY)
