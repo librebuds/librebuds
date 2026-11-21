@@ -238,4 +238,5 @@
     <string name="device_section_more">More</string>
     <string name="quick_wear_detection">Auto pause</string>
     <string name="quick_multipoint">Multipoint</string>
+    <string name="quick_manage">Manage devices</string>
 </resources>
