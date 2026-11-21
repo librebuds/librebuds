@@ -9,6 +9,15 @@ import org.junit.Test
 
 class ProductArtTest {
     @Test
+    fun exactPairFreeModelArtworkIsMappedAndGenericFallbackRemains() {
+        assertEquals(R.drawable.pairfree_samsung_buds3pro_bud, ProductArt.thumbnail("generic", "pairfree-samsung-buds3pro"))
+        assertEquals(R.drawable.pairfree_sony_wfxm5_bud, ProductArt.bud(true, "generic", "pairfree-sony-wfxm5"))
+        assertEquals(R.drawable.pairfree_soundcore_a30i_case, ProductArt.case("pairfree-soundcore-a30i"))
+        assertEquals(R.drawable.pairfree_apple_airpods_pro_case, ProductArt.case("pairfree-apple-airpods-pro"))
+        assertEquals(R.drawable.battery_case, ProductArt.case("pairfree-unknown-device"))
+    }
+
+    @Test
     fun stemShapeGetsStemRenders() {
         assertEquals(R.drawable.battery_bud_left_stem, ProductArt.bud(true, "stem"))
         assertEquals(R.drawable.battery_bud_right_stem, ProductArt.bud(false, "stem"))
