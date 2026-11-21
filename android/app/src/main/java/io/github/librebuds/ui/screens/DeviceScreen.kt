@@ -151,16 +151,17 @@ fun DeviceScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(24.dp))
                     .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 listOf(R.string.device_tab_home, R.string.device_tab_controls, R.string.device_tab_details).forEachIndexed { index, title ->
                     val active = selectedPage == index
                     Surface(
-                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
+                        modifier = Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(20.dp))
                             .clickable { selectedPage = index },
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(20.dp),
                         color = if (active) MaterialTheme.colorScheme.surfaceContainerHighest
                             else MaterialTheme.colorScheme.surfaceContainerLow,
                         contentColor = if (active) MaterialTheme.colorScheme.onSurface
@@ -168,7 +169,7 @@ fun DeviceScreen(
                     ) {
                         Text(
                             text = stringResource(title),
-                            modifier = Modifier.padding(vertical = 12.dp, horizontal = 2.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 13.dp, horizontal = 2.dp),
                             style = MaterialTheme.typography.labelMediumEmphasized,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                             maxLines = 1
