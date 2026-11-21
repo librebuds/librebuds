@@ -51,6 +51,7 @@ private val WATCHED_ACTIONS = listOf(
     BluetoothDevice.ACTION_BOND_STATE_CHANGED,
     BluetoothDevice.ACTION_NAME_CHANGED,
     BluetoothDevice.ACTION_UUID,
+    BluetoothDevice.ACTION_BATTERY_LEVEL_CHANGED,
     BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED,
     BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED,
     BluetoothAdapter.ACTION_STATE_CHANGED,
