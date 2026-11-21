@@ -48,7 +48,7 @@ fun QuickActionsPanel(
 ) {
     val entries = buildList {
         model.wear?.let { enabled ->
-            add(Shortcut(stringResource(R.string.wear_detection), enabled) {
+            add(Shortcut(stringResource(R.string.quick_wear_detection), enabled) {
                 onChange(SettingChange.Wear(!enabled))
             })
         }
@@ -68,7 +68,7 @@ fun QuickActionsPanel(
             })
         }
         model.multipointEnabled?.let { enabled ->
-            add(Shortcut(stringResource(R.string.multipoint), enabled, onOpenMultipoint))
+            add(Shortcut(stringResource(R.string.quick_multipoint), enabled, onOpenMultipoint))
         }
     }
     if (entries.isEmpty()) return
