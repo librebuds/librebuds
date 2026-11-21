@@ -111,6 +111,15 @@ object OtherEarbudsCatalog {
     }
 }
 
+/** Galaxy Buds vendor controls may be usable even when cached Android audio status is stale.
+ *  Only probe a bonded Samsung pair shown explicitly in the device screen.
+ *  Huawei and unrelated brands keep their previous audio-connected gate.
+ */
+fun shouldProbeVendorWhenViewed(name: String, brand: String?, audioConnected: Boolean): Boolean =
+    audioConnected ||
+        (brand == "Samsung" || name.startsWith("Galaxy Buds", ignoreCase = true)) &&
+        !OtherEarbudsCatalog.isHuaweiManaged(name)
+
 data class OtherEarbud(val address: String, val name: String, val brand: String?, val model: String?,
                        val connected: Boolean, val battery: Int?) {
     // PairFree's stylized product vectors are used only for known exact models.
