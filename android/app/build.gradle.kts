@@ -99,11 +99,12 @@ androidComponents {
     }
 }
 
-// Keep the app's current Compose UI. Only use PairFree's GPLv3 protocol
-// engine + Android link adapters, pinned to a submodule revision.
-android.sourceSets.getByName("main").java.srcDir(
-    "../../third_party/PairFree/android/app/src/main/kotlin/io/github/omegadestroyer/pairfree/bluetooth"
-)
+// PairFree transport code lives in the submodule's app source tree.
+// Android's built-in Kotlin compilation needs a Kotlin source root, not a
+// java source root, to include these Bluetooth adapter classes.
+kotlin.sourceSets.named("main") {
+    kotlin.srcDir("../../third_party/PairFree/android/app/src/main/kotlin/io/github/omegadestroyer/pairfree/bluetooth")
+}
 
 dependencies {
     implementation("io.github.omegadestroyer:pairfree-core:1.0")
