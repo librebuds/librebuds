@@ -74,7 +74,7 @@ fun StyledList(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(if (m3eEnabled) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
-                .clip(RoundedCornerShape(28.dp))
+                .clip(RoundedCornerShape(20.dp))
         ) {
             if (m3eEnabled && description != null) {
                 Text(
