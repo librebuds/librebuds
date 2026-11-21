@@ -58,7 +58,8 @@ object OtherEarbudsCatalog {
         val tozoKey = nameKey.removePrefix("tozo ").takeIf { nameKey.startsWith("tozo ") }
         return catalog
             .asSequence()
-            .filter { normalize(it.model) == nameKey || (it.brand == "TOZO" && normalize(it.model) == tozoKey) }
+            .filter { (it.brand != "TOZO" && normalize(it.model) == nameKey) ||
+                (it.brand == "TOZO" && normalize(it.model) == tozoKey) }
             .maxByOrNull { it.model.length }
     }
 
