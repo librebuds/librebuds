@@ -329,7 +329,7 @@ private fun StyledToggleContent(
 @Composable
 fun StyledToggleAppleListPreview() {
     val checked = remember { mutableStateOf(false) }
-    LibreBudsTheme(m3eEnabled = false) {
+    LibreBudsTheme() {
         StyledList {
             StyledToggle(
                 label = "Apple Styled List",
@@ -345,7 +345,7 @@ fun StyledToggleAppleListPreview() {
 @Composable
 fun StyledToggleApplePreview() {
     val checked = remember { mutableStateOf(false) }
-    LibreBudsTheme(m3eEnabled = false) {
+    LibreBudsTheme() {
         StyledToggle(
             label = "Apple",
             description = "This is an example description for the styled toggle.",
@@ -359,7 +359,7 @@ fun StyledToggleApplePreview() {
 @Composable
 fun StyledToggleM3EListPreview() {
     val checked = remember { mutableStateOf(false) }
-    LibreBudsTheme(m3eEnabled = true) {
+    LibreBudsTheme() {
         StyledList {
             StyledToggle(
                 label = "Apple Styled List",
@@ -375,7 +375,7 @@ fun StyledToggleM3EListPreview() {
 @Composable
 fun StyledToggleM3EPreview() {
     val checked = remember { mutableStateOf(false) }
-    LibreBudsTheme(m3eEnabled = true) {
+    LibreBudsTheme() {
         StyledToggle(
             label = "Material",
             description = "This is an example description for the styled toggle.",
