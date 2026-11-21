@@ -40,7 +40,6 @@ import io.github.librebuds.ui.components.ControlCenterNoiseControlSegmentedButto
 import io.github.librebuds.ui.messageRes
 import io.github.librebuds.ui.model.offeredModes
 import io.github.librebuds.ui.model.toUiBatteries
-import io.github.librebuds.ui.theme.DesignSystem
 import io.github.librebuds.ui.theme.LibreBudsTheme
 
 /** Compact control panel opened from the Quick Settings tile; tapping outside the card closes it. */
@@ -59,7 +58,7 @@ class QuickSettingsDialogActivity : ComponentActivity() {
         )[DeviceViewModel::class.java]
         val preferences = AppPreferences(this)
         setContent {
-            LibreBudsTheme(m3eEnabled = preferences.designSystem == DesignSystem.Material) {
+            LibreBudsTheme(amoledBlack = preferences.amoledBlack, accentPreset = preferences.accentPreset) {
                 QuickSettingsPanel(viewModel, preferences.showOffMode, onDismiss = ::finish)
             }
         }

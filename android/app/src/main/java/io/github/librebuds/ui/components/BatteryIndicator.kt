@@ -150,7 +150,7 @@ const val MISSING_LEVEL = "\u2014"
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun BatteryIndicatorPreview() {
-    LibreBudsTheme(m3eEnabled = false) {
+    LibreBudsTheme() {
         BatteryIndicator(
             batteryPercentage = 50,
             status = BatteryStatus.CHARGING,

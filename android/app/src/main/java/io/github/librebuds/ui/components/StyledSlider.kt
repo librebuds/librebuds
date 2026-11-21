@@ -761,9 +761,7 @@ private fun snapIfClose(value: Float, points: List<Float>, threshold: Float = 0.
 @Composable
 fun StyledSliderPreview() {
     val a = remember { mutableFloatStateOf(0.5f) }
-    LibreBudsTheme(
-        m3eEnabled = true
-    ) {
+    LibreBudsTheme() {
         StyledScaffold(
             title = "test",
         ) {
