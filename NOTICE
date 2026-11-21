@@ -3,7 +3,7 @@ Copyright (C) 2026 LibreBuds contributors
 Licensed under the GNU General Public License v3.0.
 
 Third-party references:
-- PairFree (https://github.com/Omega-Destroyer/PairFree, GPL-3.0), source commit af534dca43627a9c76903fbb9a118ea4a783c856: model names adapted from its device support documentation and bundled in android/app/src/main/assets/pairfree-models.tsv. No PairFree Bluetooth command/protocol driver is included in this initial integration. PairFree and its upstream contributors retain their respective credits and licenses.
+- PairFree (https://github.com/Omega-Destroyer/PairFree, GPL-3.0), source commit af534dca43627a9c76903fbb9a118ea4a783c856: model names adapted from its device support documentation and bundled in android/app/src/main/assets/pairfree-models.tsv. The Nothing/CMF Bluetooth packet framing, CRC, response parser and limited command handling in ui/other/NothingProtocol.kt and NothingController.kt are independently adapted from PairFree's GPL-3.0 Nothing protocol and its documented source. Additional vendors' drivers are not yet ported. PairFree and its upstream contributors retain their respective credits and licenses.
 - QuickBuds (https://github.com/spizganed/QuickBuds, GPL-3.0): visual and interaction reference for compact battery rings, segmented noise controls, modal sheets and equalizer curves. LibreBuds' Compose counterparts were independently implemented; no QuickBuds Bluetooth protocol or original View classes are included.
 - OpenHarmony communication_dsoftbus (Apache License 2.0): FDEE service UUID used
   as a cross-reference for the beacon format.
