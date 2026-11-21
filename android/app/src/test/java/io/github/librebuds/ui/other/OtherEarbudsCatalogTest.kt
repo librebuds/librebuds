@@ -48,6 +48,15 @@ class OtherEarbudsCatalogTest {
         assertNull(OtherEarbudsCatalog.match("Galaxy Buds2 Pro (NOT-SERIAL)", upstream))
     }
 
+    @Test fun samsungScreenProbesVendorEvenIfAndroidAudioCacheIsStale() {
+        assertTrue(shouldProbeVendorWhenViewed("Galaxy Buds2 Pro", "Samsung", false))
+        assertTrue(shouldProbeVendorWhenViewed("Galaxy Buds2 Pro (A1B2)", "Samsung", false))
+        assertTrue(shouldProbeVendorWhenViewed("Galaxy Buds2 Pro", null, false))
+        assertFalse(shouldProbeVendorWhenViewed("WF-1000XM5", "Sony", false))
+        assertFalse(shouldProbeVendorWhenViewed("HUAWEI FreeBuds 6i", "Samsung", false))
+        assertTrue(shouldProbeVendorWhenViewed("WF-1000XM5", "Sony", true))
+    }
+
     @Test fun doesNotMatchUnrelatedDeviceBySubstring() {
         assertNull(OtherEarbudsCatalog.match("My Sony WF-1000XM5 Car Stereo", models))
         assertNull(OtherEarbudsCatalog.match("Gaming PC", models))
