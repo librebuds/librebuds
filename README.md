@@ -66,19 +66,25 @@ The screenshots below show this fork running with **FreeBuds 6i** in its QuickBu
 > [!NOTE]
 > This is a community fork built on LibreBuds and inspired by QuickBuds' design language. Some model-specific capabilities are still experimental. A successful APK build or a screenshot does **not** mean every feature has been verified with FreeBuds 6i hardware. Please include a diagnostics export when reporting an issue.
 
-## Additional Bluetooth audio devices (experimental preview)
+## Multi-brand Bluetooth control — experimental preview
 
-Alongside the original Huawei FreeBuds support, the development branch can list paired earbuds/headsets from other brands in the **same QuickBuds-inspired layout**. This discovery layer uses Android's public Bluetooth/audio APIs and an attributed [PairFree](https://github.com/Omega-Destroyer/PairFree) name catalog (17 brands, 786 extracted name entries, not 786 guaranteed compatible devices).
+This fork keeps **all existing LibreBuds FreeBuds features and the exact same QuickBuds-inspired Compose interface**. Non-Huawei devices use a **separate Bluetooth backend** built from the official [PairFree](https://github.com/Omega-Destroyer/PairFree) source, pinned as a GPLv3 Git submodule (`third_party/PairFree`). The app's visual components are not copied from PairFree.
 
-- The Home device list recognizes paired audio hardware by Android's headset class, known names or common headphone naming patterns.
-- When Android exposes a battery percentage, the non-Huawei device card displays that overall percentage. Android does not universally expose left/right/case levels.
-- Connected devices use the existing rounded **Home / Controls / Details** layout; **Controls** offers an Android media-volume slider (system output volume, not vendor EQ).
-- **Nothing / CMF (experimental):** open a connected pair to establish its vendor RFCOMM control channel, read left/right/case battery, read and switch Off/ANC/Transparency modes and change four EQ presets when the earbuds report those settings. Bluetooth packets and commands follow GPLv3 [PairFree's Nothing protocol documentation](https://github.com/Omega-Destroyer/PairFree/blob/main/docs/nothing/PROTOCOL.md). Controls appear only after a valid device reply. This driver is not yet physically tested and may vary by firmware.
-- **All other non-Huawei brands:** ANC, EQ, touch gestures and multipoint configuration remain unimplemented in this fork. Unsupported controls are not shown as working. Use Android's Bluetooth settings for system-level controls.
-- Existing Huawei FreeBuds connection/session code and controls are unchanged.
-- Recognition is heuristic; some models will be missing or misidentified. PairFree's source catalog is broader than the subset confirmed with physical devices.
+**Broad protocol coverage:** PairFree's upstream core includes brand drivers for SOUNDPEATS, Soundcore, Samsung, Sony, Bose, JBL, Apple/Beats, Nothing/CMF, Google Pixel Buds, QCY, 1MORE, EarFun, Cambridge Audio, OnePlus/OPPO, Sennheiser, Jabra, and Skullcandy. The fork uses PairFree's real model identification, RFCOMM/BLE/GATT transports and capability-aware setting handlers rather than just showing a name in a list.
 
-This is an **experimental multi-brand foundation with a first real Nothing/CMF vendor protocol**, not a claim of universal advanced control. PairFree's own Android app supports many proprietary protocols; adding those to this fork still requires porting its drivers, transports, data tables and device testing.
+- **Home:** Paired Bluetooth audio devices, Android-reported connection/battery data, plus separate left/right/case battery levels whenever the vendor backend reports them.
+- **Noise control:** The same rounded **Off / Noise cancellation / Awareness** selector, driven by the protocol's actual ANC state and commands where supported.
+- **Controls:** The same **Audio / Gestures / More** navigation, Android media playback/volume, plus vendor-provided switches, choices and sliders (only after a driver has announced those capabilities).
+- **Details:** Model/brand and the original product information design.
+- **Safety:** No speculative commands are sent to unknown earbuds; power-off/factory-reset and other destructive actions are deliberately excluded from generic controls.
+- **FreeBuds 6i:** Always routed to the original LibreBuds Bluetooth session and features, not PairFree. No existing FreeBuds controls were removed or redesigned.
+
+**Hardware support is not universal.** PairFree's model database is much larger than its real-device test coverage, and some earbuds require permissions, firmware-specific commands or newer Android Bluetooth APIs (notably some AirPods). A listed brand is not a guarantee that every model or every feature works. This is a draft, experimental integration—not yet a stable release.
+
+### Building with the PairFree submodule
+
+Use `git clone --recurse-submodules https://github.com/vnxrgb/librebuds-6i.git` and build the multi-brand feature branch. For an existing checkout, run `git submodule update --init --recursive` before running `./gradlew :app:assembleDebug` in `android/`. The upstream PairFree modules are pinned to commit `af534dca43627a9c76903fbb9a118ea4a783c856`; changing that commit must be audited and tested.
+
 
 ## Features
 
