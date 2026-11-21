@@ -1,0 +1,18 @@
+{
+  "id": "freebuds-lite",
+  "name": "FreeBuds Lite",
+  "match": {
+    "sku": [],
+    "modelId": [],
+    "productId": [],
+    "btName": [
+      "HUAWEI FreeBuds Lite"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    }
+  }
+}
