@@ -25,6 +25,92 @@
         1
       ]
     },
+    "wear": {
+      "verified": "2026-11-21"
+    },
+    "equalizer": {
+      "verified": "2026-11-21",
+      "presets": {
+        "0": "default",
+        "2": "bass",
+        "3": "treble",
+        "9": "voice",
+        "200": "symphony",
+        "201": "hifi_live"
+      },
+      "offered": [
+        0,
+        2,
+        3,
+        9,
+        200,
+        201
+      ],
+      "custom": true,
+      "extended": {
+        "200": [
+          15,
+          15,
+          10,
+          -5,
+          15,
+          25,
+          15,
+          -5,
+          50,
+          45
+        ],
+        "201": [
+          -5,
+          20,
+          30,
+          10,
+          0,
+          0,
+          -25,
+          -10,
+          10,
+          0
+        ]
+      }
+    },
+    "lowLatency": {
+      "verified": "2026-11-21"
+    },
+    "soundQuality": {
+      "verified": "2026-11-21",
+      "options": {
+        "0": "connectivity",
+        "1": "quality"
+      }
+    },
+    "multipoint": {
+      "verified": "2026-11-21"
+    },
+    "language": {
+      "verified": "2026-11-21"
+    },
+    "singleBudAnc": {
+      "verified": "2026-11-21"
+    },
+    "findEarbuds": {
+      "verified": "2026-11-21"
+    },
+    "restReminder": {
+      "verified": "2026-11-21"
+    },
+    "adaptiveVolume": {
+      "verified": null
+    },
+    "aiConversation": {
+      "verified": null
+    },
+    "dropDetection": {
+      "verified": null
+    },
+    "earTip": {
+      "verified": null
+    },
     "gestures": {
       "verified": "2026-11-21",
       "doubleTap": {
