@@ -41,6 +41,16 @@ class ProductArtTest {
     }
 
     @Test
+    fun nonTwsHuaweiModelsHideMisleadingCaseAndBudDrawings() {
+        for (id in listOf("freeclip", "freeclip-2", "freearc", "freelace-pro-2", "eyewear-2", "w-buds", "freebuds-studio")) {
+            assertEquals(true, ProductArt.useTextOnlyBatteryArt(id))
+        }
+        assertEquals(false, ProductArt.useTextOnlyBatteryArt("freebuds-6i"))
+        assertEquals(false, ProductArt.useTextOnlyBatteryArt("freebuds-pro-5"))
+        assertEquals(false, ProductArt.useTextOnlyBatteryArt(null))
+    }
+
+    @Test
     fun stemShapeGetsStemRenders() {
         assertEquals(R.drawable.battery_bud_left_stem, ProductArt.bud(true, "stem"))
         assertEquals(R.drawable.battery_bud_right_stem, ProductArt.bud(false, "stem"))
