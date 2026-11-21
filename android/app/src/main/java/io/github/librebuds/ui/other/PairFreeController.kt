@@ -117,9 +117,11 @@ class PairFreeController(
                                 _state.value = _state.value.copy(status = "Connecting to vendor control channel…", ready = false)
                             is LinkStatus.Reconnecting ->
                                 _state.value = _state.value.copy(status = "Reconnecting…", ready = false)
-                            is LinkStatus.Failed ->
+                            is LinkStatus.Failed -> {
+                                samsungDiagnostic("vendor control failed: ${status.reason.name}")
                                 _state.value = _state.value.copy(status = "Control channel unavailable", ready = false,
                                     error = status.reason.name.lowercase().replace('_', ' '))
+                            }
                             is LinkStatus.Idle ->
                                 _state.value = _state.value.copy(status = "Not connected", ready = false)
                         }
