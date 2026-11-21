@@ -13,6 +13,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -289,17 +293,46 @@ internal fun FindEarbudsSection(ringing: Map<Side, Boolean>, note: String?, onRi
     DisposableEffect(Unit) {
         onDispose { currentRinging.filterValues { it }.keys.forEach { ring(it, false) } }
     }
-    StyledList(title = stringResource(R.string.section_find), description = note ?: stringResource(R.string.find_warning)) {
-        listOf(Side.LEFT to R.string.find_left, Side.RIGHT to R.string.find_right).forEach { (side, label) ->
-            val on = ringing[side] == true
-            StyledListItem(
-                name = stringResource(label),
-                description = stringResource(if (on) R.string.find_stop else R.string.find_ring),
-                onClick = { onRing(side, !on) }
+    Text(
+        text = stringResource(R.string.section_find),
+        style = MaterialTheme.typography.titleSmall,
+        modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
+    )
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = stringResource(R.string.find_warning),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf(Side.LEFT to R.string.find_left, Side.RIGHT to R.string.find_right).forEach { (side, label) ->
+                    val on = ringing[side] == true
+                    val name = stringResource(label)
+                    if (on) {
+                        FilledTonalButton(
+                            onClick = { onRing(side, false) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("$name · " + stringResource(R.string.find_stop), maxLines = 2)
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = { onRing(side, true) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("$name · " + stringResource(R.string.find_ring), maxLines = 2)
+                        }
+                    }
+                }
+            }
+            if (note != null) Text(note, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
-    if (note != null) Hint(stringResource(R.string.find_warning))
 }
 
 @Composable
