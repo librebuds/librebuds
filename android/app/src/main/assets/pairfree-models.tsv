@@ -788,3 +788,9 @@ skullcandy	Smokin' Buds 360H
 skullcandy	Smokin' Buds 360S
 skullcandy	Crusher 900 ANC
 skullcandy	Push 180 Open
+# Additional Bluetooth aliases from PairFree data/nothing/devices.json
+nothing	ear (1)
+nothing	Ear (2)
+nothing	Ear (stick)
+nothing	Ear (3)
+nothing	Buds Pro
