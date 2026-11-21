@@ -56,10 +56,23 @@ object OtherEarbudsCatalog {
         val nameKey = normalize(name)
         if (nameKey.isBlank()) return null
         val tozoKey = nameKey.removePrefix("tozo ").takeIf { nameKey.startsWith("tozo ") }
+        // Samsung advertises "Galaxy Buds2 Pro (A1B2)" while PairFree's model-name
+        // catalog uses "Buds2 Pro". Accept only this specific Samsung prefix and
+        // optional four-hex-digit factory suffix; never fuzzy-match unrelated products.
+        val samsungName = name.trim().replace(Regex("""\\s*\\([0-9a-fA-F]{4}\\)\\s*$"""), "")
+        val samsungKey = normalize(samsungName).removePrefix("samsung ").removePrefix("galaxy ")
+        val isSamsungName = normalize(samsungName).startsWith("galaxy buds") ||
+            normalize(samsungName).startsWith("samsung galaxy buds")
         return catalog
             .asSequence()
-            .filter { (it.brand != "TOZO" && normalize(it.model) == nameKey) ||
-                (it.brand == "TOZO" && normalize(it.model) == tozoKey) }
+            .filter {
+                when (it.brand) {
+                    "TOZO" -> normalize(it.model) == tozoKey
+                    "Samsung" -> normalize(it.model) == nameKey ||
+                        (isSamsungName && normalize(it.model).removePrefix("galaxy ") == samsungKey)
+                    else -> normalize(it.model) == nameKey
+                }
+            }
             .maxByOrNull { it.model.length }
     }
 
