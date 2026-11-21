@@ -64,8 +64,7 @@ FreeBuds 6i support with model-specific controls and artwork.
 | **Connection island** | A small island when the earbuds connect or move to another device, with an undo action. |
 | **Material You** | Optional dynamic colours, light and dark theme. |
 
-Which settings appear depends on what your earbuds report. Settings that have not yet been
-confirmed on a given model are labelled *Experimental* in the app.
+Which settings appear depends on what your earbuds report. Settings are model-dependent and are only shown when the connected earbuds report support or the model has a confirmed implementation.
 
 ## Supported models
 
