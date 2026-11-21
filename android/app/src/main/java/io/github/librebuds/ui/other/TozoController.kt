@@ -32,6 +32,7 @@ class TozoController(private val context: Context, private val address: String) 
     private var protocol: Char? = null
     private var writeChar: BluetoothGattCharacteristic? = null
     private var notifyChar: BluetoothGattCharacteristic? = null
+    private var sentSecondJQuery = false
 
     private val jService = UUID.fromString("0000faa0-0000-1000-8000-00805f9b34fb")
     private val jWrite = UUID.fromString("0000faa1-0000-1000-8000-00805f9b34fb")
@@ -132,6 +133,7 @@ class TozoController(private val context: Context, private val address: String) 
                 _state.value = NothingStatus(error = "TOZO notification descriptor missing")
                 return
             }
+            sentSecondJQuery = false
             _state.value = NothingStatus(status = "TOZO protocol ${protocol} detected (battery read-only)", ready = true)
             if (Build.VERSION.SDK_INT >= 33) {
                 g.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
@@ -152,7 +154,10 @@ class TozoController(private val context: Context, private val address: String) 
         @SuppressLint("MissingPermission")
         override fun onCharacteristicWrite(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
             if (gatt !== g || status != BluetoothGatt.GATT_SUCCESS) return
-            if (protocol == 'J') sendBatteryQuery(g, first = false)
+            if (protocol == 'J' && !sentSecondJQuery) {
+                sentSecondJQuery = true
+                sendBatteryQuery(g, first = false)
+            }
         }
 
         override fun onCharacteristicChanged(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
