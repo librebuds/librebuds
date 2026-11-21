@@ -228,4 +228,9 @@
     <string name="find_ring">Play sound</string>
     <string name="find_stop">Stop</string>
     <string name="find_warning">Take the earbuds out of your ears first. The sound is loud.</string>
+    <string name="device_tab_home">Home</string>
+    <string name="device_tab_controls">Controls</string>
+    <string name="device_tab_details">Details</string>
+    <string name="device_battery_status">Battery status</string>
+    <string name="device_quick_actions">Quick settings</string>
 </resources>
