@@ -35,7 +35,7 @@
 3. **Battery:** the UI displays left/right/case values only where live packets actually report them. A case must not be fabricated for a neckband, clip, eyewear or any model that doesn't report one.
 4. **Settings:** a model's profile decides which reads and writes are attempted; unverified settings cannot be treated as confirmed just because the related model has them.
 5. **Artwork:** dedicated illustrations are supplied for FreeBuds 3/4/5/6 and Pro 2/3/4/5. FreeBuds 6i retains the existing **Pro 5 approximation** to avoid a breaking visual change. FreeBuds 4E and Pro 2+ use explicitly approximate family artwork, and in-ear budget models now use a more suitable stem silhouette instead of bean-shaped buds.
-6. **Non-TWS hardware:** no existing model-specific licensed art is available for FreeClip, FreeArc, FreeLace, Eyewear, W Buds or FreeBuds Studio. Generic renderings for these devices are **placeholders**, not faithful device/case images. Accurate art must be sourced or illustrated separately before claiming otherwise.
+6. **Non-TWS hardware:** no existing model-specific licensed art is available for FreeClip, FreeArc, FreeLace, Eyewear, W Buds or FreeBuds Studio. For these non-TWS devices, the battery panel now shows a text label with real reported battery percentages **instead of misleading generic bud/case images**, until accurate artwork is available. Accurate art must be sourced or illustrated separately before claiming otherwise.
 
 ## Requirements before calling an individual model fully supported
 
