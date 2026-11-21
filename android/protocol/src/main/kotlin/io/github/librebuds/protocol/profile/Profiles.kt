@@ -30,13 +30,37 @@ data class Profile(
 }
 
 class ProfileRegistry(val profiles: List<Profile>) {
-    /** Most reliable identifier first: SKU, then beacon ModelId, then the (user-renamable) Bluetooth name. */
+    /**
+     * Prefer exact hardware identifiers. Bluetooth names are user-renamable, so match
+     * only a complete known name (case/spacing independent), with a strictly formatted
+     * four-hex-character factory suffix when present. Never use substring matching:
+     * FreeBuds 6 and 6i, Pro and Pro 2, etc. must not be confused.
+     */
     fun match(sku: String? = null, modelId: String? = null, btName: String? = null): Profile {
-        sku?.let { value -> find { p -> p.match.sku.any { it.equals(value, ignoreCase = true) } }?.let { return it } }
-        modelId?.let { value -> find { p -> p.match.modelId.any { it.equals(value, ignoreCase = true) } }?.let { return it } }
-        btName?.trim()?.let { value -> find { p -> value in p.match.btName }?.let { return it } }
+        sku?.trim()?.let { value -> find { p -> p.match.sku.any { it.equals(value, ignoreCase = true) } }?.let { return it } }
+        modelId?.trim()?.let { value -> find { p -> p.match.modelId.any { it.equals(value, ignoreCase = true) } }?.let { return it } }
+        btName?.let { raw ->
+            val value = canonicalBtName(raw)
+            if (value.isNotEmpty()) {
+                find { p ->
+                    p.match.btName.any { name ->
+                        val expected = canonicalBtName(name)
+                        value == expected ||
+                            // Huawei frequently omits its own prefix in the OS-visible name.
+                            (expected.startsWith("huawei ") && value == expected.removePrefix("huawei "))
+                    }
+                }?.let { return it }
+            }
+        }
         return GENERIC
     }
+
+    private fun canonicalBtName(name: String): String = name
+        .trim()
+        .replace(Regex("""\\s*\\([A-Fa-f0-9]{4}\\)\\s*$"""), "")
+        .trim()
+        .replace(Regex("""\\s+"""), " ")
+        .lowercase(java.util.Locale.ROOT)
 
     private fun find(predicate: (Profile) -> Boolean): Profile? = profiles.firstOrNull(predicate)
 
