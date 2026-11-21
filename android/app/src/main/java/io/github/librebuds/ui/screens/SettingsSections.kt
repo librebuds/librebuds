@@ -9,6 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -81,12 +87,18 @@ fun DeviceSettingsSections(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         listOf(R.string.device_section_audio, R.string.device_section_gestures, R.string.device_section_more).forEachIndexed { index, label ->
-            FilterChip(
-                modifier = Modifier.weight(1f),
-                selected = section == index,
-                onClick = { section = index },
-                label = { Text(stringResource(label), maxLines = 1) }
-            )
+            val selected = section == index
+            Surface(
+                modifier = Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(18.dp))
+                    .clickable { section = index },
+                color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) {
+                    Text(stringResource(label), maxLines = 1, style = MaterialTheme.typography.labelMediumEmphasized)
+                }
+            }
         }
     }
     when (section) {
