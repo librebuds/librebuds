@@ -8,6 +8,11 @@ on:
   pull_request:
     branches: [main]
 
+# On a rapidly evolving experimental branch, build only the newest commit.
+concurrency:
+  group: debug-apk-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
