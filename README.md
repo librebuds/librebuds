@@ -7,7 +7,7 @@
 **Open-source companion app for HUAWEI FreeBuds on Android.**<br />
 Battery, noise control, gestures, equalizer and a popup when you open the case. No root, no vendor app.
 
-Just added support for freebuds 6i
+FreeBuds 6i support with model-specific controls and artwork.
 
 <a href="https://github.com/librebuds/librebuds/releases"><img src="https://img.shields.io/github/v/release/librebuds/librebuds?include_prereleases&label=release" alt="Latest release" /></a>
 <a href="https://github.com/librebuds/librebuds/releases"><img src="https://img.shields.io/github/downloads/librebuds/librebuds/total?label=downloads" alt="Downloads" /></a>
@@ -64,8 +64,7 @@ Just added support for freebuds 6i
 | **Connection island** | A small island when the earbuds connect or move to another device, with an undo action. |
 | **Material You** | Optional dynamic colours, light and dark theme. |
 
-Which settings appear depends on what your earbuds report. Settings that have not yet been
-confirmed on a given model are labelled *Experimental* in the app.
+Which settings appear depends on what your earbuds report. Settings are model-dependent and are only shown when the connected earbuds report support or the model has a confirmed implementation.
 
 ## Supported models
 
@@ -73,6 +72,7 @@ confirmed on a given model are labelled *Experimental* in the app.
 | --- | --- | --- | --- |
 | FreeBuds 5 | ✅ Tested on hardware | Full | Model animation |
 | FreeBuds Pro 5 | ✅ Tested on hardware | Full | Model animation |
+| FreeBuds 6i | 🟡 Supported; hardware testing welcome | Battery, noise control, awareness, gestures, EQ, low latency, multipoint and model-specific settings | FreeBuds Pro 5 artwork |
 | FreeBuds 6 | 🟡 Expected to work | Full | Model animation |
 | FreeBuds Pro 2 | 🟡 Expected to work | Full | Model animation |
 | FreeBuds Pro 3 | 🟡 Expected to work | Full | Model animation |
@@ -87,7 +87,7 @@ confirmed on a given model are labelled *Experimental* in the app.
 
 | Family | Models |
 | --- | --- |
-| FreeBuds | 3i, 4i, 4E, 4E (no ANC, battery only), 5i, 6i, 7, 7i, Pro, Pro 2+, Neo, Studio |
+| FreeBuds | 3i, 4i, 4E, 4E (no ANC, battery only), 5i, 7, 7i, Pro, Pro 2+, Neo, Studio |
 | FreeBuds SE | SE, SE 2, SE 4 ANC, SE 5 MAX |
 | FreeBuds Lipstick | Lipstick, Lipstick 2 |
 | FreeClip and FreeArc | FreeClip, FreeClip 2, FreeClip 2 (Collector's Edition), FreeArc |
@@ -154,7 +154,6 @@ a fork of [OpenFreebuds](https://github.com/melianmiko/OpenFreebuds).
 - Grant **Nearby devices** and **Display over other apps** (see above for the restricted setting).
 - Bluetooth must be on, and the earbuds must already be paired with the phone.
 - The popup appears once per opening. Close the case for a few seconds before trying again.
-- Use **Show test popup** in settings to check the popup itself works.
 
 </details>
 
@@ -189,12 +188,11 @@ Another phone or computer is currently connected to the earbuds' control channel
 </details>
 
 <details>
-<summary><b>A setting does not change or shows Experimental</b></summary>
+<summary><b>A setting does not change or is unavailable</b></summary>
 
 <br />
 
-*Experimental* means the setting is supported by the model but not yet confirmed with real
-earbuds. If it does not work, please open an issue with a diagnostics export.
+Settings are model-dependent. LibreBuds only exposes controls that the connected earbuds report as supported or that have been confirmed for the model. If a supported 6i feature does not appear or does not work, please open an issue with a diagnostics export.
 
 </details>
 
@@ -214,15 +212,11 @@ Release builds are signed only when `android/keystore.properties` (or the path i
 `LIBREBUDS_KEYSTORE_PROPERTIES`) is present; otherwise `./gradlew :app:assembleRelease`
 produces an unsigned APK.
 
-Debug builds have a demo mode in settings that shows sample earbuds, useful for UI work without
-hardware.
-
 ## Contributing
 
 Bug reports, test results on new models and pull requests are welcome.
 
-- When reporting a problem, attach a diagnostics export: **Settings → Share diagnostics** or
-  **Save diagnostics to file**. The export leaves out serial numbers, host device names and full
+- When reporting a problem, attach a diagnostics export: **Settings → Share diagnostics** or **Save diagnostics to file**. The export leaves out serial numbers, host device names and full
   Bluetooth addresses.
 - Mention your earbud model, firmware version (shown on the device screen) and phone.
 - Before a pull request, run `./gradlew test` in `android/` and `python3 tools/check_ui_import.py`.
