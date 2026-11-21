@@ -15,7 +15,22 @@ data class DetectedBuds(val name: String, val address: String, val profileId: St
 /** Serial Port Profile: the control channel every FreeBuds model advertises. */
 const val SPP_UUID = "00001101-0000-1000-8000-00805f9b34fb"
 
-private val VENDOR_WORDS = listOf("huawei", "freebuds")
+private val HUAWEI_AUDIO_FAMILIES = listOf(
+    "freebuds", "freeclip", "freearc", "freelace", "w buds", "eyewear"
+)
+
+/**
+ * A clearly named, bonded Huawei audio product. Android's cached UUID list is sometimes
+ * empty even though the headset supports the Huawei control channel. Names alone never
+ * imply that the RFCOMM handshake will succeed; the controller still verifies the link.
+ */
+private fun isHuaweiAudioProductName(name: String?): Boolean {
+    val normalized = name?.trim()?.lowercase(java.util.Locale.ROOT)
+        ?.replace(Regex("""\s+"""), " ") ?: return false
+    if (!normalized.startsWith("huawei ")) return false
+    val family = normalized.removePrefix("huawei ")
+    return HUAWEI_AUDIO_FAMILIES.any { family == it || family.startsWith("$it ") }
+}
 
 /**
  * Keeps only FreeBuds out of the paired devices: a Bluetooth name of a known model; or, for renamed
@@ -28,9 +43,14 @@ fun detectFreeBuds(bonded: List<BondedDevice>, registry: ProfileRegistry, known:
         val profile = registry.match(btName = device.name)
         val recognised = profile.id != ProfileRegistry.GENERIC.id
         val spp = device.uuids.any { it.equals(SPP_UUID, ignoreCase = true) }
-        val vendorName = device.name?.lowercase()?.let { name -> VENDOR_WORDS.any { it in name } } == true
+        // Keep historical renamed FreeBuds recognition, but avoid treating a paired Huawei
+        // watch or phone as earbuds solely because it offers an SPP service.
+        val vendorName = device.name?.lowercase(java.util.Locale.ROOT)?.let { name ->
+            "freebuds" in name || ("huawei" in name && "buds" in name)
+        } == true || isHuaweiAudioProductName(device.name)
+        val huaweiAudioName = isHuaweiAudioProductName(device.name)
         val stored = device.address.uppercase() in knownUpper
-        if (!recognised && !(spp && vendorName) && !stored) return@mapNotNull null
+        if (!recognised && !huaweiAudioName && !(spp && vendorName) && !stored) return@mapNotNull null
         DetectedBuds(
             name = device.name ?: device.address,
             address = device.address,
