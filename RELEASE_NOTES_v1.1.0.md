@@ -20,4 +20,4 @@ SOUNDPEATS, Soundcore, Samsung Galaxy Buds, Sony, Bose, JBL, Nothing/CMF, Google
 ## Installation
 Download `librebuds-plus-v1.1.0.apk` and install it as the stable LibreBuds+ update, package `io.github.librebuds`. It uses the **same signing certificate** as stable v1.0.0; signature, package and versionCode are verified in CI. The separate alpha app is `io.github.librebuds.alpha` and can remain installed for testing.
 
-No third-party app screenshots/launcher logos have been repurposed as product images. All original authors and third-party protocol references are credited in [NOTICE](https://github.com/vnxrgb/librebuds-6i/blob/main/NOTICE). GPLv3 applies.
+Seven model-specific, attributed PairFree GPLv3 SVG illustrations have been adapted for Android use on exact matches to Galaxy Buds3 Pro, Sony WF-1000XM5, Soundcore A30i, Nothing Ear and AirPods Pro. These visuals do not imply working vendor controls. No third-party app screenshots/launcher logos have been repurposed as product images. All original authors are credited in [NOTICE](https://github.com/vnxrgb/librebuds-6i/blob/main/NOTICE). GPLv3 applies.
