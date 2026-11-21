@@ -19,6 +19,7 @@ Built on [LibreBuds](https://github.com/librebuds/librebuds) · UI inspired by [
 <br />
 
 <a href="https://github.com/vnxrgb/librebuds-6i/releases"><b>Download this fork</b></a> ·
+<a href="CHANGELOG.md">Changelog</a> ·
 <a href="#features">Features</a> ·
 <a href="#screenshots">Screenshots</a> ·
 <a href="#supported-models">Supported models</a> ·
