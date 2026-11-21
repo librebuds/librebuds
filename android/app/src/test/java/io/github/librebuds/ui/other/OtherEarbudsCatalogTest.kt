@@ -30,6 +30,13 @@ class OtherEarbudsCatalogTest {
         assertFalse(OtherEarbudsCatalog.isHuaweiManaged("Galaxy Buds3 Pro"))
     }
 
+    @Test fun renamedAirpodsAreIdentifiedByFamilyNotFabricatedModel() {
+        assertEquals("Apple / Beats", OtherEarbudsCatalog.displayBrand("Vedang's AirPods"))
+        assertEquals("Samsung", OtherEarbudsCatalog.displayBrand("Galaxy Buds3 Pro"))
+        assertNull(OtherEarbudsCatalog.displayBrand("Living room television"))
+        assertNull(OtherEarbudsCatalog.match("Vedang's AirPods", models))
+    }
+
     @Test fun headphoneNameFallbackIsConservative() {
         assertTrue(OtherEarbudsCatalog.looksLikeHeadphones("Nothing Ear (2)"))
         assertTrue(OtherEarbudsCatalog.looksLikeHeadphones("Pixel Buds Pro"))
