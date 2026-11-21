@@ -22,6 +22,14 @@ Updated: 2026-11-21. **The feature status below applies to this fork, not to ups
 | HUAWEI FreeBuds SE, SE 2, SE 4 ANC, SE 5 MAX | **Needs testing** | Existing model/profile support | Basic support only where reported |
 | HUAWEI FreeBuds Lipstick / Lipstick 2; FreeClip / FreeClip 2 / Collector's Edition; FreeArc; FreeLace / Pro / Pro 2; W Buds / W Buds 2; Eyewear / Eyewear 2 | **Needs testing** | Legacy family/profile recognition, generic artwork on several models | No model-specific LibreBuds+ hardware report |
 
+## Huawei protocol compatibility improvements (alpha, pending real-device tests)
+
+- All recognized Huawei FreeBuds, FreeClip, FreeArc, FreeLace, Lipstick, Studio, and Eyewear models use the **original Huawei SPP controller**, not PairFree's unrelated-brand driver.
+- The model registry now recognizes complete known Bluetooth names case-insensitively, tolerates extra whitespace, an optional `HUAWEI ` prefix, and a factory-style `(A1B2)` suffix without confusing similar models (for example FreeBuds 6 vs 6i).
+- Adds conservative profiles for **FreeBuds SE 3**, **FreeBuds Lite**, and **FreeLace Lite**. These request basic battery information only; no unverified ANC, EQ or gesture commands are enabled.
+- Hardware identifiers still take precedence over name matching. Unknown Huawei models retain a limited generic profile where the headset exposes the Huawei control channel.
+- **Important:** Sharing a Huawei SPP transport does not mean identical feature sets or guaranteed compatibility. Model-specific support beyond confirmed hardware remains experimental and must be verified using actual earbuds. Bluetooth audio pairing is always managed by Android.
+
 ## New cross-brand experimental support (PairFree)
 
 LibreBuds+ includes the pinned [PairFree](https://github.com/Omega-Destroyer/PairFree) GPLv3 protocol engine (17 upstream brand-driver families) with Android transport, capability discovery, vendor battery data, supported ANC commands, dynamic settings panels and EQ handling **only if a compatible model/firmware actually reports these capabilities**. The app will not invent settings when unsupported. **All following families need real hardware testing in this fork.**
