@@ -1,0 +1,18 @@
+{
+  "id": "freelace-lite",
+  "name": "FreeLace Lite",
+  "match": {
+    "sku": [],
+    "modelId": [],
+    "productId": [],
+    "btName": [
+      "HUAWEI FreeLace Lite"
+    ]
+  },
+  "art": "generic",
+  "capabilities": {
+    "battery": {
+      "verified": null
+    }
+  }
+}
