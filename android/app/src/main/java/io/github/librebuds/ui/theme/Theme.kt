@@ -35,27 +35,27 @@ import androidx.compose.ui.platform.LocalContext
 val ColorScheme.sectionHeader: Color
     get() = onBackground.copy(alpha = 0.6f)
 
-private val AppleDarkColorScheme = darkColorScheme(
+private val OneUiDarkColorScheme = darkColorScheme(
     surfaceContainer = Color(0xFF000000), // for some reason background is not used as the background in gmail and settings app, but surfacecontainer, so using that
     onBackground = Color(0xFFFFFFFF),
-    surface = Color(0xFF1C1C1E),
+    surface = Color(0xFF1C1D21),
     onSurface = Color(0xFFFFFFFF),
     surfaceDim = Color(0x40888888),
-    primary = Color(0xFF0091FF),
-    secondaryContainer = Color(0xFF366AA8),
-    onSecondaryContainer = Color(0xFF0091FF),
+    primary = Color(0xFF4F8CFF),
+    secondaryContainer = Color(0xFF263C68),
+    onSecondaryContainer = Color(0xFF8FB5FF),
     onPrimary = Color(0xFFFFFFFF)
 )
 
-private val AppleLightColorScheme = lightColorScheme(
-    surfaceContainer = Color(0xFFF2F2F7),
+private val OneUiLightColorScheme = lightColorScheme(
+    surfaceContainer = Color(0xFFF5F6F8),
     onBackground = Color(0xFF000000),
     surface = Color(0xFFFFFFFF),
     onSurface = Color(0xFF000000),
     surfaceDim = Color(0x40D9D9D9),
-    secondaryContainer = Color(0xFF6BC0FF),
-    onSecondaryContainer = Color(0xFF0088FF),
-    primary = Color(0xFF0088FF),
+    secondaryContainer = Color(0xFFDCE7FF),
+    onSecondaryContainer = Color(0xFF2D5FB8),
+    primary = Color(0xFF2D6CDF),
     onPrimary = Color(0xFFFFFFFF)
 )
 
@@ -63,6 +63,7 @@ private val AppleLightColorScheme = lightColorScheme(
 fun LibreBudsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     m3eEnabled: Boolean = false,
+    amoledBlack: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -70,8 +71,15 @@ fun LibreBudsTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> AppleDarkColorScheme
-        else -> AppleLightColorScheme
+        darkTheme -> OneUiDarkColorScheme.copy(
+            background = if (amoledBlack) Color.Black else OneUiDarkColorScheme.background,
+            surface = if (amoledBlack) Color(0xFF090A0C) else OneUiDarkColorScheme.surface,
+            surfaceContainer = if (amoledBlack) Color.Black else OneUiDarkColorScheme.surfaceContainer,
+            surfaceContainerLow = if (amoledBlack) Color.Black else OneUiDarkColorScheme.surfaceContainerLow,
+            surfaceContainerHigh = if (amoledBlack) Color(0xFF111214) else OneUiDarkColorScheme.surfaceContainerHigh,
+            surfaceContainerHighest = if (amoledBlack) Color(0xFF18191C) else OneUiDarkColorScheme.surfaceContainerHighest,
+        )
+        else -> OneUiLightColorScheme
     }
 
     CompositionLocalProvider(
