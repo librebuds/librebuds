@@ -101,7 +101,7 @@ The screenshots below show this fork running with **FreeBuds 6i** in its QuickBu
 | --- | --- | --- | --- |
 | FreeBuds 5 | ✅ Tested on hardware | Full | Model animation |
 | FreeBuds Pro 5 | ✅ Tested on hardware | Full | Model animation |
-| **FreeBuds 6i** | 🟡 App integration and UI demonstrated; full feature validation welcome | Battery, ANC / awareness, gestures, EQ, low latency, sound quality, multipoint, wear detection, Find Earbuds and supported model-specific options | Model-specific display with existing fallback artwork |
+| **FreeBuds 6i** | ✅ App integration and UI demonstrated; full feature validation welcome | Battery, ANC / awareness, gestures, EQ, low latency, sound quality, multipoint, wear detection, Find Earbuds and supported model-specific options | Model-specific display with existing fallback artwork |
 | FreeBuds 6 | 🟡 Expected to work | Full | Model animation |
 | FreeBuds Pro 2 | 🟡 Expected to work | Full | Model animation |
 | FreeBuds Pro 3 | 🟡 Expected to work | Full | Model animation |
