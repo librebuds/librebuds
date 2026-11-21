@@ -66,7 +66,7 @@ fun StyledList(
                 Text(
                     text = it,
                     color = if (m3eEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.sectionHeader,
-                    style = MaterialTheme.typography.labelSmallEmphasized
+                    style = if (m3eEnabled) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelSmallEmphasized
                 )
             }
         }
