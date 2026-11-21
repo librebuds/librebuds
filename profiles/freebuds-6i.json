@@ -16,13 +16,17 @@
   "art": "generic",
   "capabilities": {
     "battery": {
-      "verified": null
+      "verified": "2026-11-21"
     },
     "anc": {
-      "verified": null
+      "verified": "2026-11-21",
+      "awarenessModes": [
+        2,
+        1
+      ]
     },
     "gestures": {
-      "verified": null,
+      "verified": "2026-11-21",
       "doubleTap": {
         "inCall": true,
         "options": {
