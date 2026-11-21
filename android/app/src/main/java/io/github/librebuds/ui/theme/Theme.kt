@@ -78,9 +78,12 @@ fun LibreBudsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     m3eEnabled: Boolean = false,
     amoledBlack: Boolean = false,
+    accentPreset: AccentPreset = AccentPreset.MINT,
     content: @Composable () -> Unit
 ) {
-    val base = if (darkTheme) QuickDark else QuickLight
+    val initial = if (darkTheme) QuickDark else QuickLight
+    val accent = if (darkTheme) accentPreset.dark else accentPreset.light
+    val base = initial.copy(primary = accent, primaryContainer = accent.copy(alpha = 0.25f), onPrimaryContainer = initial.onSurface)
     val colorScheme = if (darkTheme && amoledBlack) base.copy(
         background = Color.Black,
         surfaceContainer = Color.Black,
