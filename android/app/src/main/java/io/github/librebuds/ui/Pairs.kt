@@ -28,6 +28,9 @@ data class PairRow(
     val art: String = "generic",
     /** The profile id, which picks a model-specific product image when one exists (see ProductArt). */
     val profileId: String? = null,
+    /** Only Android-level Bluetooth data is available for non-Huawei devices. */
+    val genericAudio: Boolean = false,
+    val brand: String? = null,
 ) {
     /** Shown greyed out in the list: known, still tappable, but not connected to the phone. */
     val greyed: Boolean get() = !connected
