@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.librebuds.BuildConfig
 import io.github.librebuds.R
-import io.github.librebuds.beacon.LastBeacon
 import io.github.librebuds.popup.PopupStyle
 import io.github.librebuds.ui.components.ListItemOrientation
 import io.github.librebuds.ui.components.StyledList
@@ -21,8 +20,6 @@ import io.github.librebuds.ui.components.StyledToggle
 import io.github.librebuds.ui.screens.onboarding.OverlayAccess
 import io.github.librebuds.ui.screens.onboarding.PermissionHintRow
 import io.github.librebuds.ui.theme.DesignSystem
-import java.text.DateFormat
-import java.util.Date
 
 @Composable
 fun SettingsScreen(
@@ -38,10 +35,6 @@ fun SettingsScreen(
     onPopupStyleChange: (PopupStyle) -> Unit,
     overlay: OverlayAccess,
     onOpenAppInfo: () -> Unit,
-    demoMode: Boolean,
-    onDemoModeChange: (Boolean) -> Unit,
-    lastBeacon: LastBeacon?,
-    onShowTestPopup: () -> Unit,
     companionPair: String?,
     companionLinked: Boolean,
     onLinkCompanion: () -> Unit,
@@ -116,30 +109,6 @@ fun SettingsScreen(
                         onClick = overlay.request
                     )
                     PermissionHintRow(overlay.hint, onOpenAppInfo)
-                }
-                if (BuildConfig.DEBUG) {
-                    StyledToggle(
-                        label = stringResource(R.string.demo_mode),
-                        checked = demoMode,
-                        onCheckedChange = onDemoModeChange
-                    )
-                    StyledListItem(
-                        name = stringResource(R.string.show_test_popup),
-                        onClick = onShowTestPopup
-                    )
-                    StyledListItem(
-                        name = stringResource(R.string.last_beacon),
-                        // Vertical: the description is 3 lines (fields, time, hex) and needs the row's full
-                        // width, not the narrow column Horizontal reserves to the right of the name.
-                        orientation = ListItemOrientation.Vertical,
-                        description = lastBeacon?.let {
-                            val model = it.modelId ?: "?"
-                            val sub = it.subModelId?.toString() ?: "?"
-                            val reference = it.referenceRssi?.toString() ?: "?"
-                            val time = DateFormat.getDateTimeInstance().format(Date(it.atMillis))
-                            "model $model (sub $sub), RSSI ${it.rssi} dBm (ref $reference)\n$time\n${it.serviceDataHex}"
-                        } ?: stringResource(R.string.last_beacon_empty)
-                    )
                 }
                 // Share hands the redacted export to another app; save keeps it as a file the person picks.
                 StyledListItem(
