@@ -64,6 +64,7 @@ class OtherEarbudsCatalogTest {
 
     @Test fun freebudsAlwaysUseOriginalHuaweiBackend() {
         assertTrue(OtherEarbudsCatalog.isHuaweiManaged("HUAWEI FreeBuds 6i"))
+        assertTrue(OtherEarbudsCatalog.isHuaweiManaged("Anna\'s FreeBuds 6i"))
         assertTrue(OtherEarbudsCatalog.isHuaweiManaged("FreeBuds Pro 4"))
         assertFalse(OtherEarbudsCatalog.isHuaweiManaged("Nothing Ear (2)"))
         assertFalse(OtherEarbudsCatalog.isHuaweiManaged("Galaxy Buds3 Pro"))
