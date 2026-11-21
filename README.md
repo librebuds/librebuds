@@ -72,7 +72,7 @@ Alongside the original Huawei FreeBuds support, the development branch can list 
 
 - The Home device list recognizes paired audio hardware by Android's headset class, known names or common headphone naming patterns.
 - When Android exposes a battery percentage, the non-Huawei device card displays that overall percentage. Android does not universally expose left/right/case levels.
-- Connected devices use the existing rounded **Home / Controls / Details** layout.
+- Connected devices use the existing rounded **Home / Controls / Details** layout; **Controls** offers an Android media-volume slider (system output volume, not vendor EQ).
 - **ANC, EQ, touch gestures, multipoint configuration and other vendor-specific commands are not implemented for these additional brands yet.** Unsupported controls are not shown as working. Use Android's Bluetooth settings for system-level controls.
 - Existing Huawei FreeBuds connection/session code and controls are unchanged.
 - Recognition is heuristic; some models will be missing or misidentified. PairFree's source catalog is broader than the subset confirmed with physical devices.
