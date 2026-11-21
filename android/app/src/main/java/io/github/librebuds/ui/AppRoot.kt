@@ -24,6 +24,9 @@ import io.github.librebuds.popup.artFor
 import io.github.librebuds.popup.demoPopupModel
 import io.github.librebuds.state.AppPreferences
 import io.github.librebuds.state.DEMO_ADDRESS
+import io.github.librebuds.ui.other.OtherEarbudsCatalog
+import io.github.librebuds.ui.other.readOtherEarbuds
+import io.github.librebuds.ui.screens.OtherEarbudsScreen
 import io.github.librebuds.ui.screens.DeviceScreen
 import io.github.librebuds.ui.screens.HomeScreen
 import io.github.librebuds.ui.screens.MultipointScreen
@@ -68,7 +71,11 @@ fun AppRoot(
     val registry = remember { LibreBudsApp.from(context).registry }
     val showDemo = BuildConfig.DEBUG && demoMode
     val profileOf = { id: String -> registry.profiles.firstOrNull { it.id == id } }
-    val pairs = pairRows(detection, ui.state, showDemo, profileOf)
+    val catalog = remember(context) { OtherEarbudsCatalog.load(context) }
+    val freeBudsPairs = pairRows(detection, ui.state, showDemo, profileOf)
+    val otherBuds = remember(detection, catalog) { readOtherEarbuds(context, catalog) }
+    val freeBudsAddresses = freeBudsPairs.map { it.address.uppercase() }.toSet()
+    val pairs = freeBudsPairs + otherBuds.filterNot { it.address.uppercase() in freeBudsAddresses }.map { it.toRow() }
     val rowOf = { address: String -> pairs.firstOrNull { it.address.equals(address, ignoreCase = true) } }
     var stack by rememberSaveable(stateSaver = BackStackSaver) {
         // Opened for a pair (notification, island): straight into it, with the list below.
@@ -76,8 +83,8 @@ fun AppRoot(
         mutableStateOf(BackStack.initial(preferences.onboardingDone, launched))
     }
     // The pair of the open device screen, else the one the app would start on (Settings' companion row).
-    val selected = stack.device?.let { rowOf(it.address) }
-        ?: chooseStartPair(pairs, detection.lastConnectedAt, ui.state)?.let(rowOf)
+    val selected = stack.device?.let { rowOf(it.address) }?.takeUnless { it.genericAudio }
+        ?: chooseStartPair(freeBudsPairs, detection.lastConnectedAt, ui.state)?.let(rowOf)
     var companionLinked by remember { mutableStateOf(AssociationStore(context).known()) }
     // Keeps each open screen's saved state (scroll position) while a screen above it shows; dropped
     // once the screen is popped.
@@ -127,7 +134,9 @@ fun AppRoot(
                 is Route.Device -> {
                     // Before detection read the pair again (or for the frame before a gone pair closes).
                     val pair = rowOf(top.address) ?: PairRow(top.address, top.name, model = null, connected = false, battery = null)
-                    DeviceScreen(
+                    if (pair.genericAudio) {
+                        OtherEarbudsScreen(pair = pair, onNavigateBack = goBack)
+                    } else DeviceScreen(
                         viewModel = viewModel,
                         settingsViewModel = settingsViewModel,
                         showOffMode = showOffMode,
