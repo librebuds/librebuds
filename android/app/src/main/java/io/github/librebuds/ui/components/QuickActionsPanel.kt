@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -83,19 +87,20 @@ fun QuickActionsPanel(
                 rowEntries.forEach { shortcut ->
                     val colors = MaterialTheme.colorScheme
                     Surface(
-                        modifier = Modifier.weight(1f).heightIn(min = 66.dp).clickable(onClick = shortcut.action),
+                        modifier = Modifier.weight(if (rowEntries.size == 1) 2f else 1f).height(92.dp).clickable(onClick = shortcut.action),
                         color = if (shortcut.active == true) colors.primaryContainer else colors.surfaceContainerLow,
                         contentColor = if (shortcut.active == true) colors.onPrimaryContainer else colors.onSurface,
                         shape = RoundedCornerShape(18.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
-                            verticalArrangement = Arrangement.spacedBy(5.dp)
+                            modifier = Modifier.fillMaxHeight().padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
                                 text = shortcut.name,
                                 style = MaterialTheme.typography.labelMediumEmphasized,
-                                maxLines = 2
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = when (shortcut.active) {
@@ -110,7 +115,7 @@ fun QuickActionsPanel(
                         }
                     }
                 }
-                if (rowEntries.size == 1) Spacer(Modifier.weight(1f))
+
             }
         }
     }
