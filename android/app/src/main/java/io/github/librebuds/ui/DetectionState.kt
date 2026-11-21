@@ -26,6 +26,7 @@ import io.github.librebuds.companion.DetectedBuds
 import io.github.librebuds.companion.Presence
 import io.github.librebuds.companion.readDetectedBuds
 import io.github.librebuds.companion.trackPresence
+import io.github.librebuds.ui.other.OtherBatteryReadings
 import io.github.librebuds.state.PairHistory
 
 /**
@@ -51,7 +52,7 @@ private val WATCHED_ACTIONS = listOf(
     BluetoothDevice.ACTION_BOND_STATE_CHANGED,
     BluetoothDevice.ACTION_NAME_CHANGED,
     BluetoothDevice.ACTION_UUID,
-    BluetoothDevice.ACTION_BATTERY_LEVEL_CHANGED,
+    OtherBatteryReadings.ACTION_BATTERY_CHANGED,
     BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED,
     BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED,
     BluetoothAdapter.ACTION_STATE_CHANGED,
@@ -91,6 +92,7 @@ fun rememberDetection(): Detection {
                     BluetoothDevice.ACTION_ACL_CONNECTED -> address?.let { trackPresence(Presence.APPEARED, it) }
                     BluetoothDevice.ACTION_ACL_DISCONNECTED -> address?.let { trackPresence(Presence.DISAPPEARED, it) }
                 }
+                OtherBatteryReadings.update(intent, address)
                 reader.request()
                 AudioProfiles.refresh(context)
             }
