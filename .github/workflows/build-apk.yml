@@ -33,7 +33,7 @@ jobs:
 
       - name: Test additional earbud model recognition
         working-directory: android
-        run: ./gradlew :app:testDebugUnitTest --tests io.github.librebuds.ui.other.OtherEarbudsCatalogTest --no-daemon
+        run: ./gradlew :app:testDebugUnitTest --tests io.github.librebuds.ui.other.OtherEarbudsCatalogTest --tests io.github.librebuds.ui.other.NothingProtocolTest --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
