@@ -23,7 +23,7 @@ LibreBuds+ name and first **multi-brand preview in a stable FreeBuds-focused bui
 ### Hardware scope and artwork
 - The HUAWEI FreeBuds 6i original controller and interface are preserved; one owner test confirms alpha operation.
 - Other-brand protocol availability, ANC, EQ, battery and gesture features require real-device validation. Generic audio fallback is **not full device support**.
-- Third-party project screenshots/icons are not product cutouts and were not bundled as earbud renders. Existing FreeBuds and generic artwork remains.
+- Seven credited PairFree GPLv3 model-specific SVG illustrations were adapted into Android vectors for Galaxy Buds3 Pro, Sony WF-1000XM5, Soundcore A30i, Nothing Ear and AirPods Pro; generic and original FreeBuds artwork remains for other models. No unrelated application screenshots/icons were reused.
 - No destructive vendor commands intentionally added for unknown devices.
 
 [1.1.0]: https://github.com/vnxrgb/librebuds-6i/releases/tag/v1.1.0
