@@ -16,11 +16,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -86,6 +89,11 @@ fun HomeScreen(pairs: List<PairRow>, permissionMissing: Boolean, onOpen: (PairRo
                     onAction = { openBluetoothSettings(context) }
                 )
                 else -> {
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.headlineLarge,
+                        modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
+                    )
                     StyledList {
                         pairs.forEach { pair ->
                             StyledListItem(
@@ -127,9 +135,9 @@ internal fun openBluetoothSettings(context: Context) {
 @Composable
 private fun ProductThumbnail(art: String, profileId: String? = null) {
     val dark = isSystemInDarkTheme()
-    val tile = if (dark) Color(0xFF2C2C2E) else Color(0xFFD1D1D8)
+    val tile = if (dark) Color(0xFF24272E) else Color(0xFFE4EAF4)
     val outline = if (dark) Color(0x33FFFFFF) else Color(0x4D000000)
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(20.dp)
     Box(
         modifier = Modifier
             .size(52.dp)

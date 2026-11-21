@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -132,14 +133,31 @@ fun DeviceScreen(
             }
             if (!current) return@Column
             if (batteries.isNotEmpty()) {
-                BatteryView(batteries, pair.art, pair.profileId)
+                Surface(
+                    shape = RoundedCornerShape(32.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(text = pair.label, style = MaterialTheme.typography.headlineSmall)
+                        BatteryView(batteries, pair.art, pair.profileId)
+                    }
+                }
             }
             if (ui.state.isConnected && "anc" in ui.state.capabilities) {
-                NoiseControlSettings(
-                    selected = ui.selectedNoiseMode,
-                    modes = offeredModes(ui.listedModes, showOffMode),
-                    onSelected = viewModel::selectNoiseMode
-                )
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        NoiseControlSettings(
+                            selected = ui.selectedNoiseMode,
+                            modes = offeredModes(ui.listedModes, showOffMode),
+                            onSelected = viewModel::selectNoiseMode
+                        )
+                    }
+                }
                 ui.cancellationLevel?.let { picker ->
                     CancellationLevelList(picker, onSelect = viewModel::selectCancellationLevel)
                 }
