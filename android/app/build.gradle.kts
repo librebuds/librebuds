@@ -99,7 +99,16 @@ androidComponents {
     }
 }
 
+// Keep the app's current Compose UI. Only use PairFree's GPLv3 protocol
+// engine + Android link adapters, pinned to a submodule revision.
+android.sourceSets.getByName("main").java.srcDir(
+    "../../third_party/PairFree/android/app/src/main/kotlin/io/github/omegadestroyer/pairfree/bluetooth"
+)
+
 dependencies {
+    implementation("io.github.omegadestroyer:pairfree-core:1.0")
+    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")
+
     implementation(project(":protocol"))
 
     implementation(platform(libs.androidx.compose.bom))
