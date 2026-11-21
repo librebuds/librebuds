@@ -108,7 +108,11 @@ private fun BatterySlot(
                 painter = painterResource(ProductArt.part(part.part, art, profileId)),
                 contentDescription = stringResource(part.imageLabel()),
                 alpha = if (part.missing) 0.35f else 1f,
-                modifier = Modifier.size(if (part.part == BatteryPart.CASE) 49.dp else 43.dp),
+                // Keep the image layer centered independently of the charging badge.
+                // The case artwork has visual weight below the center of its canvas.
+                modifier = Modifier
+                    .size(if (part.part == BatteryPart.CASE) 49.dp else 43.dp)
+                    .offset(y = if (part.part == BatteryPart.CASE) (-4).dp else 0.dp),
                 contentScale = ContentScale.Fit,
                 alignment = Alignment.Center
             )
