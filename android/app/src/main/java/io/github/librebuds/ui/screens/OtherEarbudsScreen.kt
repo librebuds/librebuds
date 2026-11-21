@@ -3,6 +3,9 @@ package io.github.librebuds.ui.screens
 
 import android.content.Intent
 import android.media.AudioManager
+import android.view.KeyEvent
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.weight
 import kotlin.math.roundToInt
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
@@ -169,6 +172,33 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                 }
                 1 -> {
                     if (pair.connected) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = RoundedCornerShape(24.dp)
+                        ) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(stringResource(R.string.other_playback), style = MaterialTheme.typography.titleSmall)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    listOf(
+                                        R.string.other_previous to KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+                                        R.string.other_play_pause to KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                                        R.string.other_next to KeyEvent.KEYCODE_MEDIA_NEXT
+                                    ).forEach { (label, keyCode) ->
+                                        StyledButton(
+                                            onClick = { 
+                                                try {
+                                                    audioManager?.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+                                                    audioManager?.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
+                                                } catch (_: SecurityException) { /* Android controls media permissions. */ }
+                                            },
+                                            backdrop = rememberLayerBackdrop(),
+                                            modifier = Modifier.weight(1f)
+                                        ) { Text(stringResource(label), maxLines = 1) }
+                                    }
+                                }
+                            }
+                        }
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
