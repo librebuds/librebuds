@@ -20,6 +20,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -134,19 +138,36 @@ fun DeviceScreen(
             if (!current) return@Column
             if (batteries.isNotEmpty()) {
                 Surface(
-                    shape = RoundedCornerShape(32.dp),
+                    shape = RoundedCornerShape(26.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(text = pair.label, style = MaterialTheme.typography.headlineSmall)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = pair.label, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                shape = RoundedCornerShape(50)
+                            ) {
+                                Text(
+                                    text = stringResource(if (ui.state.isConnected) R.string.buds_connected else R.string.not_connected),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                                )
+                            }
+                        }
                         BatteryView(batteries, pair.art, pair.profileId)
                     }
                 }
             }
             if (ui.state.isConnected && "anc" in ui.state.capabilities) {
                 Surface(
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(26.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                     modifier = Modifier.fillMaxWidth()
                 ) {
