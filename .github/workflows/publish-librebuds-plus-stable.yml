@@ -1,0 +1,183 @@
+name: Publish LibreBuds+ signed stable v1.1.0
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: librebuds-plus-stable-v1.1.0
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify and publish signed stable APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Confirm stable main and immutable version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          if gh release view v1.1.0 >/dev/null 2>&1; then
+            echo "::error::Stable v1.1.0 already published; refusing to replace it."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Configure and validate stable signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.LIBREBUDS_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.LIBREBUDS_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.LIBREBUDS_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.LIBREBUDS_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in KEYSTORE_B64 STORE_PASSWORD KEY_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required stable signing material: $name"
+              exit 1
+            fi
+          done
+            printf '%s' "$KEYSTORE_B64" | base64 --decode > android/stable-keystore.jks
+            chmod 600 android/stable-keystore.jks
+
+            # Only private-key entries can sign an APK. Keep aliases and passwords
+            # out of GitHub logs; a single entry can resolve an outdated alias.
+            if ! listing=$(keytool -list -v -keystore android/stable-keystore.jks -storepass "$STORE_PASSWORD" 2>&1); then
+              echo "::error::Unable to read the stable keystore with the configured store password."
+              exit 1
+            fi
+            mapfile -t signing_aliases < <(
+              printf '%s\n' "$listing" | awk '
+                /^Alias name: / { alias = substr($0, 13) }
+                /^Entry type: PrivateKeyEntry/ { if (alias != "") print alias }
+              '
+            )
+            unset listing
+            if (( ${#signing_aliases[@]} == 0 )); then
+              echo "::error::The stable keystore contains no usable private signing keys."
+              exit 1
+            fi
+            selected_alias=''
+            for candidate in "${signing_aliases[@]}"; do
+              if [[ -n "${KEY_ALIAS:-}" && "$candidate" == "$KEY_ALIAS" ]]; then
+                selected_alias="$candidate"
+                break
+              fi
+            done
+            if [[ -z "$selected_alias" ]]; then
+              if (( ${#signing_aliases[@]} == 1 )); then
+                selected_alias="${signing_aliases[0]}"
+                echo "::notice::Configured alias was absent; using the keystore's sole private signing key."
+              else
+                echo "::error::Configured alias not found and the keystore has multiple private keys. Set LIBREBUDS_KEY_ALIAS to the correct entry."
+                exit 1
+              fi
+            fi
+            echo "::add-mask::$selected_alias"
+            {
+              printf 'RELEASE_STORE_FILE=stable-keystore.jks\n'
+              printf 'RELEASE_STORE_PASSWORD=%s\n' "$STORE_PASSWORD"
+              printf 'RELEASE_KEY_ALIAS=%s\n' "$selected_alias"
+              printf 'RELEASE_KEY_PASSWORD=%s\n' "$KEY_PASSWORD"
+            } > android/keystore.properties
+            chmod 600 android/keystore.properties
+          echo 'Stable signing key validated.'
+
+      - name: Run unit tests
+        working-directory: android
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
+
+      - name: Build signed stable APK
+        working-directory: android
+        run: ./gradlew :app:assembleRelease --no-daemon
+
+      - name: Verify stable ID, version and same v1.0.0 signing lineage
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          candidate=android/app/build/outputs/apk/release/app-release.apk
+          test -s "$candidate"
+          aapt="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$aapt" && test -x "$apksigner"
+          "$apksigner" verify --print-certs "$candidate" > "$RUNNER_TEMP/new-cert.txt"
+          mkdir -p "$RUNNER_TEMP/stable-v1.0.0"
+          gh release download v1.0.0 --pattern librebuds.apk --dir "$RUNNER_TEMP/stable-v1.0.0"
+          previous="$RUNNER_TEMP/stable-v1.0.0/librebuds.apk"
+          test -s "$previous"
+          "$apksigner" verify --print-certs "$previous" > "$RUNNER_TEMP/old-cert.txt"
+          "$aapt" dump badging "$candidate" > "$RUNNER_TEMP/new-badging.txt"
+          "$aapt" dump badging "$previous" > "$RUNNER_TEMP/old-badging.txt"
+          python3 - <<'PY'
+          import os, pathlib, re
+          base=pathlib.Path(os.environ['RUNNER_TEMP'])
+          def cert(name):
+              output=(base/name).read_text()
+              match=re.search(r'Signer #1 certificate SHA-256 digest:\s*([0-9A-Fa-f]+)', output)
+              if not match: raise SystemExit(f'Missing signing certificate fingerprint: {name}')
+              return match.group(1).lower()
+          def version(name):
+              output=(base/name).read_text()
+              match=re.search(r"^package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'",output,re.M)
+              if not match: raise SystemExit(f'Missing APK metadata: {name}')
+              return match.group(1),int(match.group(2)),match.group(3)
+          oldcert=cert('old-cert.txt')
+          newcert=cert('new-cert.txt')
+          if newcert != oldcert: raise SystemExit('Signing certificate differs from published v1.0.0; refusing a non-upgradeable stable APK.')
+          previous=version('old-badging.txt')
+          current=version('new-badging.txt')
+          if current[0]!='io.github.librebuds' or current[0]!=previous[0]:
+              raise SystemExit(f'Stable package identity mismatch: {previous[0]} -> {current[0]}')
+          if current[1]!=21 or current[1]<=previous[1] or current[2]!='1.1.0':
+              raise SystemExit(f'Wrong stable version: {previous} -> {current}')
+          print(f'Verified stable upgrade: {previous} -> {current}; signing certificate matches v1.0.0')
+          PY
+          cp "$candidate" "$RUNNER_TEMP/librebuds-plus-v1.1.0.apk"
+          (cd "$RUNNER_TEMP" && sha256sum librebuds-plus-v1.1.0.apk > librebuds-plus-v1.1.0.apk.sha256)
+
+      - name: Remove signing secrets from runner
+        if: always()
+        run: rm -f android/stable-keystore.jks android/keystore.properties
+
+      - name: Upload signed stable build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: librebuds-plus-v1.1.0-signed
+          path: |
+            ${{ runner.temp }}/librebuds-plus-v1.1.0.apk
+            ${{ runner.temp }}/librebuds-plus-v1.1.0.apk.sha256
+          if-no-files-found: error
+
+      - name: Publish immutable stable release v1.1.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create v1.1.0 \
+            "$RUNNER_TEMP/librebuds-plus-v1.1.0.apk#librebuds-plus-v1.1.0.apk" \
+            "$RUNNER_TEMP/librebuds-plus-v1.1.0.apk.sha256#librebuds-plus-v1.1.0.apk.sha256" \
+            --target "$GITHUB_SHA" \
+            --title "LibreBuds+ v1.1.0 — Stable" \
+            --notes-file RELEASE_NOTES_v1.1.0.md \
+            --latest
