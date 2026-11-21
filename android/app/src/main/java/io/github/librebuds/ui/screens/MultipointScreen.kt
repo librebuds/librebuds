@@ -78,7 +78,7 @@ fun MultipointScreen(viewModel: SettingsViewModel, onNavigateBack: () -> Unit, b
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(screenContentPadding()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (!connected) {
                     Text(
@@ -114,7 +114,7 @@ fun MultipointScreen(viewModel: SettingsViewModel, onNavigateBack: () -> Unit, b
                     ui.state.hosts.forEach { host ->
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(20.dp),
+                            shape = RoundedCornerShape(18.dp),
                             color = MaterialTheme.colorScheme.surfaceContainerLow
                         ) {
                             Row(
