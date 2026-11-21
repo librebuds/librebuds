@@ -51,6 +51,8 @@ fun SettingsScreen(
     popupStyle: PopupStyle,
     onPopupStyleChange: (PopupStyle) -> Unit,
     overlay: OverlayAccess,
+    voiceNoteTestActive: Boolean,
+    onVoiceNoteTest: (Boolean) -> Unit,
     onOpenAppInfo: () -> Unit,
     companionPair: String?,
     companionLinked: Boolean,
@@ -111,6 +113,18 @@ fun SettingsScreen(
                         Text(preset.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
                     }
                 }
+            }
+            StyledList(title = "Microphone diagnostics (experimental)") {
+                StyledListItem(
+                    name = if (voiceNoteTestActive) "Stop Bluetooth voice-note test" else "Start 60-second Bluetooth voice-note test",
+                    description = if (voiceNoteTestActive) {
+                        "Bluetooth hands-free route requested. Switch to WhatsApp and record a short voice message. Stops automatically within 60 seconds or when a call begins."
+                    } else {
+                        "OFF by default. Requests hands-free routing only for a short voice-note comparison. Does not fix or modify active WhatsApp calls. Android may decline or override the request."
+                    },
+                    orientation = ListItemOrientation.Vertical,
+                    onClick = { onVoiceNoteTest(!voiceNoteTestActive) }
+                )
             }
             StyledList(title = "App controls") {
                 StyledToggle(
