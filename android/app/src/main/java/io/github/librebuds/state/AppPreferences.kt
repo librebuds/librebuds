@@ -21,7 +21,7 @@ class AppPreferences(context: Context) {
         set(value) = prefs.edit { putBoolean("amoled_black", value) }
 
     var designSystem: DesignSystem
-        get() = runCatching { DesignSystem.valueOf(prefs.getString("design_system", DesignSystem.Apple.name)!!) }
+        get() = runCatching { DesignSystem.valueOf(prefs.getString("design_system", DesignSystem.Material.name)!!) }
             .getOrDefault(DesignSystem.Apple)
         set(value) = prefs.edit { putString("design_system", value.name) }
 
