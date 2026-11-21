@@ -18,6 +18,29 @@ class ProductArtTest {
     }
 
     @Test
+    fun closeHuaweiVariantsUseExistingFamilyIllustrations() {
+        assertEquals(R.drawable.battery_bud_left_freebuds_4, ProductArt.bud(true, "generic", "freebuds-4e"))
+        assertEquals(R.drawable.battery_case_freebuds_4, ProductArt.case("freebuds-4e-v2"))
+        assertEquals(R.drawable.thumb_buds_freebuds_pro_2, ProductArt.thumbnail("generic", "freebuds-pro-2-plus"))
+        assertEquals(R.drawable.battery_case_freebuds_pro_2, ProductArt.case("freebuds-pro-2-plus"))
+    }
+
+    @Test
+    fun inEarHuaweiModelsUseStemFallbackInsteadOfRoundBeans() {
+        assertEquals(R.drawable.battery_bud_left_stem, ProductArt.bud(true, "generic", "freebuds-5i"))
+        assertEquals(R.drawable.thumb_buds_stem, ProductArt.thumbnail("generic", "freebuds-se-3"))
+        assertEquals(R.drawable.battery_bud_right_stem, ProductArt.bud(false, "generic", "freebuds-3i"))
+        assertEquals(R.drawable.battery_case, ProductArt.case("freebuds-se-3"))
+    }
+
+    @Test
+    fun clipAndNeckbandModelsNeverUseInventedExactEarbudCaseArtwork() {
+        assertEquals(R.drawable.battery_case, ProductArt.case("freeclip"))
+        assertEquals(R.drawable.battery_case, ProductArt.case("freelace-pro"))
+        assertEquals(R.drawable.battery_bud_left_round, ProductArt.bud(true, "generic", "freeclip"))
+    }
+
+    @Test
     fun stemShapeGetsStemRenders() {
         assertEquals(R.drawable.battery_bud_left_stem, ProductArt.bud(true, "stem"))
         assertEquals(R.drawable.battery_bud_right_stem, ProductArt.bud(false, "stem"))
