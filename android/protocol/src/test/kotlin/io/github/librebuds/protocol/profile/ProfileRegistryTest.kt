@@ -53,6 +53,22 @@ class ProfileRegistryTest {
     }
 
     @Test
+    fun matchesHuaweiNameAliasesWithoutConfusingSimilarModels() {
+        assertEquals("freebuds-6i", registry.match(btName = "huawei freebuds 6I").id)
+        assertEquals("freebuds-6i", registry.match(btName = "FreeBuds 6i").id)
+        assertEquals("freebuds-6i", registry.match(btName = " HUAWEI   FreeBuds   6i (A1B2) ").id)
+        assertEquals("freebuds-6", registry.match(btName = "HUAWEI FreeBuds 6").id)
+        assertEquals("freebuds-pro-5", registry.match(btName = "FreeBuds Pro 5").id)
+        assertEquals("freebuds-5i", registry.match(btName = "FREEBUDS 5i").id)
+        assertEquals("freeclip", registry.match(btName = "FreeClip").id)
+        assertEquals("freelace-pro-2", registry.match(btName = "FreeLace Pro 2").id)
+        assertEquals("generic", registry.match(btName = "FreeBuds 6i Bluetooth speaker").id)
+        assertEquals("generic", registry.match(btName = "FreeBuds 6i (NOT-SERIAL)").id)
+        assertEquals("generic", registry.match(btName = "OtherBrand FreeBuds 6i").id)
+        assertEquals("generic", registry.match(btName = "FreeBuds 6ix").id)
+    }
+
+    @Test
     fun unknownDeviceGetsGenericProfile() {
         val profile = registry.match(sku = "NOPE", modelId = "FFFFFF", btName = "Renamed buds")
         assertEquals("generic", profile.id)
