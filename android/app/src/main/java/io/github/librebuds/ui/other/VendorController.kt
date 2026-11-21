@@ -11,16 +11,24 @@ import android.content.Context
  * Only register a vendor after its command transport has been implemented.
  * Recognition by a model-name catalog alone is NOT protocol support.
  */
+import kotlinx.coroutines.flow.StateFlow
+
+/** Shared vendor contract; the FreeBuds 6i controller is deliberately separate. */
+interface VendorController {
+    val state: StateFlow<NothingStatus>
+    suspend fun run()
+    suspend fun changeNoise(mode: Int)
+    suspend fun changeEq(preset: Int)
+    fun close()
+}
+
 object VendorProtocols {
     fun supportsNothing(name: String, brand: String?): Boolean =
         brand == "Nothing / CMF" ||
             name.startsWith("Nothing ", ignoreCase = true) ||
             name.startsWith("CMF ", ignoreCase = true)
 
-    fun open(context: Context, name: String, address: String, brand: String?): NothingController? =
-        if (supportsNothing(name, brand)) {
-            NothingController(context.applicationContext, address, name)
-        } else {
-            null
-        }
+    fun open(context: Context, name: String, address: String, brand: String?): VendorController? =
+        if (OtherEarbudsCatalog.isHuaweiManaged(name)) null
+        else PairFreeController(context.applicationContext, address, name)
 }
