@@ -86,6 +86,7 @@ object OtherEarbudsCatalog {
         // Keep them on the original controller, never PairFree's generic driver.
         // Avoid matching arbitrary foreign products merely containing these words.
         return n.startsWith("huawei ") ||
+            n.contains("freebuds") || // Preserve detection of user-renamed FreeBuds from prior releases.
             listOf("freebuds", "freeclip", "freearc", "freelace", "huawei eyewear",
                 "eyewear 2").any { prefix -> n == prefix || n.startsWith("$prefix ") }
     }
