@@ -310,22 +310,31 @@ internal fun FindEarbudsSection(ringing: Map<Side, Boolean>, note: String?, onRi
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                listOf(Side.LEFT to R.string.find_left, Side.RIGHT to R.string.find_right).forEach { (side, label) ->
-                    val on = ringing[side] == true
-                    val name = stringResource(label)
-                    if (on) {
-                        FilledTonalButton(
-                            onClick = { onRing(side, false) },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("$name · " + stringResource(R.string.find_stop), maxLines = 2)
-                        }
-                    } else {
-                        OutlinedButton(
-                            onClick = { onRing(side, true) },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("$name · " + stringResource(R.string.find_ring), maxLines = 2)
+                listOf(Side.LEFT to R.string.left, Side.RIGHT to R.string.right).forEach { (side, label) ->
+                    val active = ringing[side] == true
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(label),
+                            style = MaterialTheme.typography.labelMediumEmphasized,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (active) {
+                            FilledTonalButton(
+                                onClick = { onRing(side, false) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(stringResource(R.string.find_stop), maxLines = 1)
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { onRing(side, true) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(stringResource(R.string.find_ring), maxLines = 1)
+                            }
                         }
                     }
                 }
