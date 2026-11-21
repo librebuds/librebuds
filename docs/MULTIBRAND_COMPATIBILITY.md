@@ -24,7 +24,7 @@ Last audited: 2026-11-21. This table describes **this fork**, not the complete c
 
 ## Artwork policy
 
-The three supplied repositories contain **UI screenshots, launcher graphics and icons** in their tracked trees but **not a licensed library of individual earbud/case product cutouts**. An application's screenshot or launcher logo is not a manufacturer-specific earbud render. Therefore **no screenshots or logos have been substituted as device product pictures**. The original LibreBuds model art is retained; generic visual fallback applies to unsupported models. Do not silently re-license manufacturer photos or reuse screenshots as earbud art.
+PairFree contains model-specific GPLv3 studio SVG illustrations. Seven of them were converted to Android vectors for exact-model recognition (Galaxy Buds3 Pro, Sony WF-1000XM5, Soundcore A30i, Nothing Ear, AirPods Pro). PairFree credit and paths are recorded in NOTICE and the generated drawables. BluntyBuds, earshot and DevPods contain UI screenshots/icons instead of a suitable product-illustration catalog; none of their imagery was imported. Existing LibreBuds renders remain unchanged. Unknown or unverified names keep generic art. Visual recognition is **not** hardware validation.
 
 ## Tests needed before a stable APK
 
