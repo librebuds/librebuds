@@ -33,7 +33,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Configure optional fork signing key
+      - name: Configure and validate alpha signing key
         env:
           KEYSTORE_B64: ${{ secrets.LIBREBUDS_KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.LIBREBUDS_STORE_PASSWORD }}
@@ -41,20 +41,58 @@ jobs:
           KEY_PASSWORD: ${{ secrets.LIBREBUDS_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [[ -n "$KEYSTORE_B64" && -n "$STORE_PASSWORD" && -n "$KEY_ALIAS" && -n "$KEY_PASSWORD" ]]; then
+          if [[ -n "${KEYSTORE_B64:-}" && -n "${STORE_PASSWORD:-}" && -n "${KEY_PASSWORD:-}" ]]; then
             printf '%s' "$KEYSTORE_B64" | base64 --decode > android/alpha-keystore.jks
             chmod 600 android/alpha-keystore.jks
+
+            # Only private-key entries can sign an APK. Keep aliases and passwords
+            # out of GitHub logs; a single entry can resolve an outdated alias.
+            if ! listing=$(keytool -list -v -keystore android/alpha-keystore.jks -storepass "$STORE_PASSWORD" 2>&1); then
+              echo "::error::Unable to read the alpha keystore with the configured store password."
+              exit 1
+            fi
+            mapfile -t signing_aliases < <(
+              printf '%s\n' "$listing" | awk '
+                /^Alias name: / { alias = substr($0, 13) }
+                /^Entry type: PrivateKeyEntry/ { if (alias != "") print alias }
+              '
+            )
+            unset listing
+            if (( ${#signing_aliases[@]} == 0 )); then
+              echo "::error::The alpha keystore contains no usable private signing keys."
+              exit 1
+            fi
+            selected_alias=''
+            for candidate in "${signing_aliases[@]}"; do
+              if [[ -n "${KEY_ALIAS:-}" && "$candidate" == "$KEY_ALIAS" ]]; then
+                selected_alias="$candidate"
+                break
+              fi
+            done
+            if [[ -z "$selected_alias" ]]; then
+              if (( ${#signing_aliases[@]} == 1 )); then
+                selected_alias="${signing_aliases[0]}"
+                echo "::notice::Configured alias was absent; using the keystore's sole private signing key."
+              else
+                echo "::error::Configured alias not found and the keystore has multiple private keys. Set LIBREBUDS_KEY_ALIAS to the correct entry."
+                exit 1
+              fi
+            fi
+            echo "::add-mask::$selected_alias"
             {
               printf 'RELEASE_STORE_FILE=alpha-keystore.jks\n'
               printf 'RELEASE_STORE_PASSWORD=%s\n' "$STORE_PASSWORD"
-              printf 'RELEASE_KEY_ALIAS=%s\n' "$KEY_ALIAS"
+              printf 'RELEASE_KEY_ALIAS=%s\n' "$selected_alias"
               printf 'RELEASE_KEY_PASSWORD=%s\n' "$KEY_PASSWORD"
             } > android/keystore.properties
             chmod 600 android/keystore.properties
             echo 'ALPHA_SIGNING=fork-release-key' >> "$GITHUB_ENV"
-          else
+          elif [[ -z "${KEYSTORE_B64:-}" && -z "${STORE_PASSWORD:-}" && -z "${KEY_ALIAS:-}" && -z "${KEY_PASSWORD:-}" ]]; then
             echo 'ALPHA_SIGNING=debug-test-key' >> "$GITHUB_ENV"
-            echo 'Signing secrets not fully configured: alpha uses the CI debug key.'
+            echo 'No release-signing secrets configured; alpha will use the CI debug key.'
+          else
+            echo "::error::Incomplete signing configuration; set all keystore/password secrets or remove all of them for a debug-signed alpha."
+            exit 1
           fi
 
       # The alpha build type is a release-derived installable variant.
