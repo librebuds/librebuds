@@ -30,6 +30,8 @@ Updated: 2026-11-21. **The feature status below applies to this fork, not to ups
 - Hardware identifiers still take precedence over name matching. Huawei-branded audio family names can now be discovered even before Android caches the SPP UUID; this only lists the paired product and does not prove the proprietary control link exists or will connect. Huawei watches are excluded. Unknown models retain a limited generic profile only where a Huawei protocol session succeeds.
 - **Important:** Sharing a Huawei SPP transport does not mean identical feature sets or guaranteed compatibility. Model-specific support beyond confirmed hardware remains experimental and must be verified using actual earbuds. Bluetooth audio pairing is always managed by Android.
 
+For a Huawei-only, model-by-model evidence and artwork audit, see [Huawei model support matrix](HUAWEI_MODEL_MATRIX.md). Existing model-specific art is limited. Related-model renders and generic silhouettes are approximations; FreeClip, FreeArc, FreeLace, Eyewear, W Buds and Studio need dedicated visual assets before their case/earbud images can be called accurate.
+
 ## New cross-brand experimental support (PairFree)
 
 LibreBuds+ includes the pinned [PairFree](https://github.com/Omega-Destroyer/PairFree) GPLv3 protocol engine (17 upstream brand-driver families) with Android transport, capability discovery, vendor battery data, supported ANC commands, dynamic settings panels and EQ handling **only if a compatible model/firmware actually reports these capabilities**. The app will not invent settings when unsupported. **All following families need real hardware testing in this fork.**
