@@ -30,5 +30,7 @@ object VendorProtocols {
 
     fun open(context: Context, name: String, address: String, brand: String?): VendorController? =
         if (OtherEarbudsCatalog.isHuaweiManaged(name)) null
-        else PairFreeController(context.applicationContext, address, name)
+        else if (brand == "TOZO" || name.startsWith("TOZO ", ignoreCase = true)) {
+            TozoController(context.applicationContext, address)
+        } else PairFreeController(context.applicationContext, address, name)
 }
