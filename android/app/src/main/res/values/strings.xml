@@ -239,4 +239,12 @@
     <string name="quick_wear_detection">Auto pause</string>
     <string name="quick_multipoint">Multipoint</string>
     <string name="quick_manage">Manage devices</string>
+    <string name="other_battery_unknown">Android has not reported a battery percentage for this audio device.</string>
+    <string name="other_connected_audio">Bluetooth audio connection</string>
+    <string name="other_controls_note_title">Device controls</string>
+    <string name="other_controls_note">This device is recognized as Bluetooth audio. ANC, EQ, gestures and case battery require a verified brand-specific control protocol; they are not available here yet. Android Bluetooth settings remain available.</string>
+    <string name="other_brand">Brand</string>
+    <string name="other_generic">Generic Bluetooth audio</string>
+    <string name="other_support_source">Device identification</string>
+    <string name="other_pairfree_credit">Model names adapted from PairFree (Omega-Destroyer), GPL-3.0. Model recognition does not imply that proprietary controls are implemented.</string>
 </resources>
