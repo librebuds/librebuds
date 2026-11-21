@@ -1,0 +1,158 @@
+name: Publish signed stable APK
+
+# Manual-only: publish after the owner adds signing secrets.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stable-release-v1.0.0
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build, verify and publish v1.0.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact release candidate
+        uses: actions/checkout@v4
+
+      - name: Verify release target
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "release/stable-v1.0.0"
+          if gh release view v1.0.0 >/dev/null 2>&1; then
+            echo "::error::v1.0.0 already exists; refusing to overwrite a published release"
+            exit 1
+          fi
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Configure release signing (required)
+        env:
+          KEYSTORE_B64: ${{ secrets.LIBREBUDS_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.LIBREBUDS_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.LIBREBUDS_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.LIBREBUDS_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in KEYSTORE_B64 STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing required signing secret: $name"
+              exit 1
+            fi
+          done
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > android/release-keystore.jks
+          chmod 600 android/release-keystore.jks
+          {
+            printf 'RELEASE_STORE_FILE=release-keystore.jks\n'
+            printf 'RELEASE_STORE_PASSWORD=%s\n' "$STORE_PASSWORD"
+            printf 'RELEASE_KEY_ALIAS=%s\n' "$KEY_ALIAS"
+            printf 'RELEASE_KEY_PASSWORD=%s\n' "$KEY_PASSWORD"
+          } > android/keystore.properties
+          chmod 600 android/keystore.properties
+
+      - name: Build signed release APK
+        working-directory: android
+        run: ./gradlew :app:assembleRelease --no-daemon
+
+      - name: Verify new fork signature and version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          candidate="android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$candidate"
+
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          aapt="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -x "$apksigner"
+          test -x "$aapt"
+
+          "$apksigner" verify --print-certs "$candidate" > "$RUNNER_TEMP/new-certificate.txt"
+          new_cert="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/new-certificate.txt" | head -n 1)"
+          test -n "$new_cert"
+
+          # The fork intentionally starts a NEW signing lineage with v1.0.0.
+          # Pin this public certificate fingerprint to prevent a mistakenly supplied key
+          # from becoming the permanent signing identity of future releases.
+          expected_cert="d71be050b3c96de6634a1a136126ae788ef8ad35efea8fb98858c35fc8d85d6"
+          normalized_cert="$(printf '%s' "$new_cert" | tr '[:upper:]' '[:lower:]' | tr -cd '0-9a-f')"
+          if [ "$normalized_cert" != "$expected_cert" ]; then
+            echo "::error::APK does not use the intended LibreBuds 6i fork release-signing certificate."
+            exit 1
+          fi
+          echo "Verified LibreBuds 6i fork signing certificate fingerprint."
+
+          # Users of the legacy Stable APK need a clean installation: signatures differ.
+          # Still ensure the package ID and versionCode progress from that older build.
+          mkdir -p "$RUNNER_TEMP/old-stable"
+          gh release download Stable --pattern librebuds.apk --dir "$RUNNER_TEMP/old-stable"
+          previous="$RUNNER_TEMP/old-stable/librebuds.apk"
+          test -s "$previous"
+
+          "$aapt" dump badging "$candidate" > "$RUNNER_TEMP/new-badging.txt"
+          "$aapt" dump badging "$previous" > "$RUNNER_TEMP/old-badging.txt"
+          python3 - <<'PY'
+          import os, pathlib, re
+          root = pathlib.Path(os.environ["RUNNER_TEMP"])
+          def package_info(file):
+              text = (root / file).read_text()
+              match = re.search(r"^package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'", text, re.MULTILINE)
+              if not match:
+                  raise SystemExit(f"Cannot read APK metadata from {file}")
+              return match.group(1), int(match.group(2)), match.group(3)
+          old = package_info("old-badging.txt")
+          new = package_info("new-badging.txt")
+          if old[0] != new[0]:
+              raise SystemExit(f"Package name differs: {old[0]} -> {new[0]}")
+          if new[1] <= old[1]:
+              raise SystemExit(f"versionCode must increase: {old[1]} -> {new[1]}")
+          if new[2] != "1.0.0":
+              raise SystemExit(f"Unexpected release versionName: {new[2]}")
+          print(f"Verified new-signing-lineage release: {old[1]} -> {new[1]} ({new[2]}). Clean install required for users of the old Stable key.")
+          PY
+
+          cp "$candidate" "$RUNNER_TEMP/librebuds.apk"
+          (cd "$RUNNER_TEMP" && sha256sum librebuds.apk > librebuds.apk.sha256)
+
+      - name: Remove temporary signing material
+        if: always()
+        run: rm -f android/keystore.properties android/release-keystore.jks
+
+      - name: Upload verified release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: librebuds-v1.0.0-signed-apk
+          path: |
+            ${{ runner.temp }}/librebuds.apk
+            ${{ runner.temp }}/librebuds.apk.sha256
+          if-no-files-found: error
+
+      - name: Publish stable v1.0.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create v1.0.0 \
+            "$RUNNER_TEMP/librebuds.apk#librebuds.apk" \
+            "$RUNNER_TEMP/librebuds.apk.sha256#librebuds.apk.sha256" \
+            --target "$GITHUB_SHA" \
+            --title "LibreBuds 6i v1.0.0 — Stable" \
+            --notes-file RELEASE_NOTES_v1.0.0.md \
+            --latest
