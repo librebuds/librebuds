@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -123,8 +124,11 @@ fun NoiseControlSettings(
                     )
                 }
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(28.dp))
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     options.forEachIndexed { index, (mode, labelRes, iconRes) ->
                         Column(
@@ -139,13 +143,9 @@ fun NoiseControlSettings(
                                         onSelected(mode)
                                     }
                                 },
-                                shapes = when (index) {
-                                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                                    options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                                },
+                                
                                 colors = ToggleButtonDefaults.toggleButtonColors()
-                                    .copy(containerColor = MaterialTheme.colorScheme.surface),
+                                    .copy(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(
