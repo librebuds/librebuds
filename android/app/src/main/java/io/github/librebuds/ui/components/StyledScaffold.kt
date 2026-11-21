@@ -149,7 +149,7 @@ fun StyledScaffold(
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.padding(start = if (showBackButton) 8.dp else 12.dp, end = 12.dp),
-                                        style = MaterialTheme.typography.titleLarge
+                                        style = MaterialTheme.typography.titleMedium
                                     )
                                 }
                             },
