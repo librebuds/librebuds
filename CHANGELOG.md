@@ -1,8 +1,32 @@
 # Changelog
 
-All notable changes to the **LibreBuds 6i** community fork are documented here.
+All notable changes to the **LibreBuds+** community fork are documented here.
 
 This fork is based on [LibreBuds](https://github.com/librebuds/librebuds), with interface inspiration from [QuickBuds by spizganed](https://github.com/spizganed/QuickBuds). See [NOTICE](NOTICE) and [LICENSE](LICENSE) for acknowledgments and license terms.
+
+## [1.1.0] — 2026-11-21
+
+LibreBuds+ name and first **multi-brand preview in a stable FreeBuds-focused build**. HUAWEI FreeBuds 6i operation was confirmed by the owner using the alpha APK; **other manufacturer controls remain experimental**.
+
+### Added
+- PairFree GPLv3 protocol engine with capability-gated detection and settings across 17 upstream brand-driver families: SOUNDPEATS, Soundcore, Samsung, Sony, Bose, JBL, Apple/Beats, Nothing/CMF, Google, QCY, 1MORE, EarFun, Cambridge Audio, OnePlus/OPPO, Sennheiser, Jabra and Skullcandy.
+- TOZO GATT A/J battery-only experimental adapter; no ANC, EQ, or gesture commands for TOZO.
+- `docs/DEVICE_COMPATIBILITY.md`: confirmed, previously tested, partially implemented, needs-testing and Android fallback categories with per-family notes.
+- Separately installable alpha APK (`io.github.librebuds.alpha`) and automated alpha prereleases.
+
+### Changed
+- App name to **LibreBuds+**, retaining the existing stable Android package identity `io.github.librebuds` for stable upgrades.
+- Visually raised the charging-case image within the battery ring while keeping the charging indicator independent.
+- README, compatibility disclaimers and upstream acknowledgments.
+- Android stable version `1.1.0` / versionCode `21`.
+
+### Hardware scope and artwork
+- The HUAWEI FreeBuds 6i original controller and interface are preserved; one owner test confirms alpha operation.
+- Other-brand protocol availability, ANC, EQ, battery and gesture features require real-device validation. Generic audio fallback is **not full device support**.
+- Third-party project screenshots/icons are not product cutouts and were not bundled as earbud renders. Existing FreeBuds and generic artwork remains.
+- No destructive vendor commands intentionally added for unknown devices.
+
+[1.1.0]: https://github.com/vnxrgb/librebuds-6i/releases/tag/v1.1.0
 
 ## [1.0.0] — 2026-11-21
 
