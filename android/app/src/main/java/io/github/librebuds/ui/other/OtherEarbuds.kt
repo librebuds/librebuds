@@ -56,6 +56,22 @@ object OtherEarbudsCatalog {
         name.contains("freebuds", ignoreCase = true) ||
         name.startsWith("HUAWEI ", ignoreCase = true)
 
+    /**
+     * A recognizable family name is useful for display even when the exact model
+     * cannot be determined. This is NOT a claim of vendor protocol support.
+     */
+    fun displayBrand(name: String): String? {
+        val normalized = normalize(name)
+        return when {
+            normalized.contains("airpods") -> "Apple / Beats"
+            normalized.startsWith("beats ") -> "Apple / Beats"
+            normalized.contains("galaxy buds") -> "Samsung"
+            normalized.contains("pixel buds") -> "Google"
+            normalized.contains("nothing ear") || normalized.contains("cmf buds") -> "Nothing / CMF"
+            else -> null
+        }
+    }
+
     /** Explicit earbud/headphone names that do not appear in the imported model table. */
     fun looksLikeHeadphones(name: String): Boolean {
         val n = normalize(name)
@@ -102,7 +118,7 @@ fun readOtherEarbuds(context: Context, catalog: List<KnownModel>): List<OtherEar
             )
             if (match == null && !audioClass && !OtherEarbudsCatalog.looksLikeHeadphones(name)) return@mapNotNull null
             val level = OtherBatteryReadings.level(device.address).takeIf { isAudioConnected(device.address) }
-            OtherEarbud(device.address, name, match?.brand, match?.model,
+            OtherEarbud(device.address, name, match?.brand ?: OtherEarbudsCatalog.displayBrand(name), match?.model,
                 isAudioConnected(device.address), level)
         }.sortedWith(compareByDescending<OtherEarbud> { it.connected }.thenBy { it.name.lowercase(Locale.ROOT) })
     } catch (_: SecurityException) {
