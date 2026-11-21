@@ -2,15 +2,15 @@
 
 <img src=".github/assets/icon.png" width="128" height="128" alt="LibreBuds icon" />
 
-# LibreBuds
+# LibreBuds 6i
 
-**Open-source companion app for HUAWEI FreeBuds on Android.**<br />
-Battery, noise control, gestures, equalizer and a popup when you open the case. No root, no vendor app.
+**An open-source Android companion for HUAWEI FreeBuds, with a FreeBuds 6i-focused fork.**<br />
+A modern, QuickBuds-inspired interface for battery monitoring, noise control, sound settings, gestures and more. No root or Huawei AI Life required.
 
-FreeBuds 6i support with model-specific controls and artwork.
+Built on [LibreBuds](https://github.com/librebuds/librebuds) · UI inspired by [QuickBuds](https://github.com/spizganed/QuickBuds) · Licensed under GPLv3.
 
-<a href="https://github.com/librebuds/librebuds/releases"><img src="https://img.shields.io/github/v/release/librebuds/librebuds?include_prereleases&label=release" alt="Latest release" /></a>
-<a href="https://github.com/librebuds/librebuds/releases"><img src="https://img.shields.io/github/downloads/librebuds/librebuds/total?label=downloads" alt="Downloads" /></a>
+<a href="https://github.com/vnxrgb/librebuds-6i/releases"><img src="https://img.shields.io/github/v/release/vnxrgb/librebuds-6i?include_prereleases&label=fork%20release" alt="Latest fork release" /></a>
+<a href="https://github.com/vnxrgb/librebuds-6i/releases"><img src="https://img.shields.io/github/downloads/vnxrgb/librebuds-6i/total?label=fork%20downloads" alt="Fork downloads" /></a>
 <a href="LICENSE"><img src="https://img.shields.io/github/license/librebuds/librebuds?color=blue" alt="License: GPL-3.0" /></a>
 <img src="https://img.shields.io/badge/Android-13%2B-3DDC84?logo=android&logoColor=white" alt="Android 13+" />
 <img src="https://img.shields.io/badge/platform-Android-3DDC84" alt="Platform: Android" />
@@ -18,8 +18,9 @@ FreeBuds 6i support with model-specific controls and artwork.
 
 <br />
 
-<a href="https://github.com/librebuds/librebuds/releases"><b>Download</b></a> ·
+<a href="https://github.com/vnxrgb/librebuds-6i/releases"><b>Download this fork</b></a> ·
 <a href="#features">Features</a> ·
+<a href="#screenshots">Screenshots</a> ·
 <a href="#supported-models">Supported models</a> ·
 <a href="#faq-and-troubleshooting">FAQ</a> ·
 <a href="#building-from-source">Build</a>
@@ -28,43 +29,71 @@ FreeBuds 6i support with model-specific controls and artwork.
 
 <br />
 
+## Screenshots
+
+The screenshots below show this fork running with **FreeBuds 6i** in its QuickBuds-inspired dark theme. The UI also supports AMOLED black and customizable accent colors.
+
 <p align="center">
-  <img src=".github/assets/screenshots/home-light.webp" width="200" alt="Home screen with the paired earbuds and their battery levels" />
-  <img src=".github/assets/screenshots/device-light.webp" width="200" alt="Device screen with left, right and case battery and noise control" />
-  <img src=".github/assets/screenshots/levels-light.webp" width="200" alt="Noise cancellation level picker" />
-  <img src=".github/assets/screenshots/eq-light.webp" width="200" alt="Custom equalizer preset editor" />
+  <img src=".github/assets/screenshots/fork-2026/home.webp" width="190" alt="Device list" />
+  <img src=".github/assets/screenshots/fork-2026/device-dashboard.webp" width="190" alt="Battery and ANC dashboard" />
+  <img src=".github/assets/screenshots/fork-2026/audio-controls.webp" width="190" alt="Audio controls" />
+  <img src=".github/assets/screenshots/fork-2026/custom-equalizer.webp" width="190" alt="Custom 10-band EQ" />
 </p>
 <p align="center">
-  <img src=".github/assets/screenshots/card-dark.webp" width="200" alt="Card popup with the case animation, shown when the case opens" />
-  <img src=".github/assets/screenshots/island-dark.webp" width="200" alt="Island popup at the top of the screen" />
-  <img src=".github/assets/screenshots/gestures-dark.webp" width="200" alt="Pinch and head gesture settings" />
-  <img src=".github/assets/screenshots/device-dark.webp" width="200" alt="Device screen in dark theme" />
+  <img src=".github/assets/screenshots/fork-2026/preset-picker.webp" width="190" alt="EQ presets" />
+  <img src=".github/assets/screenshots/fork-2026/gesture-controls.webp" width="190" alt="Gestures" />
+  <img src=".github/assets/screenshots/fork-2026/find-and-multipoint.webp" width="190" alt="Find Earbuds and multipoint" />
+  <img src=".github/assets/screenshots/fork-2026/appearance-settings.webp" width="190" alt="Appearance settings" />
 </p>
 
+<details>
+<summary>Screenshot guide</summary>
+
+| Screen | What it shows |
+| --- | --- |
+| Device list | Your paired FreeBuds 6i and quick battery summary |
+| Home | Left / case / right battery rings, ANC / Awareness / Off, and rounded quick settings |
+| Controls → Audio | Awareness mode, EQ presets, sound quality and low-latency controls |
+| Custom equalizer | Animated EQ curve above the 10-band editor |
+| EQ preset picker | Built-in EQ profiles with the selected setting highlighted |
+| Controls → Gestures | Left/right tap and long-press assignments |
+| Controls → More | Wear detection, Find Earbuds and multipoint access |
+| Settings → Appearance | AMOLED black and Mint / Ocean blue / Violet / Coral accents |
+
+</details>
+
 > [!NOTE]
-> LibreBuds is in early testing. Builds on the releases page are marked as pre-releases while
-> the feature set settles. Bug reports with a diagnostics export are very welcome.
+> This is a community fork built on LibreBuds and inspired by QuickBuds' design language. Some model-specific capabilities are still experimental. A successful APK build or a screenshot does **not** mean every feature has been verified with FreeBuds 6i hardware. Please include a diagnostics export when reporting an issue.
 
 ## Features
 
+### QuickBuds-inspired interface
+
+- **One consistent default design.** The former selectable Glass / Apple-style interface has been retired. New and existing installations use the QuickBuds-inspired Material / Compose UI.
+- **Home / Controls / Details.** A focused product dashboard instead of one endlessly scrolling settings page; Controls is further organized into **Audio, Gestures, More**.
+- **Compact battery overview.** Animated, equal-sized battery rings for the left earbud, charging case and right earbud, including charging / unavailable states.
+- **Rounded ANC selector.** Equal-width Off / Noise cancellation / Awareness buttons with aligned icons and labels.
+- **Everyday Quick Settings.** Auto pause, Low latency, **Audio priority** (opens a real sound-quality picker), and Multipoint (opens device management), shown according to device capabilities.
+- **Appearance options.** Dark/light themes, **AMOLED black** surfaces and four persistent accent presets: **Mint, Ocean blue, Violet, Coral**.
+- **Modern settings.** Consistent rounded cards, option sheets, compact status rows and dedicated left/right Find Earbuds actions.
+
+### Earbud functionality
+
 | Feature | Details |
 | --- | --- |
-| **Popup when the case opens** | A card that slides up with an animation of your model's case opening, or a compact island at the top of the screen. Shows left, right and case battery. |
-| **Battery** | Separate levels for the left earbud, right earbud and case, with charging state. Also in a persistent notification, a home screen widget and the quick settings tile. |
-| **Noise control** | Off, noise cancellation and awareness, with the levels your model offers (for example Dynamic, Cozy, General, Ultra or Dual-engine). |
-| **Awareness modes** | Standard, voice mode and adaptive awareness, plus the awareness level where supported. |
-| **Gestures** | Double tap, triple tap, touch and hold, swipe and the noise control cycle, per earbud and during calls. Pinch controls on stem models. Head gestures (nod, shake) to answer or decline calls. |
-| **Equalizer** | Built-in presets and up to three custom presets with a 10-band editor. |
-| **Find earbuds** | Play a sound on the left or right earbud. |
-| **Sound** | Low latency mode, sound quality priority, pickup mode and voice prompt language. |
-| **Multipoint** | Turn dual connection on or off, see the connected devices, pick the preferred one, connect or disconnect them. |
-| **More settings** | Wear detection, single-earbud noise cancelling, adaptive volume, conversation awareness, ear tip type, drop detection, rest reminders and HD calls, depending on the model. |
-| **Quick settings tile** | Battery at a glance and noise control from the notification shade. |
-| **Widgets** | A battery widget and a noise control widget. |
-| **Connection island** | A small island when the earbuds connect or move to another device, with an undo action. |
-| **Material You** | Optional dynamic colours, light and dark theme. |
+| **Battery and charging** | Left / right / case battery levels, charging state, persistent notification, widget, and Android Quick Settings tile. |
+| **Noise control** | Off, ANC and Awareness, with supported noise cancelling strengths and awareness / voice modes. |
+| **Audio priority** | Choose sound quality or connectivity preference where available, directly from Quick Settings on the Home dashboard or the Audio page. |
+| **Equalizer** | Built-in presets, custom preset management, a live EQ curve and 10-band custom editor. |
+| **Gestures** | Per-earbud double / triple tap, touch-and-hold and model-supported call / playback gestures. |
+| **Wear detection** | Pause playback when removing an earbud, where supported. |
+| **Low latency** | Toggle low-latency mode for supported earbuds. |
+| **Find Earbuds** | Separate left/right Play sound and Stop controls with a loud-sound safety warning. |
+| **Multipoint** | View paired hosts, manage connections and preferred device using the existing device commands. |
+| **Case-open popup / connection island** | Popup or island notifications for supported devices, with configurable options. |
+| **Other supported features** | Single-earbud ANC, HD calls, voice prompt language, adaptive features, ear-tip support and reminders, subject to device / firmware capabilities. |
 
-Which settings appear depends on what your earbuds report. Settings are model-dependent and are only shown when the connected earbuds report support or the model has a confirmed implementation.
+**Important:** Controls are only displayed when the app has an applicable model capability or device report. Not all features above are available or hardware-verified on every model. The UI redesign did not replace LibreBuds' underlying Bluetooth protocol.
 
 ## Supported models
 
@@ -72,7 +101,7 @@ Which settings appear depends on what your earbuds report. Settings are model-de
 | --- | --- | --- | --- |
 | FreeBuds 5 | ✅ Tested on hardware | Full | Model animation |
 | FreeBuds Pro 5 | ✅ Tested on hardware | Full | Model animation |
-| FreeBuds 6i | 🟡 Supported in app; hardware testing welcome | Battery, noise control, awareness, gestures, EQ, low latency, sound quality, multipoint, wear detection, single-earbud ANC, Find Earbuds, language and rest reminders | FreeBuds Pro 5 artwork |
+| **FreeBuds 6i** | 🟡 App integration and UI demonstrated; full feature validation welcome | Battery, ANC / awareness, gestures, EQ, low latency, sound quality, multipoint, wear detection, Find Earbuds and supported model-specific options | Model-specific display with existing fallback artwork |
 | FreeBuds 6 | 🟡 Expected to work | Full | Model animation |
 | FreeBuds Pro 2 | 🟡 Expected to work | Full | Model animation |
 | FreeBuds Pro 3 | 🟡 Expected to work | Full | Model animation |
@@ -103,13 +132,12 @@ These models use a generic popup animation.
 | ✅ | Tested with real earbuds |
 | 🟡 | Supported in the app, not yet tested on this model. Reports welcome |
 
-Tested on a model that is not marked ✅? Please [open an issue](https://github.com/librebuds/librebuds/issues)
+Tested on a model that is not marked ✅? Please [open an issue in this fork](https://github.com/vnxrgb/librebuds-6i/issues)
 with the result and a diagnostics export, so it can be marked.
 
 ## Download and install
 
-1. Download the latest `librebuds-<version>.apk` from [GitHub Releases](https://github.com/librebuds/librebuds/releases).
-   Release APKs are signed, so later versions install over earlier ones.
+1. Download an APK from [this fork’s GitHub Releases](https://github.com/vnxrgb/librebuds-6i/releases), or use an APK artifact from a successful [Android debug build](https://github.com/vnxrgb/librebuds-6i/actions/workflows/build-apk.yml). Release and debug APKs may have different signing keys; Android may not allow one to update the other in place.
 2. Open the APK on your phone and allow installs from your browser or file manager when asked.
 3. Start LibreBuds and grant the permissions on the welcome screen.
 
@@ -202,8 +230,8 @@ You need JDK 17 or newer and the Android SDK (compile SDK 37). No keystore is ne
 builds.
 
 ```bash
-git clone https://github.com/librebuds/librebuds.git
-cd librebuds/android
+git clone https://github.com/vnxrgb/librebuds-6i.git
+cd librebuds-6i/android
 ./gradlew :app:assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew test                      # unit tests
 ```
@@ -221,8 +249,10 @@ Bug reports, test results on new models and pull requests are welcome.
 - Mention your earbud model, firmware version (shown on the device screen) and phone.
 - Before a pull request, run `./gradlew test` in `android/` and `python3 tools/check_ui_import.py`.
 
-## Credits
+## Credits and upstream acknowledgments
 
+- **[LibreBuds](https://github.com/librebuds/librebuds)** — original open-source application and Bluetooth feature implementation on which this fork is built. Original project credits and GPLv3 licensing remain in effect.
+- **[QuickBuds by spizganed](https://github.com/spizganed/QuickBuds)** (GPLv3) — design and interaction reference for compact battery indicators, segmented noise-control buttons, settings sheets and EQ visualization. The Compose UI adaptations in this fork are independently implemented; QuickBuds Bluetooth code is not included.
 - [LibrePods](https://github.com/librepods-org/librepods) (GPL-3.0): LibreBuds started as a
   remake of the LibrePods Android app. Its UI components, theme, island and popup window are
   imported and modified. No LibrePods media or fonts are included.
