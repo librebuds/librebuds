@@ -40,13 +40,15 @@ data class NothingStatus(
  *
  * BluetoothClassic sockets require the earbud to be bonded already.
  */
-class NothingController(private val context: Context, private val address: String) {
+class NothingController(private val context: Context, private val address: String, private val deviceName: String) {
     private val _state = MutableStateFlow(NothingStatus())
     val state = _state.asStateFlow()
     private val lock = Mutex()
     private val sequence = AtomicInteger()
     private var socket: BluetoothSocket? = null
     private val parser = NothingProtocol.Parser()
+    private val useCrc = !deviceName.equals("ear (1)", ignoreCase = true) &&
+        !deviceName.equals("Nothing Ear (1)", ignoreCase = true)
     private var needsActivation = false
     private var activeScope: CoroutineScope? = null
 
@@ -170,7 +172,7 @@ class NothingController(private val context: Context, private val address: Strin
             val activeSocket = socket ?: return
             val id = sequence.getAndUpdate { (it + 1) % 254 }
             try {
-                val bytes = NothingProtocol.frame(command, id, payload)
+                val bytes = NothingProtocol.frame(command, id, payload, crc = useCrc)
                 withContext(Dispatchers.IO) {
                     activeSocket.outputStream.write(bytes)
                     activeSocket.outputStream.flush()
