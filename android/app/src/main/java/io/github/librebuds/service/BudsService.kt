@@ -210,7 +210,19 @@ class BudsService : Service() {
             stopService()
             return
         }
-        val state = LibreBudsApp.from(this).controller.state.value
+        val controller = LibreBudsApp.from(this).controller
+        val state = controller.state.value
+        // In call-safe mode, an existing vendor RFCOMM session must also be released.
+        // Merely deferring new connects leaves feature reads and writes running during VoIP.
+        // Close only LibreBuds+'s vendor control channel; Android retains exclusive HFP/SCO
+        // ownership and the phone's Bluetooth headset audio connection is untouched.
+        if (shouldDeferControlConnect(audioManager.mode, headsetCallAudioActive)) {
+            if (state.link == LinkState.CONNECTED || state.link == LinkState.CONNECTING) {
+                event(this, "pause vendor control channel for call audio ($reason)")
+                controller.disconnect()
+            }
+            return
+        }
         // The state collector may not have run yet (first start): a restored take-over must count already.
         planner.onState(state)
         val connected = buds.orEmpty().filter { isAudioConnected(it.address) }.map { it.address } +
