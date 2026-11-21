@@ -74,49 +74,27 @@ fun DeviceSettingsSections(
     val experimental = stringResource(R.string.experimental)
     fun note(vararg capabilities: String) = experimental.takeIf { capabilities.any { it in model.experimental } }
 
-    NoiseExtrasSection(model, note("anc", "singleBudAnc"), open, onChange)
-    AdaptiveAudioSection(model, note("adaptiveVolume", "aiConversation"), onChange)
-    if (model.gestures.isNotEmpty()) {
-        StyledList(title = stringResource(R.string.section_gestures), description = note("gestures")) {
-            model.gestures.forEach { GestureRows(it, onChange, open) }
+    // Three focused groups replace the old endless list. All existing controls stay reachable.
+    var section by remember { mutableStateOf(0) }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        listOf(R.string.device_section_audio, R.string.device_section_gestures, R.string.device_section_more).forEachIndexed { index, label ->
+            FilterChip(
+                modifier = Modifier.weight(1f),
+                selected = section == index,
+                onClick = { section = index },
+                label = { Text(stringResource(label), maxLines = 1) }
+            )
         }
     }
-    PinchSection(model, note("pinch"), open, onChange)
-    HeadControlSection(model, note("headControl"), open, onChange)
-    val wearExtras = model.earTip != null || Feature.DROP_DETECTION in model.switches || model.restReminder != null
-    if (model.wear != null || wearExtras) {
-        StyledList(title = stringResource(R.string.section_wear), description = note("wear", "earTip", "dropDetection", "restReminder")) {
-            model.wear?.let { wear ->
-                StyledToggle(
-                    label = stringResource(R.string.wear_detection),
-                    checked = wear,
-                    onCheckedChange = { onChange(SettingChange.Wear(it)) }
-                )
-            }
-            WearExtraRows(model, open, onChange)
-        }
-    }
+    when (section) {
+        0 -> {
+            NoiseExtrasSection(model, note("anc", "singleBudAnc"), open, onChange)
+            AdaptiveAudioSection(model, note("adaptiveVolume", "aiConversation"), onChange)
     model.equalizer?.let { picker ->
-        // QuickBuds-style live preset chips. All values come from the actual model,
-        // and a tap uses the same command as the existing preset picker.
-        Text(
-            text = stringResource(R.string.section_equalizer),
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            picker.options.forEach { option ->
-                FilterChip(
-                    selected = picker.current == option.code,
-                    onClick = { onChange(SettingChange.EqualizerPreset(option.code)) },
-                    label = { Text(optionLabel(picker, option.code), maxLines = 1) }
-                )
-            }
-        }
-        StyledList(description = note("equalizer")) {
+        StyledList(title = stringResource(R.string.section_equalizer), description = note("equalizer")) {
             PickerRow(stringResource(R.string.equalizer_preset), picker, open, live = { it.equalizer }) { onChange(SettingChange.EqualizerPreset(it)) }
             model.customEqualizer?.let { custom -> CustomEqualizerRow(custom, onChange) }
         }
@@ -178,6 +156,30 @@ fun DeviceSettingsSections(
             )
         }
     }
+        }
+        1 -> {
+    if (model.gestures.isNotEmpty()) {
+        StyledList(title = stringResource(R.string.section_gestures), description = note("gestures")) {
+            model.gestures.forEach { GestureRows(it, onChange, open) }
+        }
+    }
+    PinchSection(model, note("pinch"), open, onChange)
+    HeadControlSection(model, note("headControl"), open, onChange)
+        }
+        else -> {
+    val wearExtras = model.earTip != null || Feature.DROP_DETECTION in model.switches || model.restReminder != null
+    if (model.wear != null || wearExtras) {
+        StyledList(title = stringResource(R.string.section_wear), description = note("wear", "earTip", "dropDetection", "restReminder")) {
+            model.wear?.let { wear ->
+                StyledToggle(
+                    label = stringResource(R.string.wear_detection),
+                    checked = wear,
+                    onCheckedChange = { onChange(SettingChange.Wear(it)) }
+                )
+            }
+            WearExtraRows(model, open, onChange)
+        }
+    }
     model.findEarbuds?.let { ringing -> FindEarbudsSection(ringing, note("findEarbuds"), onRing) }
     model.multipointEnabled?.let { enabled ->
         StyledList(title = stringResource(R.string.section_multipoint), description = note("multipoint")) {
@@ -186,6 +188,9 @@ fun DeviceSettingsSections(
                 description = stringResource(if (enabled) R.string.on else R.string.off),
                 onClick = onOpenMultipoint
             )
+        }
+    }
+
         }
     }
 
