@@ -37,6 +37,15 @@ class OtherEarbudsCatalogTest {
         assertNull(OtherEarbudsCatalog.match("Vedang's AirPods", models))
     }
 
+    @Test fun tozoNamesStaySeparateFromProtocolVerification() {
+        val tozo = listOf(KnownModel("TOZO", "NC9"), KnownModel("TOZO", "AeroSound6"))
+        assertEquals("TOZO", OtherEarbudsCatalog.match("TOZO NC9", tozo)?.brand)
+        assertEquals("TOZO", OtherEarbudsCatalog.match("AeroSound6", tozo)?.brand)
+        assertNull(OtherEarbudsCatalog.match("TOZO NC9 charging case", tozo))
+        assertEquals("TOZO", OtherEarbudsCatalog.displayBrand("TOZO T10"))
+        assertFalse(OtherEarbudsCatalog.isHuaweiManaged("TOZO T10"))
+    }
+
     @Test fun headphoneNameFallbackIsConservative() {
         assertTrue(OtherEarbudsCatalog.looksLikeHeadphones("Nothing Ear (2)"))
         assertTrue(OtherEarbudsCatalog.looksLikeHeadphones("Pixel Buds Pro"))
