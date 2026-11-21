@@ -4,6 +4,13 @@ All notable changes to the **LibreBuds+** community fork are documented here.
 
 This fork is based on [LibreBuds](https://github.com/librebuds/librebuds), with interface inspiration from [QuickBuds by spizganed](https://github.com/spizganed/QuickBuds). See [NOTICE](NOTICE) and [LICENSE](LICENSE) for acknowledgments and license terms.
 
+## Unreleased — Huawei support & artwork accuracy (alpha only)
+
+- Document all 40 Huawei audio profiles by family and evidence tier in `docs/HUAWEI_MODEL_MATRIX.md`; distinguish working hardware from unverified profiles and art-only recognition.
+- Map close FreeBuds 4E and Pro 2+ variants to their existing family illustrations. Use generic stem silhouettes on selected budget / in-ear models rather than unrelated round-bud images.
+- Flag FreeClip, FreeArc, FreeLace, Eyewear, W Buds and Studio imagery as placeholders pending genuinely matching assets; preserve established FreeBuds 6i imagery.
+- Add regression coverage for artwork aliases and generic fallback. These changes do not alter the Huawei Bluetooth packet protocol.
+
 ## Unreleased — Huawei-family protocol compatibility (alpha only)
 
 - Prioritize Huawei's existing SPP controller for the whole FreeBuds / FreeClip / FreeArc / FreeLace / Eyewear family, avoiding accidental routing through PairFree's generic third-party driver.
