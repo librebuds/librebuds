@@ -2,7 +2,7 @@
 
 <img src=".github/assets/icon.png" width="128" height="128" alt="LibreBuds icon" />
 
-# LibreBuds+ (Alpha)
+# LibreBuds+
 
 **An open-source Android companion for HUAWEI FreeBuds, with a FreeBuds 6i-focused fork.**<br />
 A modern, QuickBuds-inspired interface for battery monitoring, noise control, sound settings, gestures and more. No root or Huawei AI Life required.
@@ -31,11 +31,11 @@ Built on [LibreBuds](https://github.com/librebuds/librebuds) · UI inspired by [
 <br />
 
 > [!IMPORTANT]
-> **LibreBuds+ alpha preview:** This branch is `alpha/librebuds-plus`, not the stable `main` branch. The Android app is named **LibreBuds+** and installs as `io.github.librebuds.alpha`, alongside the stable `io.github.librebuds` app. Changes here are isolated to [draft PR #21](https://github.com/vnxrgb/librebuds-6i/pull/21) and are **not merged or stable**.
+> **FreeBuds 6i is confirmed working by the owner on LibreBuds+ alpha.** Other brands are experimental or partial and must not be advertised as fully functional without real hardware tests.
 >
-> Each push to this branch runs the [alpha APK workflow](https://github.com/vnxrgb/librebuds-6i/actions/workflows/publish-alpha.yml). If tests and packaging succeed, the workflow uploads an APK artifact and creates a GitHub **prerelease**. Download from [Releases](https://github.com/vnxrgb/librebuds-6i/releases), selecting the release marked *Pre-release*, never the stable v1.0.0 package. Signing is the configured fork key when secrets are provided; otherwise the CI debug key (updates across different signing keys require reinstalling the alpha app).
+> **Stable vs alpha:** Stable uses Android package `io.github.librebuds`; alpha uses `io.github.librebuds.alpha`, allowing side-by-side testing. Download only the version you intend from [GitHub Releases](https://github.com/vnxrgb/librebuds-6i/releases). This project preserves the original Huawei controller; experimental other-brand drivers remain capability-gated.
 >
-> The original FreeBuds 6i controller is unchanged. Cross-brand controls and TOZO battery-only support are experimental; consult [the compatibility matrix](docs/MULTIBRAND_COMPATIBILITY.md).
+> **Full compatibility report:** [Confirmed / previously tested / partially implemented / needs testing / generic Bluetooth fallback](docs/DEVICE_COMPATIBILITY.md). The [implementation notes](docs/MULTIBRAND_COMPATIBILITY.md) explain the upstream sources and limitations.
 
 ## Screenshots
 
@@ -86,14 +86,14 @@ This fork keeps **all existing LibreBuds FreeBuds features and the exact same Qu
 - **Safety:** No speculative commands are sent to unknown earbuds; power-off/factory-reset and other destructive actions are deliberately excluded from generic controls.
 - **FreeBuds 6i:** Always routed to the original LibreBuds Bluetooth session and features, not PairFree. No existing FreeBuds controls were removed or redesigned.
 
-**Hardware support is not universal.** PairFree's model database is much larger than its real-device test coverage, and some earbuds require permissions, firmware-specific commands or newer Android Bluetooth APIs (notably some AirPods). A listed brand is not a guarantee that every model or every feature works. This is a draft, experimental integration—not yet a stable release.
+**Hardware support is not universal.** PairFree's model database is much larger than its real-device test coverage, and some earbuds require permissions, firmware-specific commands or newer Android Bluetooth APIs (notably some AirPods). A listed brand is not a guarantee that every model or every feature works. The non-Huawei vendor support remains experimental even when included in a stable app build.
 
 ### Building with the PairFree submodule
 
 Use `git clone --recurse-submodules https://github.com/vnxrgb/librebuds-6i.git` and build the multi-brand feature branch. For an existing checkout, run `git submodule update --init --recursive` before running `./gradlew :app:assembleDebug` in `android/`. The upstream PairFree modules are pinned to commit `af534dca43627a9c76903fbb9a118ea4a783c856`; changing that commit must be audited and tested.
 
 
-See **[cross-brand feature matrix and testing limitations](docs/MULTIBRAND_COMPATIBILITY.md)** for a per-family summary of what is working, experimental, read-only or not implemented. The experimental branch additionally probes **TOZO A/J GATT services** for battery-only reads based on MIT-licensed BluntyBuds protocol research; ANC, EQ and gestures are intentionally disabled until tested on real TOZO hardware. Sources reviewed: [BluntyBuds](https://github.com/arkivx0/BluntyBuds), [earshot](https://github.com/HellzYeahh/earshot) and [DevPods](https://github.com/ORION2809/DevPods). These projects' tracked graphics are predominantly app screenshots/icons, **not device-specific product photography**, so they have not been substituted for LibreBuds device renders. Existing FreeBuds 6i art and controller remain unchanged.
+See **[cross-brand feature matrix and testing limitations](docs/MULTIBRAND_COMPATIBILITY.md)** for a per-family summary of what is working, experimental, read-only or not implemented. The app also probes **TOZO A/J GATT services** for battery-only reads based on MIT-licensed BluntyBuds protocol research; ANC, EQ and gestures are intentionally disabled until tested on real TOZO hardware. Sources reviewed: [BluntyBuds](https://github.com/arkivx0/BluntyBuds), [earshot](https://github.com/HellzYeahh/earshot) and [DevPods](https://github.com/ORION2809/DevPods). These projects' tracked graphics are predominantly app screenshots/icons, **not device-specific product photography**, so they have not been substituted for LibreBuds device renders. Existing FreeBuds 6i art and controller remain unchanged.
 
 ## Features
 
@@ -127,49 +127,29 @@ See **[cross-brand feature matrix and testing limitations](docs/MULTIBRAND_COMPA
 
 ## Supported models
 
-| Model | Status | Settings | Popup art |
-| --- | --- | --- | --- |
-| FreeBuds 5 | ✅ Tested on hardware | Full | Model animation |
-| FreeBuds Pro 5 | ✅ Tested on hardware | Full | Model animation |
-| **FreeBuds 6i** | ✅ App integration and UI demonstrated; full feature validation welcome | Battery, ANC / awareness, gestures, EQ, low latency, sound quality, multipoint, wear detection, Find Earbuds and supported model-specific options | Model-specific display with existing fallback artwork |
-| FreeBuds 6 | 🟡 Expected to work | Full | Model animation |
-| FreeBuds Pro 2 | 🟡 Expected to work | Full | Model animation |
-| FreeBuds Pro 3 | 🟡 Expected to work | Full | Model animation |
-| FreeBuds Pro 4 | 🟡 Expected to work | Full | Model animation |
-| FreeBuds 4 | 🟡 Expected to work | Full | Model animation |
-| FreeBuds 3 | 🟡 Expected to work | Battery, noise control | Model animation |
+The following is a **status-by-evidence** summary, not a guarantee of manufacturer-wide compatibility. Read the [full device compatibility matrix](docs/DEVICE_COMPATIBILITY.md) for specific Huawei models, limitations and hardware-test requirements.
 
-<details>
-<summary><b>Other models with basic support</b> (battery and noise control, expected to work)</summary>
+| Device / family | Status in this fork | Verified capabilities / caveats |
+| --- | --- | --- |
+| **HUAWEI FreeBuds 6i** | **Working — owner tested** | App and original Huawei controller verified on actual FreeBuds 6i; individual ANC, EQ, gestures, multipoint and charging-case features remain model- and firmware-dependent |
+| HUAWEI FreeBuds 5, FreeBuds Pro 5 | **Previously hardware-tested (inherited)** | Listed as tested in the original fork documentation, but not retested on this new multi-brand release |
+| Other Huawei FreeBuds, FreeBuds SE, FreeClip/FreeArc, FreeLace, Lipstick, W Buds and Eyewear families | **Needs testing** | Existing profile-dependent support, sometimes battery/noise-only; see full list in the matrix |
+| SOUNDPEATS, Soundcore, Samsung Galaxy Buds, Sony, Bose, JBL | **Needs testing (PairFree)** | Vendor-driver integration; battery, ANC, EQ and controls only when the actual matched device reports capability |
+| Nothing / CMF, Google Pixel Buds, QCY, 1MORE, EarFun | **Needs testing (PairFree)** | Model-dependent Bluetooth vendor support; no confirmation on hardware in this fork |
+| Cambridge Audio, OnePlus / OPPO, Sennheiser, Jabra, Skullcandy | **Needs testing (PairFree)** | Model-dependent vendor transport and controls; not validated in this fork |
+| Apple AirPods / Beats | **Generic fallback / needs testing** | Standard Android audio and any Android-reported battery; advanced Apple controls not guaranteed |
+| TOZO GATT protocols A / J | **Partial implementation / needs testing** | Battery queries only on detected compatible services; **no ANC, EQ or gestures** |
+| TOZO Airoha revisions or unknown Bluetooth headsets | **Generic fallback** | Android audio and any system-provided battery; no proprietary controls |
 
-<br />
+**Device imagery:** Original LibreBuds FreeBuds art and generic fallback remain. We reviewed PairFree, BluntyBuds, earshot and DevPods; these did not provide a validated, appropriately licensed catalog of individual product cutouts. No unrelated launcher icons/screenshots were substituted for model pictures.
 
-| Family | Models |
-| --- | --- |
-| FreeBuds | 3i, 4i, 4E, 4E (no ANC, battery only), 5i, 7, 7i, Pro, Pro 2+, Neo, Studio |
-| FreeBuds SE | SE, SE 2, SE 4 ANC, SE 5 MAX |
-| FreeBuds Lipstick | Lipstick, Lipstick 2 |
-| FreeClip and FreeArc | FreeClip, FreeClip 2, FreeClip 2 (Collector's Edition), FreeArc |
-| FreeLace | FreeLace, FreeLace Pro, FreeLace Pro 2 |
-| Other | W Buds, W Buds 2, Eyewear, Eyewear 2 |
-
-These models use a generic popup animation.
-
-</details>
-
-| Symbol | Meaning |
-| --- | --- |
-| ✅ | Tested with real earbuds |
-| 🟡 | Supported in the app, not yet tested on this model. Reports welcome |
-
-Tested on a model that is not marked ✅? Please [open an issue in this fork](https://github.com/vnxrgb/librebuds-6i/issues)
-with the result and a diagnostics export, so it can be marked.
+**Submit a test:** [Open a device compatibility issue](https://github.com/vnxrgb/librebuds-6i/issues) with model, Android version, and which controls you tested. Do not post private Bluetooth identifiers.
 
 ## Download and install
 
 1. Download an APK from [this fork’s GitHub Releases](https://github.com/vnxrgb/librebuds-6i/releases), or use an APK artifact from a successful [Android debug build](https://github.com/vnxrgb/librebuds-6i/actions/workflows/build-apk.yml). Release and debug APKs may have different signing keys; Android may not allow one to update the other in place.
 2. Open the APK on your phone and allow installs from your browser or file manager when asked.
-3. Start LibreBuds and grant the permissions on the welcome screen.
+3. Start LibreBuds+ and grant the permissions on the welcome screen.
 
 Requires Android 13 or newer. LibreBuds is not on Google Play yet.
 
