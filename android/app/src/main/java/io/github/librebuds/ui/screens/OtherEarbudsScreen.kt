@@ -5,7 +5,6 @@ import android.content.Intent
 import android.media.AudioManager
 import android.view.KeyEvent
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.weight
 import kotlin.math.roundToInt
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
