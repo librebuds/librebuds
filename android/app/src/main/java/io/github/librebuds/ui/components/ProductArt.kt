@@ -140,6 +140,17 @@ object ProductArt {
     private fun illustrationShape(shape: String, profileId: String?): String =
         if (profileId in STEM_SHAPE_FALLBACK) "stem" else shape
 
+    /**
+     * Do not masquerade a rounded TWS earbud/case as a clip, neckband, watch,
+     * eyewear or over-ear headset. These families need their own licensed art.
+     * A text-only battery slot is more accurate until then.
+     */
+    fun useTextOnlyBatteryArt(profileId: String?): Boolean = profileId?.let { id ->
+        id == "freearc" || id.startsWith("freeclip") ||
+            id.startsWith("freelace") || id.startsWith("eyewear") ||
+            id.startsWith("w-buds") || id == "freebuds-studio"
+    } ?: false
+
     /** One earbud above its battery ring, the same canvas and baseline as [case]. */
     @DrawableRes
     fun bud(left: Boolean, shape: String, profileId: String? = null): Int {
