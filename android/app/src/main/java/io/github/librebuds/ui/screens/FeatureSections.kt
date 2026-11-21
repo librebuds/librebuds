@@ -17,6 +17,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -324,14 +325,16 @@ internal fun FindEarbudsSection(ringing: Map<Side, Boolean>, note: String?, onRi
                         if (active) {
                             FilledTonalButton(
                                 onClick = { onRing(side, false) },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(16.dp)
                             ) {
                                 Text(stringResource(R.string.find_stop), maxLines = 1)
                             }
                         } else {
                             OutlinedButton(
                                 onClick = { onRing(side, true) },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(16.dp)
                             ) {
                                 Text(stringResource(R.string.find_ring), maxLines = 1)
                             }
