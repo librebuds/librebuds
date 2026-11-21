@@ -67,6 +67,11 @@ class OtherEarbudsCatalogTest {
         assertTrue(OtherEarbudsCatalog.isHuaweiManaged("FreeBuds Pro 4"))
         assertFalse(OtherEarbudsCatalog.isHuaweiManaged("Nothing Ear (2)"))
         assertFalse(OtherEarbudsCatalog.isHuaweiManaged("Galaxy Buds3 Pro"))
+        assertTrue(OtherEarbudsCatalog.isHuaweiManaged("FreeClip 2"))
+        assertTrue(OtherEarbudsCatalog.isHuaweiManaged("FreeArc"))
+        assertTrue(OtherEarbudsCatalog.isHuaweiManaged("FreeLace Pro 2"))
+        assertTrue(OtherEarbudsCatalog.isHuaweiManaged("HUAWEI Eyewear 2"))
+        assertFalse(OtherEarbudsCatalog.isHuaweiManaged("NonHuawei FreeClip clone"))
     }
 
     @Test fun renamedAirpodsAreIdentifiedByFamilyNotFabricatedModel() {
