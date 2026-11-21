@@ -93,7 +93,7 @@ This fork keeps **all existing LibreBuds FreeBuds features and the exact same Qu
 Use `git clone --recurse-submodules https://github.com/vnxrgb/librebuds-6i.git` and build the multi-brand feature branch. For an existing checkout, run `git submodule update --init --recursive` before running `./gradlew :app:assembleDebug` in `android/`. The upstream PairFree modules are pinned to commit `af534dca43627a9c76903fbb9a118ea4a783c856`; changing that commit must be audited and tested.
 
 
-See **[cross-brand feature matrix and testing limitations](docs/MULTIBRAND_COMPATIBILITY.md)** for a per-family summary of what is working, experimental, read-only or not implemented. The app also probes **TOZO A/J GATT services** for battery-only reads based on MIT-licensed BluntyBuds protocol research; ANC, EQ and gestures are intentionally disabled until tested on real TOZO hardware. Sources reviewed: [BluntyBuds](https://github.com/arkivx0/BluntyBuds), [earshot](https://github.com/HellzYeahh/earshot) and [DevPods](https://github.com/ORION2809/DevPods). These projects' tracked graphics are predominantly app screenshots/icons, **not device-specific product photography**, so they have not been substituted for LibreBuds device renders. Existing FreeBuds 6i art and controller remain unchanged.
+See **[cross-brand feature matrix and testing limitations](docs/MULTIBRAND_COMPATIBILITY.md)** for a per-family summary of what is working, experimental, read-only or not implemented. The app also probes **TOZO A/J GATT services** for battery-only reads based on MIT-licensed BluntyBuds protocol research; ANC, EQ and gestures are intentionally disabled until tested on real TOZO hardware. Sources reviewed: [BluntyBuds](https://github.com/arkivx0/BluntyBuds), [earshot](https://github.com/HellzYeahh/earshot) and [DevPods](https://github.com/ORION2809/DevPods). PairFree includes GPLv3 stylized model-specific SVG artwork. Seven exact-model earbud/case SVGs have been adapted to Android vectors for selected models; no unrelated app screenshots/icons were reused. Existing FreeBuds 6i art and controller remain unchanged.
 
 ## Features
 
@@ -141,7 +141,7 @@ The following is a **status-by-evidence** summary, not a guarantee of manufactur
 | TOZO GATT protocols A / J | **Partial implementation / needs testing** | Battery queries only on detected compatible services; **no ANC, EQ or gestures** |
 | TOZO Airoha revisions or unknown Bluetooth headsets | **Generic fallback** | Android audio and any system-provided battery; no proprietary controls |
 
-**Device imagery:** Original LibreBuds FreeBuds art and generic fallback remain. We reviewed PairFree, BluntyBuds, earshot and DevPods; these did not provide a validated, appropriately licensed catalog of individual product cutouts. No unrelated launcher icons/screenshots were substituted for model pictures.
+**Device imagery:** Original FreeBuds art is retained. Credited PairFree GPLv3 SVG vectors are included for exact matches to Galaxy Buds3 Pro, Sony WF-1000XM5, Soundcore A30i, Nothing Ear and AirPods Pro. Remaining devices use generic artwork; unrelated app screenshots/logos are not substituted. See [artwork credits](NOTICE).
 
 **Submit a test:** [Open a device compatibility issue](https://github.com/vnxrgb/librebuds-6i/issues) with model, Android version, and which controls you tested. Do not post private Bluetooth identifiers.
 
