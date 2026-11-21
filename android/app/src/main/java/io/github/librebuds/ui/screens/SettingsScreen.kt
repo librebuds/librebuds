@@ -25,6 +25,8 @@ import io.github.librebuds.ui.theme.DesignSystem
 fun SettingsScreen(
     designSystem: DesignSystem,
     onDesignSystemChange: (DesignSystem) -> Unit,
+    amoledBlack: Boolean,
+    onAmoledBlackChange: (Boolean) -> Unit,
     showOffMode: Boolean,
     onShowOffModeChange: (Boolean) -> Unit,
     showIsland: Boolean,
@@ -61,6 +63,12 @@ fun SettingsScreen(
                     label = stringResource(R.string.material_you_style),
                     checked = designSystem == DesignSystem.Material,
                     onCheckedChange = { onDesignSystemChange(if (it) DesignSystem.Material else DesignSystem.Apple) }
+                )
+                StyledToggle(
+                    label = stringResource(R.string.amoled_black),
+                    description = stringResource(R.string.amoled_black_description),
+                    checked = amoledBlack,
+                    onCheckedChange = onAmoledBlackChange
                 )
                 StyledToggle(
                     label = stringResource(R.string.show_off_mode),
