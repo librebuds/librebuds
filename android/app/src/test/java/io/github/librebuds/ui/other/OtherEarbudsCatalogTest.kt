@@ -1,0 +1,32 @@
+package io.github.librebuds.ui.other
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class OtherEarbudsCatalogTest {
+    private val models = listOf(
+        KnownModel("Sony", "WF-1000XM5"),
+        KnownModel("SOUNDPEATS", "Air5 Pro+"),
+        KnownModel("Samsung", "Galaxy Buds2 Pro")
+    )
+
+    @Test fun exactNameIgnoresPunctuationAndCase() {
+        assertEquals("Sony", OtherEarbudsCatalog.match("WF 1000XM5", models)?.brand)
+        assertEquals("SOUNDPEATS", OtherEarbudsCatalog.match("air5 pro+", models)?.brand)
+    }
+
+    @Test fun doesNotMatchUnrelatedDeviceBySubstring() {
+        assertNull(OtherEarbudsCatalog.match("My Sony WF-1000XM5 Car Stereo", models))
+        assertNull(OtherEarbudsCatalog.match("Gaming PC", models))
+    }
+
+    @Test fun headphoneNameFallbackIsConservative() {
+        assertTrue(OtherEarbudsCatalog.looksLikeHeadphones("Nothing Ear (2)"))
+        assertTrue(OtherEarbudsCatalog.looksLikeHeadphones("Pixel Buds Pro"))
+        assertFalse(OtherEarbudsCatalog.looksLikeHeadphones("Living room television"))
+        assertFalse(OtherEarbudsCatalog.looksLikeHeadphones("Office printer"))
+    }
+}
