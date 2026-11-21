@@ -8,7 +8,10 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -64,11 +67,12 @@ fun NoiseControlSettings(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(17.dp))
+                .clip(RoundedCornerShape(22.dp))
                 .background(colors.surfaceContainerHigh)
-                .padding(5.dp)
+                .padding(4.dp)
                 .selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             options.forEach { option ->
                 val active = selected == option.mode
@@ -78,35 +82,48 @@ fun NoiseControlSettings(
                     label = "ANC selection"
                 )
                 val ink = if (active) colors.onPrimaryContainer else colors.onSurfaceVariant
-                Column(
+                Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(14.dp))
+                        .height(92.dp)
+                        .clip(RoundedCornerShape(18.dp))
                         .background(fill.value)
                         .selectable(
                             selected = active,
                             role = Role.RadioButton,
                             onClick = { if (!active) onSelected(option.mode) }
-                        )
-                        .padding(horizontal = 3.dp, vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(option.icon),
-                        contentDescription = null,
-                        tint = ink,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Text(
-                        text = stringResource(option.label),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ink,
-                        textAlign = TextAlign.Center,
-                        maxLines = 2,
-                        minLines = 2,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 2.dp, vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
+                    ) {
+                        Box(
+                            modifier = Modifier.height(28.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(option.icon),
+                                contentDescription = null,
+                                tint = ink,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier.height(36.dp).fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(option.label),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ink,
+                                textAlign = TextAlign.Center,
+                                maxLines = 2
+                            )
+                        }
+                    }
                 }
             }
         }
