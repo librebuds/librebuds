@@ -175,19 +175,6 @@ fun AppRoot(
                         },
                         overlay = overlay,
                         onOpenAppInfo = { openAppDetailsSettings(context) },
-                        demoMode = demoMode,
-                        onDemoModeChange = {
-                            demoMode = it
-                            preferences.demoMode = it
-                        },
-                        // Read fresh every time Settings is entered, since BeaconReceiver writes it outside Compose.
-                        lastBeacon = preferences.lastBeacon,
-                        onShowTestPopup = {
-                            val app = LibreBudsApp.from(context)
-                            demoPopupModel(app.registry)?.let { model ->
-                                PopupPresenter.show(app, model, artFor(model.profileId, model.art))
-                            }
-                        },
                         companionPair = selected?.takeIf { it.address != DEMO_ADDRESS }?.label,
                         companionLinked = selected?.address?.uppercase() in companionLinked,
                         onLinkCompanion = {
