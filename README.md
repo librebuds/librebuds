@@ -66,6 +66,19 @@ The screenshots below show this fork running with **FreeBuds 6i** in its QuickBu
 > [!NOTE]
 > This is a community fork built on LibreBuds and inspired by QuickBuds' design language. Some model-specific capabilities are still experimental. A successful APK build or a screenshot does **not** mean every feature has been verified with FreeBuds 6i hardware. Please include a diagnostics export when reporting an issue.
 
+## Additional Bluetooth audio devices (experimental preview)
+
+Alongside the original Huawei FreeBuds support, the development branch can list paired earbuds/headsets from other brands in the **same QuickBuds-inspired layout**. This discovery layer uses Android's public Bluetooth/audio APIs and an attributed [PairFree](https://github.com/Omega-Destroyer/PairFree) name catalog (17 brands, 786 extracted name entries, not 786 guaranteed compatible devices).
+
+- The Home device list recognizes paired audio hardware by Android's headset class, known names or common headphone naming patterns.
+- When Android exposes a battery percentage, the non-Huawei device card displays that overall percentage. Android does not universally expose left/right/case levels.
+- Connected devices use the existing rounded **Home / Controls / Details** layout.
+- **ANC, EQ, touch gestures, multipoint configuration and other vendor-specific commands are not implemented for these additional brands yet.** Unsupported controls are not shown as working. Use Android's Bluetooth settings for system-level controls.
+- Existing Huawei FreeBuds connection/session code and controls are unchanged.
+- Recognition is heuristic; some models will be missing or misidentified. PairFree's source catalog is broader than the subset confirmed with physical devices.
+
+This is a **foundation** for future vendor-protocol ports, not a claim of universal advanced control. PairFree's own Android app supports many proprietary protocols; adding those to this fork still requires porting its drivers, transports, data tables and device testing.
+
 ## Features
 
 ### QuickBuds-inspired interface
