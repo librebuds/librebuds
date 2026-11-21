@@ -5,6 +5,8 @@ package io.github.librebuds.ui.other
 import android.Manifest
 import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
+import android.content.Intent
+import java.util.concurrent.ConcurrentHashMap
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
@@ -94,11 +96,30 @@ fun readOtherEarbuds(context: Context, catalog: List<KnownModel>): List<OtherEar
                 BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE
             )
             if (match == null && !audioClass && !OtherEarbudsCatalog.looksLikeHeadphones(name)) return@mapNotNull null
-            val level = device.batteryLevel.takeIf { it in 0..100 && isAudioConnected(device.address) }
+            val level = OtherBatteryReadings.level(device.address).takeIf { isAudioConnected(device.address) }
             OtherEarbud(device.address, name, match?.brand, match?.model,
                 isAudioConnected(device.address), level)
         }.sortedWith(compareByDescending<OtherEarbud> { it.connected }.thenBy { it.name.lowercase(Locale.ROOT) })
     } catch (_: SecurityException) {
         emptyList()
+    }
+}
+
+/**
+ * Android does not expose a public battery-level getter for arbitrary Bluetooth
+ * accessories. Some ROMs broadcast an overall headset level; cache those only
+ * when the system supplies them. Never fabricate left/right/case percentages.
+ */
+object OtherBatteryReadings {
+    const val ACTION_BATTERY_CHANGED = "android.bluetooth.device.action.BATTERY_LEVEL_CHANGED"
+    private const val EXTRA_BATTERY_LEVEL = "android.bluetooth.device.extra.BATTERY_LEVEL"
+    private val levels = ConcurrentHashMap<String, Int>()
+
+    fun level(address: String): Int? = levels[address.uppercase(Locale.ROOT)]
+
+    fun update(intent: Intent, address: String?) {
+        if (intent.action != ACTION_BATTERY_CHANGED || address == null) return
+        val percentage = intent.getIntExtra(EXTRA_BATTERY_LEVEL, -1)
+        if (percentage in 0..100) levels[address.uppercase(Locale.ROOT)] = percentage
     }
 }
