@@ -57,9 +57,9 @@ class ProfileRegistry(val profiles: List<Profile>) {
 
     private fun canonicalBtName(name: String): String = name
         .trim()
-        .replace(Regex("""\\s*\\([A-Fa-f0-9]{4}\\)\\s*$"""), "")
+        .replace(Regex("""\s*\([A-Fa-f0-9]{4}\)\s*$"""), "")
         .trim()
-        .replace(Regex("""\\s+"""), " ")
+        .replace(Regex("""\s+"""), " ")
         .lowercase(java.util.Locale.ROOT)
 
     private fun find(predicate: (Profile) -> Boolean): Profile? = profiles.firstOrNull(predicate)
