@@ -24,6 +24,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.runtime.Composable
 import io.github.librebuds.R
 import io.github.librebuds.ui.model.Battery
@@ -103,6 +106,16 @@ private fun BatterySlot(
                 alpha = if (part.missing) 0.35f else 1f,
                 modifier = Modifier.size(55.dp)
             )
+            if (part.charging) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_charging),
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(18.dp)
+                )
+            }
         }
         Text(
             text = stringResource(part.shortLabel()),
