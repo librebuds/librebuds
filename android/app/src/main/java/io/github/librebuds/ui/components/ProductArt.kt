@@ -115,14 +115,40 @@ object ProductArt {
         ),
     )
 
+    /**
+     * Clearly identified near-identical variants can share a family render.
+     * These are illustrations, not exact colour/material matches for a particular SKU.
+     * FreeClip and neckband designs deliberately do NOT map to TWS case artwork.
+     */
+    private val ART_FAMILY_ALIAS: Map<String, String> = mapOf(
+        "freebuds-4e" to "freebuds-4",
+        "freebuds-4e-v2" to "freebuds-4",
+        "freebuds-pro-2-plus" to "freebuds-pro-2",
+    )
+
+    /** Models with stems must not receive the round-bean generic illustration. */
+    private val STEM_SHAPE_FALLBACK: Set<String> = setOf(
+        "freebuds-3i", "freebuds-4i", "freebuds-5i", "freebuds-7i",
+        "freebuds-lite", "freebuds-neo", "freebuds-se", "freebuds-se-2",
+        "freebuds-se-3", "freebuds-se-4-anc", "freebuds-se-5-max",
+        "freebuds-pro", "freebuds-lipstick", "freebuds-lipstick-2"
+    )
+
+    private fun artwork(profileId: String?): ModelArt? =
+        profileId?.let { MODEL_OVERRIDES[ART_FAMILY_ALIAS[it] ?: it] }
+
+    private fun illustrationShape(shape: String, profileId: String?): String =
+        if (profileId in STEM_SHAPE_FALLBACK) "stem" else shape
+
     /** One earbud above its battery ring, the same canvas and baseline as [case]. */
     @DrawableRes
     fun bud(left: Boolean, shape: String, profileId: String? = null): Int {
-        val model = profileId?.let { MODEL_OVERRIDES[it] }
+        val model = artwork(profileId)
         if (model != null) return if (left) model.left else model.right
+        val actualShape = illustrationShape(shape, profileId)
         return when {
-            shape == "stem" && left -> R.drawable.battery_bud_left_stem
-            shape == "stem" -> R.drawable.battery_bud_right_stem
+            actualShape == "stem" && left -> R.drawable.battery_bud_left_stem
+            actualShape == "stem" -> R.drawable.battery_bud_right_stem
             left -> R.drawable.battery_bud_left_round
             else -> R.drawable.battery_bud_right_round
         }
@@ -139,11 +165,11 @@ object ProductArt {
     /** Small earbuds for a pair switcher row, cropped tight for a tile. */
     @DrawableRes
     fun thumbnail(shape: String, profileId: String? = null): Int =
-        profileId?.let { MODEL_OVERRIDES[it]?.thumbnail }
-            ?: if (shape == "stem") R.drawable.thumb_buds_stem else R.drawable.thumb_buds_round
+        artwork(profileId)?.thumbnail
+            ?: if (illustrationShape(shape, profileId) == "stem") R.drawable.thumb_buds_stem else R.drawable.thumb_buds_round
 
     /** The case, the same canvas and baseline as [bud]. Shapeless: only [profileId] can override it. */
     @DrawableRes
     fun case(profileId: String? = null): Int =
-        profileId?.let { MODEL_OVERRIDES[it]?.case } ?: R.drawable.battery_case
+        artwork(profileId)?.case ?: R.drawable.battery_case
 }
