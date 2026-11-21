@@ -25,7 +25,20 @@ object OtherEarbudsCatalog {
         "pixel" to "Google", "qcy" to "QCY", "1more" to "1MORE",
         "earfun" to "EarFun", "cambridge" to "Cambridge Audio",
         "oneplus" to "OnePlus / OPPO", "sennheiser" to "Sennheiser",
-        "jabra" to "Jabra", "skullcandy" to "Skullcandy"
+        "jabra" to "Jabra", "skullcandy" to "Skullcandy", "tozo" to "TOZO"
+    )
+
+    private val tozoModelNames = listOf(
+        "A1", "A3", "AeroSound", "AeroSound2", "AeroSound3", "AeroSound4",
+        "AeroSound6", "AeroSound6Pro", "AgileDots", "AgileDots2", "AgileNova",
+        "AgileSolo", "AnybudsFits", "AnybudsPro", "ColorPods", "CrystalPods",
+        "CrystalPods 2", "E1", "E2", "E2Pro", "EvoScreen", "G1", "G1S",
+        "GoldenX2Pro", "H10", "H100BD", "H20", "HA1", "HiFi", "HT2",
+        "HT3", "HT3V2", "NC20", "NC20Pro", "NC3", "NC9", "NC9Pro",
+        "O2", "Openbuds", "OpenEarRing", "OpenEgo", "OpenReal",
+        "OpenRhyme", "OpenWear", "OpenX2Pro", "PA1", "PA2", "PE1",
+        "PM1", "PM1V2", "QuietFit", "SoundGo", "T10", "T10S",
+        "T12", "T20", "T6", "T6S", "T9", "T9S"
     )
 
     fun load(context: Context): List<KnownModel> =
@@ -36,15 +49,16 @@ object OtherEarbudsCatalog {
                     if (columns.size != 2) null
                     else KnownModel(brandNames[columns[0]] ?: columns[0], columns[1])
                 }.toList()
-        }
+        } + tozoModelNames.map { KnownModel("TOZO", it) }
 
     /** Strict model match; don't mistake a car stereo or phone for a set of earbuds. */
     fun match(name: String, catalog: List<KnownModel>): KnownModel? {
         val nameKey = normalize(name)
         if (nameKey.isBlank()) return null
+        val tozoKey = nameKey.removePrefix("tozo ").takeIf { nameKey.startsWith("tozo ") }
         return catalog
             .asSequence()
-            .filter { normalize(it.model) == nameKey }
+            .filter { normalize(it.model) == nameKey || (it.brand == "TOZO" && normalize(it.model) == tozoKey) }
             .maxByOrNull { it.model.length }
     }
 
@@ -63,6 +77,7 @@ object OtherEarbudsCatalog {
     fun displayBrand(name: String): String? {
         val normalized = normalize(name)
         return when {
+            normalized.startsWith("tozo ") -> "TOZO"
             normalized.contains("airpods") -> "Apple / Beats"
             normalized.startsWith("beats ") -> "Apple / Beats"
             normalized.contains("galaxy buds") -> "Samsung"
@@ -75,7 +90,7 @@ object OtherEarbudsCatalog {
     /** Explicit earbud/headphone names that do not appear in the imported model table. */
     fun looksLikeHeadphones(name: String): Boolean {
         val n = normalize(name)
-        return listOf("earbuds", "headphones", "headset", "freebuds", "airpods", "galaxy buds",
+        return listOf("earbuds", "headphones", "headset", "freebuds", "airpods", "tozo ", "galaxy buds",
             "pixel buds", "nothing ear", "cmf buds", "jabra elite", "soundcore", "soundpeats",
             "melobuds", "melomania", "sennheiser momentum", "sony wh ", "sony wf ",
             "bose quietcomfort", "oneplus buds", "oppo enco").any { n.contains(it) }
