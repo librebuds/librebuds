@@ -230,7 +230,7 @@ fun OtherEarbudsScreen(pair: PairRow, onNavigateBack: () -> Unit) {
                                 Text(stringResource(R.string.other_eq_presets), style = MaterialTheme.typography.titleSmall)
                                 PremiumSegmentedTabs(
                                     labels = listOf("Balanced", "Voice", "Treble", "Bass"),
-                                    selected = nothingStatus.eq.coerceIn(0, 3),
+                                    selected = (nothingStatus.eq ?: 0).coerceIn(0, 3),
                                     onSelect = { scope.launch { controller.changeEq(it) } }
                                 )
                             }
