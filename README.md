@@ -2,7 +2,7 @@
 
 <img src=".github/assets/icon.png" width="128" height="128" alt="LibreBuds icon" />
 
-# LibreBuds 6i
+# LibreBuds+ (Alpha)
 
 **An open-source Android companion for HUAWEI FreeBuds, with a FreeBuds 6i-focused fork.**<br />
 A modern, QuickBuds-inspired interface for battery monitoring, noise control, sound settings, gestures and more. No root or Huawei AI Life required.
@@ -29,6 +29,13 @@ Built on [LibreBuds](https://github.com/librebuds/librebuds) · UI inspired by [
 </div>
 
 <br />
+
+> [!IMPORTANT]
+> **LibreBuds+ alpha preview:** This branch is `alpha/librebuds-plus`, not the stable `main` branch. The Android app is named **LibreBuds+** and installs as `io.github.librebuds.alpha`, alongside the stable `io.github.librebuds` app. Changes here are isolated to [draft PR #21](https://github.com/vnxrgb/librebuds-6i/pull/21) and are **not merged or stable**.
+>
+> Each push to this branch runs the [alpha APK workflow](https://github.com/vnxrgb/librebuds-6i/actions/workflows/publish-alpha.yml). If tests and packaging succeed, the workflow uploads an APK artifact and creates a GitHub **prerelease**. Download from [Releases](https://github.com/vnxrgb/librebuds-6i/releases), selecting the release marked *Pre-release*, never the stable v1.0.0 package. Signing is the configured fork key when secrets are provided; otherwise the CI debug key (updates across different signing keys require reinstalling the alpha app).
+>
+> The original FreeBuds 6i controller is unchanged. Cross-brand controls and TOZO battery-only support are experimental; consult [the compatibility matrix](docs/MULTIBRAND_COMPATIBILITY.md).
 
 ## Screenshots
 
