@@ -27,16 +27,16 @@ Battery, noise control, gestures, equalizer and a popup when you open the case. 
 <br />
 
 <p align="center">
-  <img src=".github/assets/screenshots/home-light.webp" width="200" alt="Home screen with the paired earbuds and their battery levels" />
-  <img src=".github/assets/screenshots/device-light.webp" width="200" alt="Device screen with left, right and case battery and noise control" />
-  <img src=".github/assets/screenshots/levels-light.webp" width="200" alt="Noise cancellation level picker" />
-  <img src=".github/assets/screenshots/eq-light.webp" width="200" alt="Custom equalizer preset editor" />
+  <img src=".github/assets/screenshots/fork-2026/home.webp" width="200" alt="LibreBuds+ home screen" />
+  <img src=".github/assets/screenshots/fork-2026/device-dashboard.webp" width="200" alt="LibreBuds+ FreeBuds device dashboard and battery levels" />
+  <img src=".github/assets/screenshots/fork-2026/audio-controls.webp" width="200" alt="LibreBuds+ audio and noise control screen" />
+  <img src=".github/assets/screenshots/fork-2026/gesture-controls.webp" width="200" alt="LibreBuds+ gesture control settings" />
 </p>
 <p align="center">
-  <img src=".github/assets/screenshots/card-dark.webp" width="200" alt="Card popup with the case animation, shown when the case opens" />
-  <img src=".github/assets/screenshots/island-dark.webp" width="200" alt="Island popup at the top of the screen" />
-  <img src=".github/assets/screenshots/gestures-dark.webp" width="200" alt="Pinch and head gesture settings" />
-  <img src=".github/assets/screenshots/device-dark.webp" width="200" alt="Device screen in dark theme" />
+  <img src=".github/assets/screenshots/fork-2026/custom-equalizer.webp" width="200" alt="LibreBuds+ custom equalizer" />
+  <img src=".github/assets/screenshots/fork-2026/preset-picker.webp" width="200" alt="LibreBuds+ audio preset picker" />
+  <img src=".github/assets/screenshots/fork-2026/find-and-multipoint.webp" width="200" alt="LibreBuds+ find earbuds and multipoint controls" />
+  <img src=".github/assets/screenshots/fork-2026/appearance-settings.webp" width="200" alt="LibreBuds+ appearance and theme settings" />
 </p>
 
 > [!NOTE]
