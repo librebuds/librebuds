@@ -19,7 +19,6 @@ import io.github.librebuds.LibreBudsApp
 import io.github.librebuds.R
 import io.github.librebuds.beacon.BeaconScanner
 import io.github.librebuds.companion.AssociationStore
-import io.github.librebuds.service.BudsService
 import io.github.librebuds.popup.PopupPresenter
 import io.github.librebuds.popup.artFor
 import io.github.librebuds.popup.demoPopupModel
@@ -62,7 +61,6 @@ fun AppRoot(
     var showIsland by remember { mutableStateOf(preferences.showIsland) }
     var popupEnabled by remember { mutableStateOf(preferences.popupEnabled) }
     val context = LocalContext.current
-    val micRouteActive by BudsService.micRouteActive.collectAsStateWithLifecycle()
     var demoMode by remember { mutableStateOf(preferences.demoMode) }
     var popupStyle by remember { mutableStateOf(preferences.popupStyle) }
     val detection = rememberDetection()
@@ -183,8 +181,6 @@ fun AppRoot(
                             preferences.popupStyle = it
                         },
                         overlay = overlay,
-                        voiceNoteTestActive = micRouteActive,
-                        onVoiceNoteTest = { BudsService.voiceNoteTest(context, it) },
                         onOpenAppInfo = { openAppDetailsSettings(context) },
                         companionPair = selected?.takeIf { it.address != DEMO_ADDRESS }?.label,
                         companionLinked = selected?.address?.uppercase() in companionLinked,
