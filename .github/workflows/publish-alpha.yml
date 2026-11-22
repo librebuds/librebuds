@@ -117,7 +117,7 @@ jobs:
           "$apksigner" verify "$candidate"
           "$aapt" dump badging "$candidate" | tee "$RUNNER_TEMP/alpha-badging.txt"
           grep -q "package: name='io.github.librebuds.alpha'" "$RUNNER_TEMP/alpha-badging.txt"
-          grep -q "versionName='1.1.0-alpha.1'" "$RUNNER_TEMP/alpha-badging.txt"
+          grep -q "versionName='1.2.0-alpha.1'" "$RUNNER_TEMP/alpha-badging.txt"
           cp "$candidate" "$RUNNER_TEMP/librebuds-plus-alpha.apk"
           (cd "$RUNNER_TEMP" && sha256sum librebuds-plus-alpha.apk > librebuds-plus-alpha.apk.sha256)
 
@@ -140,18 +140,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="v1.1.0-alpha.${GITHUB_RUN_NUMBER}"
+          tag="v1.2.0-alpha.${GITHUB_RUN_NUMBER}"
           cat > "$RUNNER_TEMP/alpha-notes.md" <<EOF
           # LibreBuds+ experimental alpha
           
           Commit: \`${GITHUB_SHA}\`
           Android package: \`io.github.librebuds.alpha\` (installs alongside stable \`io.github.librebuds\`)
-          Version: \`1.1.0-alpha.1\`
+          Version: \`1.2.0-alpha.1\`
           Signing: \`${ALPHA_SIGNING}\`
           
-          **Experimental:** FreeBuds 6i remains on the original backend. PairFree multi-brand adapters
-          are unverified across most models; the TOZO A/J adapter is battery-only and not
-          physically validated. See docs/MULTIBRAND_COMPATIBILITY.md.
+          **Huawei audio devices only:** FreeBuds 6i is owner-tested. Earlier FreeBuds 5 / Pro 5
+          testing is inherited. The other Huawei models and firmware remain hardware-unverified.
+          Some art uses documented family approximations. See docs/HUAWEI_MODEL_MATRIX.md.
           
           This is a prerelease, not a stable upgrade. Debug-test-key APKs may not update
           builds signed by the repository's release key; uninstall the previous alpha
