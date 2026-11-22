@@ -19,7 +19,7 @@
 - **Other Huawei FreeBuds and Huawei audio products:** 40 audio model profiles are available, including SE, i-series, Pro, FreeClip, FreeArc, FreeLace, Eyewear and W Buds. Their controls are *not* all verified on physical hardware; names and profiles do not guarantee that proprietary settings work.
 - Some models may provide only battery readings or basic detection; case battery, ANC, EQ, gestures and other vendor controls can be unsupported or vary with firmware.
 - Non-TWS devices without accurate licensed art deliberately use text labels rather than a made-up earbud/case illustration. FreeBuds 6i keeps the existing Pro 5-style *approximation*, not an official 6i render.
-- The manual short Bluetooth voice-note routing diagnostic is **experimental** and not a guaranteed WhatsApp call/microphone fix.
+- The unverified manual Bluetooth voice-note routing experiment has been **removed**. This release does not override WhatsApp's microphone or promise a call-quality fix.
 
 ## Removed (not supported)
 
