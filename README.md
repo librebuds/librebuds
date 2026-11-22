@@ -29,7 +29,6 @@ This application **does not guarantee** all features on all 40 model profiles. R
 - Model-aware EQ, gestures, wear detection, low latency, multipoint, sound quality and other settings where available.
 - Connection popup, compact battery presentation, Quick Settings and customizable UI.
 - Conservative **call-audio coexistence protection**: temporarily pauses the app's control link during active calls; doesn't change WhatsApp microphone gain, phone call routing or firmware.
-- Optional short Bluetooth microphone routing diagnostic in Settings (experimental, off by default; not an established microphone repair).
 
 ### Earbud / case images
 
