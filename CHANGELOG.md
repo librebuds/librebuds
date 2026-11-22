@@ -13,7 +13,7 @@ This fork is based on [LibreBuds](https://github.com/librebuds/librebuds), with 
 ### Changed
 - Narrowed the product to Huawei FreeBuds and related Huawei audio products, with 40 model profiles, stricter name matching and safe command gating.
 - Refined model illustration mapping for close variants and replaced misleading non-TWS generic bud/case images with battery labels.
-- Retained the call-audio coexistence safeguard and optional off-by-default microphone diagnostic, without claiming WhatsApp microphone repair.
+- Retained the passive call-audio coexistence safeguard. Removed the unverified manual microphone-routing diagnostic; no WhatsApp microphone repair is claimed.
 - Updated the README, model matrix, compatibility docs and attribution for the Huawei-only product.
 
 ### Removed
