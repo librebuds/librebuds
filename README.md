@@ -61,8 +61,9 @@ Battery, noise control, gestures, equalizer and a popup when you open the case. 
 | **Connection island** | A small island when the earbuds connect or move to another device, with an undo action. |
 | **Material You** | Optional dynamic colours, light and dark theme. |
 
-Which settings appear depends on what your earbuds report. Settings that have not yet been
-confirmed on a given model are labelled *Experimental* in the app.
+**Model-specific settings:** LibreBuds+ identifies the connected Huawei device and uses its model profile and reported capabilities to determine which controls to display. This means the available options can differ across FreeBuds, FreeClip, FreeLace and other Huawei audio models. Noise control, equalizer, gestures, multipoint and advanced settings appear where supported by the model and protocol; unsupported options should not be presented as working controls. Settings not yet confirmed on real hardware may be labelled *Experimental*.
+
+The app includes profiles for 40 Huawei audio models. **Profile-based feature selection does not mean all 40 models have been physically tested or that every firmware supports every command.**
 
 ## What's new in LibreBuds+ v1.2.0
 
