@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
 
       - uses: actions/setup-java@v5
         with:
@@ -38,9 +38,9 @@ jobs:
         working-directory: android
         run: ./gradlew :app:assembleDebug --no-daemon
 
-      - name: Test additional earbud model recognition
+      - name: Run Huawei protocol and UI unit tests
         working-directory: android
-        run: ./gradlew :app:testDebugUnitTest --tests io.github.librebuds.ui.other.OtherEarbudsCatalogTest --tests io.github.librebuds.ui.other.NothingProtocolTest --tests io.github.librebuds.ui.other.PairFreeCompatibilityTest --no-daemon
+        run: ./gradlew :protocol:test :app:testDebugUnitTest --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
