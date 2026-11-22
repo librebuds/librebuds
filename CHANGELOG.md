@@ -8,7 +8,7 @@ This fork is based on [LibreBuds](https://github.com/librebuds/librebuds), with 
 
 - Document all 40 Huawei audio profiles by family and evidence tier in `docs/HUAWEI_MODEL_MATRIX.md`; distinguish working hardware from unverified profiles and art-only recognition.
 - Map close FreeBuds 4E and Pro 2+ variants to their existing family illustrations. Use generic stem silhouettes on selected budget / in-ear models rather than unrelated round-bud images.
-- Flag FreeClip, FreeArc, FreeLace, Eyewear, W Buds and Studio imagery as placeholders pending genuinely matching assets; preserve established FreeBuds 6i imagery.
+- Use text-only battery illustrations for FreeClip, FreeArc, FreeLace, Eyewear, W Buds and Studio, preventing misleading generic bud/case images. Preserve FreeBuds 6i artwork and controls.
 - Add regression coverage for artwork aliases and generic fallback. These changes do not alter the Huawei Bluetooth packet protocol.
 
 ## Unreleased — Huawei-family protocol compatibility (alpha only)
