@@ -1,4 +1,4 @@
-name: Publish LibreBuds+ signed stable v1.1.0
+name: Publish LibreBuds+ signed stable v1.2.0
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: librebuds-plus-stable-v1.1.0
+  group: librebuds-plus-stable-v1.2.0
   cancel-in-progress: false
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
 
       - name: Confirm stable main and immutable version
         env:
@@ -28,8 +28,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/main"
-          if gh release view v1.1.0 >/dev/null 2>&1; then
-            echo "::error::Stable v1.1.0 already published; refusing to replace it."
+          if gh release view v1.2.0 >/dev/null 2>&1; then
+            echo "::error::Stable v1.2.0 already published; refusing to replace it."
             exit 1
           fi
 
@@ -111,7 +111,7 @@ jobs:
         working-directory: android
         run: ./gradlew :app:assembleRelease --no-daemon
 
-      - name: Verify stable ID, version and same v1.0.0 signing lineage
+      - name: Verify stable ID, version and same v1.1.0 signing lineage
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -122,9 +122,9 @@ jobs:
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$aapt" && test -x "$apksigner"
           "$apksigner" verify --print-certs "$candidate" > "$RUNNER_TEMP/new-cert.txt"
-          mkdir -p "$RUNNER_TEMP/stable-v1.0.0"
-          gh release download v1.0.0 --pattern librebuds.apk --dir "$RUNNER_TEMP/stable-v1.0.0"
-          previous="$RUNNER_TEMP/stable-v1.0.0/librebuds.apk"
+          mkdir -p "$RUNNER_TEMP/stable-v1.1.0"
+          gh release download v1.1.0 --pattern librebuds-plus-v1.1.0.apk --dir "$RUNNER_TEMP/stable-v1.0.0"
+          previous="$RUNNER_TEMP/stable-v1.0.0/librebuds-plus-v1.1.0.apk"
           test -s "$previous"
           "$apksigner" verify --print-certs "$previous" > "$RUNNER_TEMP/old-cert.txt"
           "$aapt" dump badging "$candidate" > "$RUNNER_TEMP/new-badging.txt"
@@ -149,12 +149,12 @@ jobs:
           current=version('new-badging.txt')
           if current[0]!='io.github.librebuds' or current[0]!=previous[0]:
               raise SystemExit(f'Stable package identity mismatch: {previous[0]} -> {current[0]}')
-          if current[1]!=21 or current[1]<=previous[1] or current[2]!='1.1.0':
+          if current[1]!=22 or current[1]<=previous[1] or current[2]!='1.2.0':
               raise SystemExit(f'Wrong stable version: {previous} -> {current}')
           print(f'Verified stable upgrade: {previous} -> {current}; signing certificate matches v1.0.0')
           PY
-          cp "$candidate" "$RUNNER_TEMP/librebuds-plus-v1.1.0.apk"
-          (cd "$RUNNER_TEMP" && sha256sum librebuds-plus-v1.1.0.apk > librebuds-plus-v1.1.0.apk.sha256)
+          cp "$candidate" "$RUNNER_TEMP/librebuds-plus-v1.2.0.apk"
+          (cd "$RUNNER_TEMP" && sha256sum librebuds-plus-v1.2.0.apk > librebuds-plus-v1.2.0.apk.sha256)
 
       - name: Remove signing secrets from runner
         if: always()
@@ -163,21 +163,21 @@ jobs:
       - name: Upload signed stable build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: librebuds-plus-v1.1.0-signed
+          name: librebuds-plus-v1.2.0-signed
           path: |
-            ${{ runner.temp }}/librebuds-plus-v1.1.0.apk
-            ${{ runner.temp }}/librebuds-plus-v1.1.0.apk.sha256
+            ${{ runner.temp }}/librebuds-plus-v1.2.0.apk
+            ${{ runner.temp }}/librebuds-plus-v1.2.0.apk.sha256
           if-no-files-found: error
 
-      - name: Publish immutable stable release v1.1.0
+      - name: Publish immutable stable release v1.2.0
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release create v1.1.0 \
-            "$RUNNER_TEMP/librebuds-plus-v1.1.0.apk#librebuds-plus-v1.1.0.apk" \
-            "$RUNNER_TEMP/librebuds-plus-v1.1.0.apk.sha256#librebuds-plus-v1.1.0.apk.sha256" \
+          gh release create v1.2.0 \
+            "$RUNNER_TEMP/librebuds-plus-v1.2.0.apk#librebuds-plus-v1.2.0.apk" \
+            "$RUNNER_TEMP/librebuds-plus-v1.2.0.apk.sha256#librebuds-plus-v1.2.0.apk.sha256" \
             --target "$GITHUB_SHA" \
-            --title "LibreBuds+ v1.1.0 — Stable" \
-            --notes-file RELEASE_NOTES_v1.1.0.md \
+            --title "LibreBuds+ v1.2.0 — Stable" \
+            --notes-file RELEASE_NOTES_v1.2.0.md \
             --latest
