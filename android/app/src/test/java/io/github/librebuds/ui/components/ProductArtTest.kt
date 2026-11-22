@@ -111,10 +111,11 @@ class ProductArtTest {
     }
 
     @Test
-    fun otherModelsKeepTheShapeBasedRenderEvenWithAProfileId() {
-        assertEquals(R.drawable.battery_bud_left_round, ProductArt.bud(true, "round", "freebuds-se"))
-        assertEquals(R.drawable.battery_bud_right_round, ProductArt.bud(false, "round", "freebuds-se"))
-        assertEquals(R.drawable.thumb_buds_round, ProductArt.thumbnail("round", "freebuds-se"))
+    fun otherModelsUseSafestAvailableShapeEvenWithAProfileId() {
+        // SE is a stem earbud: model-specific safety override now takes precedence.
+        assertEquals(R.drawable.battery_bud_left_stem, ProductArt.bud(true, "round", "freebuds-se"))
+        assertEquals(R.drawable.battery_bud_right_stem, ProductArt.bud(false, "round", "freebuds-se"))
+        assertEquals(R.drawable.thumb_buds_stem, ProductArt.thumbnail("round", "freebuds-se"))
         assertEquals(R.drawable.battery_bud_left_stem, ProductArt.bud(true, "stem", "freebuds-pro-6"))
         assertEquals(R.drawable.battery_bud_right_stem, ProductArt.bud(false, "stem", "freebuds-pro-6"))
     }
