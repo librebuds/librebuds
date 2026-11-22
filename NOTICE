@@ -1,40 +1,24 @@
-LibreBuds
+LibreBuds+ — Huawei-focused Android companion
 Copyright (C) 2026 LibreBuds contributors
-Licensed under the GNU General Public License v3.0.
+Licensed under the GNU General Public License, version 3 or later where marked.
+See LICENSE and source-file notices.
 
-Third-party references:
-- PairFree (https://github.com/Omega-Destroyer/PairFree, GPL-3.0), source commit af534dca43627a9c76903fbb9a118ea4a783c856: model names adapted from its device support documentation and bundled in android/app/src/main/assets/pairfree-models.tsv. The Nothing/CMF Bluetooth packet framing, CRC, response parser and limited command handling in ui/other/NothingProtocol.kt and NothingController.kt are independently adapted from PairFree's GPL-3.0 Nothing protocol and its documented source. Additional vendors' drivers are not yet ported. PairFree and its upstream contributors retain their respective credits and licenses.
-- QuickBuds (https://github.com/spizganed/QuickBuds, GPL-3.0): visual and interaction reference for compact battery rings, segmented noise controls, modal sheets and equalizer curves. LibreBuds' Compose counterparts were independently implemented; no QuickBuds Bluetooth protocol or original View classes are included.
-- OpenHarmony communication_dsoftbus (Apache License 2.0): FDEE service UUID used
-  as a cross-reference for the beacon format.
-- Wire formats were learned through interoperability analysis (Directive 2009/24/EC,
-  Article 6). No vendor code is included.
-- LibrePods (https://github.com/librepods-org/librepods, GPL-3.0, commit
-  929a5358c62ce1fc66fa63200d77eab872a07507): Android UI components, theme and
-  quick-settings patterns, imported and modified.
-  No LibrePods media (videos, images, AirPods artwork) or fonts are included.
-  The connection island is also imported from LibrePods and modified:
-  android/app/src/main/java/io/github/librebuds/overlay/IslandWindow.kt,
-  res/layout/island_window.xml, res/drawable/island_*.xml and
-  res/drawable/ic_undo_button_bg.xml. Where LibrePods plays its AirPods clip, the island
-  shows the LibreBuds product render of the model. The case-open popup window is imported the same
-  way and modified: android/app/src/main/java/io/github/librebuds/popup/PopupWindow.kt;
-  its layout (res/layout/popup_window.xml) is written for LibreBuds.
-- res/drawable/ic_undo.xml: Material Symbols icon path (Google, Apache License 2.0).
-- Material Symbols icon paths (Google, Apache License 2.0), via LibrePods'
-  presentation/MaterialIcons.kt (android/app/.../ui/icons/MaterialIcons.kt), plus the
-  "nearby" path added there and res/drawable/ic_mode_off.xml, ic_mode_cancellation.xml and
-  ic_mode_awareness.xml.
-- Product renders and launcher artwork (res/drawable-nodpi/battery_*.webp, thumb_*.webp,
-  res/drawable-night-nodpi/*.webp, res/mipmap-*/ic_launcher_foreground.webp, and the
-  vectors derived from them: res/drawable/ic_launcher_monochrome.xml and ic_buds.xml):
-  LibreBuds original artwork generated with an image model; no third-party licence. This does
-  not cover the per-model earbud files (*_freebuds_*.webp).
-- Inter typeface (SIL Open Font License 1.1), loaded at runtime through Google Fonts.
-- Case animations (android/app/src/main/res/raw/popup_*.mp4): not covered by the statements above.
+Credits and retained dependencies:
+- LibreBuds original community project (https://github.com/librebuds/librebuds) and its contributors.
+- OpenFreebuds (https://github.com/melianmiko/OpenFreebuds): original Huawei earbud interoperability research and command framing.
+- LibrePods (https://github.com/librepods-org/librepods), GPL-3.0, original commit 929a5358c62ce1fc66fa63200d77eab872a07507: imported/modified UI components and patterns, including popup and island components, with credit retained to original authors.
+- QuickBuds (https://github.com/spizganed/QuickBuds), GPL-3.0: visual and interaction design inspiration for battery rings, segmented noise modes, modal sheets and EQ. LibreBuds+ Compose views are separately implemented; no QuickBuds proprietary vendor Bluetooth stack was imported.
+- OpenHarmony communication_dsoftbus, Apache License 2.0: FDEE service UUID used as a beacon format cross-reference.
+- Google Material Symbols, Apache License 2.0: icon paths under UI icons and selected vector drawables.
+- Inter font, SIL Open Font License 1.1: loaded through Google Fonts at runtime.
+- Original app art generated for LibreBuds with an image model; separate model-specific Huawei illustrations have their own source-file attribution. The file artwork inventory is described in docs/HUAWEI_MODEL_MATRIX.md.
+- Case animations under android/app/src/main/res/raw/popup_*.mp4 are not covered by the general artwork ownership statement above.
+- Bluetooth wire formats are based on lawful interoperability analysis. No manufacturer firmware source code is included.
 
-- BluntyBuds (https://github.com/arkivx0/BluntyBuds, MIT), Copyright (c) 2026 arkivx0. TOZO protocol A/J GATT UUIDs, status frame formats and model names researched from its public Android source; this fork's TozoController is an independently adapted, read-only GATT battery adapter. MIT terms and copyright are retained here; full MIT text: https://github.com/arkivx0/BluntyBuds/blob/main/LICENSE.
-- earshot (https://github.com/HellzYeahh/earshot, MIT), Copyright (c) 2026 Earshot contributors: protocol capability and compatibility research only; no protocol implementation or artwork copied.
-- DevPods (https://github.com/ORION2809/DevPods): provider routing and compatibility architecture reference only; no code or images copied, root license not identified.
+Historical development attribution (NOT shipped in Huawei-only v1.2.0):
+- PairFree (https://github.com/Omega-Destroyer/PairFree), GPL-3.0, source commit af534dca43627a9c76903fbb9a118ea4a783c856, was researched and included in v1.1.0 experimental multi-brand work. PairFree source, vectors, and submodule have been removed from the Huawei-only v1.2.0 implementation; original authors retain attribution for previous releases.
+- BluntyBuds (https://github.com/arkivx0/BluntyBuds), MIT, (c) 2026 arkivx0, was consulted for experimental TOZO A/J battery protocol research in v1.1.0. TOZO code has been removed.
+- earshot (https://github.com/HellzYeahh/earshot), MIT, and DevPods (https://github.com/ORION2809/DevPods) were background compatibility references; no code or images from either were shipped as part of the Huawei-only implementation.
+- LiveClearMic (https://github.com/KreeZiEdad/LiveClearMic) was reviewed as a public discussion of Android audio routing behavior, without copying code.
 
-- PairFree SVG studio illustrations (https://github.com/Omega-Destroyer/PairFree, GPL-3.0-or-later), pinned at commit af534dca43627a9c76903fbb9a118ea4a783c856: seven source files are adapted from assets/devices/samsung/buds3pro/studio/bud.svg, sony/wfxm5/studio/bud.svg, soundcore/a30i/studio/bud.svg and case.svg, nothing/ear/studio/bud.svg, and apple/pro/studio/bud.svg and case.svg. The derived Android VectorDrawable XML files are android/app/src/main/res/drawable/pairfree_*.xml. Source paths and attribution are recorded in each XML. These are stylized product illustrations, not official manufacturer photos; device-specific art does not certify protocol support. Original authors retain GPL credits.
+LibreBuds+ is independent and not endorsed by Huawei or any other manufacturer.
