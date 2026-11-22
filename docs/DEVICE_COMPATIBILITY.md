@@ -11,6 +11,8 @@
 | FreeClip / FreeClip 2; FreeArc; FreeLace / Lite / Pro / Pro 2; Eyewear; W Buds | **Needs testing / generic fallback possible** | Name/profile recognition and best-effort Huawei transport | Actual individual battery reports, case semantics, advanced settings, unusual form factors |
 | Samsung, Nothing, Sony, Bose, Apple, TOZO and other non-Huawei brands | **Not supported by LibreBuds+ vendor controls** | Standard Android Bluetooth audio works independently of LibreBuds+ | Vendor-specific controls were intentionally removed |
 
+**Call audio:** The unverified manual voice-note routing experiment has been removed. LibreBuds+ keeps only conservative call-audio coexistence behavior and does not select WhatsApp's microphone.
+
 **Support policy:** Never claim that an earbud is supported merely because its name is recognized or artwork exists. A value must come from an actual device reply; unverified writes must stay unavailable until supported by the model profile and hardware evidence.
 
 **Artwork:** Dedicated illustrations exist for FreeBuds 3/4/5/6 and Pro 2/3/4/5. FreeBuds 4E, Pro 2+ and 6i use approximate family art; budget i/SE models may use generic stem silhouettes. Non-TWS Huawei devices (FreeClip, FreeArc, FreeLace, Eyewear, W Buds, Studio) use text-only battery image slots until suitable art is sourced, to avoid showing a fake case.
