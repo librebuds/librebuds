@@ -18,9 +18,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.media.AudioManager
-import android.media.AudioDeviceInfo
-import android.os.Handler
-import android.os.Looper
 import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
@@ -60,7 +57,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * The background side of the app, as a `connectedDevice` foreground service. It is started at boot, when
@@ -91,47 +87,8 @@ class BudsService : Service() {
     private val audioManager by lazy { getSystemService(AudioManager::class.java) }
     private var headsetCallAudioActive = false
     private val modeListener = AudioManager.OnModeChangedListener {
-        if (audioManager.mode != AudioManager.MODE_NORMAL) stopVoiceNoteRouteTest()
         evaluate("call audio mode changed")
     }
-    private val routeTimeout = Handler(Looper.getMainLooper())
-    private val routeExpiry = Runnable { stopVoiceNoteRouteTest() }
-    private var ownsVoiceNoteRoute = false
-
-    /** A manual, temporary routing experiment; never records audio or sets a call mode. */
-    private fun startVoiceNoteRouteTest() {
-        stopVoiceNoteRouteTest()
-        val headset = audioManager.availableCommunicationDevices.firstOrNull {
-            it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-                it.type == AudioDeviceInfo.TYPE_BLE_HEADSET
-        }
-        if (!canStartVoiceNoteRouteTest(audioManager.mode, headset != null)) {
-            event(this, "voice-note route denied: call active or no Bluetooth headset")
-            return
-        }
-        try {
-            ownsVoiceNoteRoute = headset != null && audioManager.setCommunicationDevice(headset)
-            micRouteActive.value = ownsVoiceNoteRoute
-            if (ownsVoiceNoteRoute) {
-                event(this, "temporary voice-note route requested for 60 seconds")
-                routeTimeout.postDelayed(routeExpiry, 60_000L)
-            } else event(this, "Android declined optional mic route request")
-        } catch (e: SecurityException) {
-            event(this, "manual voice-note route unavailable: security")
-            stopVoiceNoteRouteTest()
-        } catch (e: IllegalArgumentException) {
-            event(this, "manual voice-note route unavailable: device")
-            stopVoiceNoteRouteTest()
-        }
-    }
-
-    private fun stopVoiceNoteRouteTest() {
-        routeTimeout.removeCallbacks(routeExpiry)
-        if (ownsVoiceNoteRoute) audioManager.clearCommunicationDevice()
-        ownsVoiceNoteRoute = false
-        micRouteActive.value = false
-    }
-
     // What evaluate() was asked for since the last decision; main thread only.
     private val pendingReasons = mutableListOf<String>()
     private var pendingPreferred: String? = null
@@ -177,10 +134,6 @@ class BudsService : Service() {
         // startForegroundService() must do so even if it is about to stop.
         if (!enterForeground(LibreBudsApp.from(this).controller.state.value)) return START_NOT_STICKY
         watchState()
-        when (intent?.action) {
-            ACTION_VOICE_NOTE_TEST -> startVoiceNoteRouteTest()
-            ACTION_STOP_VOICE_NOTE_TEST -> stopVoiceNoteRouteTest()
-        }
         // A null intent is a restart by the system after it killed the process (START_STICKY).
         val preferred = intent?.getStringExtra(EXTRA_ADDRESS)
         event(this, "start (${if (intent == null) "restarted" else "requested"}${preferred?.let { ", for ${EventLog.maskMac(it)}" } ?: ""})")
@@ -196,7 +149,6 @@ class BudsService : Service() {
         AudioProfiles.removeListener(onProfilesRead)
         // The proxies were bound once for this process; nothing needs them once the service is gone.
         AudioProfiles.release()
-        stopVoiceNoteRouteTest()
         audioManager.removeOnModeChangedListener(modeListener)
         // Nothing keeps a session alive without the service; drop it rather than leak it.
         val link = LibreBudsApp.from(this).controller.state.value.link
@@ -442,24 +394,6 @@ class BudsService : Service() {
         private const val CHANNEL_ID = "connection"
         private const val NOTIFICATION_ID = 1
         private const val ACTION_START = "io.github.librebuds.action.START"
-        private const val ACTION_VOICE_NOTE_TEST = "io.github.librebuds.action.START_VOICE_NOTE_TEST"
-        private const val ACTION_STOP_VOICE_NOTE_TEST = "io.github.librebuds.action.STOP_VOICE_NOTE_TEST"
-
-        val micRouteActive = MutableStateFlow(false)
-
-        /** Called by Settings only, and never automatically for another app. */
-        fun voiceNoteTest(context: Context, enable: Boolean) {
-            val action = if (enable) ACTION_VOICE_NOTE_TEST else ACTION_STOP_VOICE_NOTE_TEST
-            try {
-                context.startForegroundService(Intent(context, BudsService::class.java).setAction(action))
-            } catch (e: IllegalStateException) {
-                micRouteActive.value = false
-                Log.w(TAG, "Cannot start optional voice-note test", e)
-            } catch (e: SecurityException) {
-                micRouteActive.value = false
-                Log.w(TAG, "No permission for optional voice-note test", e)
-            }
-        }
         private const val EXTRA_ADDRESS = "address"
 
         private val WATCHED_ACTIONS = listOf(
