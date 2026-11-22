@@ -4,6 +4,24 @@ All notable changes to the **LibreBuds+** community fork are documented here.
 
 This fork is based on [LibreBuds](https://github.com/librebuds/librebuds), with interface inspiration from [QuickBuds by spizganed](https://github.com/spizganed/QuickBuds). See [NOTICE](NOTICE) and [LICENSE](LICENSE) for acknowledgments and license terms.
 
+## [1.2.0] — Huawei-only stable
+
+### Confirmed / retained
+- Owner tested FreeBuds 6i on alpha.89 and confirmed functionality; Huawei controller, battery, ANC/Awareness, EQ, gestures and existing UX preserved.
+- FreeBuds 5 / Pro 5 have earlier inherited hardware evidence; all other model profiles need device verification.
+
+### Changed
+- Narrowed the product to Huawei FreeBuds and related Huawei audio products, with 40 model profiles, stricter name matching and safe command gating.
+- Refined model illustration mapping for close variants and replaced misleading non-TWS generic bud/case images with battery labels.
+- Retained the call-audio coexistence safeguard and optional off-by-default microphone diagnostic, without claiming WhatsApp microphone repair.
+- Updated the README, model matrix, compatibility docs and attribution for the Huawei-only product.
+
+### Removed
+- Experimental PairFree submodule and vendor core, Samsung, Nothing/CMF, TOZO and other non-Huawei protocols, model table, imported art and their test code. These integrations were not confirmed operational. Normal Bluetooth pairing remains Android's responsibility.
+- Previous v1.1.0 stable release retained as an immutable download. Stable 1.2.0 uses a higher versionCode and the existing signing lineage.
+
+## Historical alpha development notes
+
 ## Unreleased — Huawei support & artwork accuracy (alpha only)
 
 - Document all 40 Huawei audio profiles by family and evidence tier in `docs/HUAWEI_MODEL_MATRIX.md`; distinguish working hardware from unverified profiles and art-only recognition.
